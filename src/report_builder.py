@@ -292,10 +292,11 @@ class ReportBuilder:
         status = backtest_result.get("status", "")
 
         if status == "no_history":
+            no_hist_msg = italic('Primeira execução — sem histórico para comparação.')
             return (
                 f"{sep}\n"
                 f"📉 {bold('Performance da Carteira Anterior')}\n\n"
-                f"{italic('Primeira execução — sem histórico para comparação\\.')}"
+                f"{no_hist_msg}"
             )
 
         if status in ("error", "partial_data"):
