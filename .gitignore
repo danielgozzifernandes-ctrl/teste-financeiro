@@ -1,0 +1,47 @@
+# Ambiente
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+
+# Cache de dados (regenerável)
+cache/
+
+# Saídas geradas
+output/
+output_*.png
+chart_*.png
+
+# Snapshots históricos (manter apenas via GitHub Actions cache)
+# Comente esta linha se quiser versionar os snapshots no git:
+# data/snapshots/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/

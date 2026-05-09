@@ -1,0 +1,765 @@
+"""
+data_collector.py — Módulo 2
+
+Estratégia de coleta em camadas:
+  1. brapi.dev  (PRIMARY)  — quotes em batch de 10 tickers: preço, P/L, DY, volume
+  2. yfinance   (FALLBACK) — fundamentais profundos (ROE, ROIC, Dívida/EBITDA, P/VP)
+                           — histórico OHLCV 1 ano completo
+  3. Cache JSON local      — TTL 24h por chave; evita re-fetch e respeita rate limits
+
+Por que dois sources?
+  brapi free tier retorna: regularMarketPrice, priceEarningsRatio, dividendYield,
+  averageDailyVolume3Month, marketCap, beta, fiftyTwoWeekHigh/Low.
+  NÃO retorna: priceToBook, ROE, ROIC, Dívida/EBITDA.
+  yfinance preenche o gap com Ticker.info (Yahoo Finance CVM data).
+
+Output público:
+  load_data() → (df_fundamentals: pd.DataFrame, df_prices: pd.DataFrame)
+
+  df_fundamentals colunas:
+    ticker, nome, setor, subsetor, liquidez_minima_MM, norm_method,
+    pl, pvp, roe, roic, divida_ebitda, dividend_yield,
+    beta, avg_volume_30d, current_price, market_cap,
+    week52_high, week52_low, data_source
+
+  df_prices:
+    index = date (DatetimeIndex), columns = tickers (preço de fechamento ajustado)
+"""
+
+import json
+import logging
+import os
+import time
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+import requests
+import yfinance as yf
+
+from src.config import (
+    BRAPI_BASE_URL,
+    BRAPI_RATE_LIMIT,
+    BRAPI_TIMEOUT,
+    CACHE_DIR_PATH,
+    CACHE_TTL_HOURS,
+    UNIVERSE_FILE,
+    YFINANCE_TIMEOUT,
+)
+
+logger = logging.getLogger(__name__)
+
+# Brapi suporta vários tickers separados por vírgula; 10 é conservador para free tier
+BATCH_SIZE = 1  # brapi free tier não suporta batch — requisição individual
+
+# Se mais de 20% dos tickers falharem em ambas as fontes, abortamos
+MAX_FAILURES_RATIO = 0.20
+
+# Setores onde Dívida/EBITDA é conceitualmente inaplicável (modelo bancário)
+FINANCIAL_SECTORS = {"Financeiro e Outros"}
+
+
+class DataCollectionError(Exception):
+    """Falha irrecuperável na coleta de dados."""
+
+
+# ---------------------------------------------------------------------------
+# CacheManager — leitura/escrita de JSON com TTL
+# ---------------------------------------------------------------------------
+class CacheManager:
+    """
+    Cache de arquivos JSON em disco com TTL configurável.
+
+    Cada chave vira um arquivo {key}.json no cache_dir.
+    Validade verificada pelo mtime do arquivo vs. TTL.
+    """
+
+    def __init__(
+        self,
+        cache_dir: Path = CACHE_DIR_PATH,
+        ttl_hours: int = CACHE_TTL_HOURS,
+    ):
+        self.cache_dir = Path(cache_dir)
+        self.ttl = timedelta(hours=ttl_hours)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    def _path(self, key: str) -> Path:
+        safe = key.replace("/", "_").replace(":", "_").replace(",", "-")
+        return self.cache_dir / f"{safe}.json"
+
+    def is_valid(self, key: str) -> bool:
+        p = self._path(key)
+        if not p.exists():
+            return False
+        age = datetime.now() - datetime.fromtimestamp(p.stat().st_mtime)
+        return age < self.ttl
+
+    def get(self, key: str) -> Optional[dict | list]:
+        if not self.is_valid(key):
+            return None
+        try:
+            with open(self._path(key), encoding="utf-8") as f:
+                data = json.load(f)
+            logger.debug("Cache HIT  → %s", key)
+            return data
+        except (json.JSONDecodeError, OSError):
+            return None
+
+    def set(self, key: str, data: dict | list) -> None:
+        try:
+            with open(self._path(key), "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, default=str)
+            logger.debug("Cache WRITE → %s", key)
+        except OSError as e:
+            logger.warning("Falha ao escrever cache %s: %s", key, e)
+
+    def invalidate(self, key: str) -> None:
+        p = self._path(key)
+        if p.exists():
+            p.unlink(missing_ok=True)
+
+
+# ---------------------------------------------------------------------------
+# BrapiClient — wrapper HTTP com retry e batch
+# ---------------------------------------------------------------------------
+class BrapiClient:
+    """
+    Acessa brapi.dev para quotes em lote e histórico de preços.
+
+    Rate limiting: sleep(rate_limit) entre cada request de batch.
+    Estratégia de falha:
+      1. Tenta batch completo de BATCH_SIZE tickers.
+      2. Se o batch falha, faz retry ticker-a-ticker.
+      3. Registra falhos mas não interrompe a coleta.
+    """
+
+    def __init__(
+        self,
+        base_url: str = BRAPI_BASE_URL,
+        timeout: int = BRAPI_TIMEOUT,
+        rate_limit: float = BRAPI_RATE_LIMIT,
+        token: Optional[str] = None,
+    ):
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+        self.rate_limit = rate_limit
+        self.session = requests.Session()
+        self.session.headers.update({"Accept": "application/json", "User-Agent": "recomendador-b3/1.0"})
+        self._params = {"token": token} if token else {}
+
+    def _get(self, path: str, extra_params: Optional[dict] = None) -> dict:
+        params = {**self._params, **(extra_params or {})}
+        url = f"{self.base_url}{path}"
+        response = self.session.get(url, params=params, timeout=self.timeout)
+        response.raise_for_status()
+        return response.json()
+
+    def _fetch_batch(self, tickers: list[str]) -> dict[str, dict]:
+        """Um único request para até BATCH_SIZE tickers. Retorna dict ticker→raw."""
+        raw = self._get(f"/quote/{','.join(tickers)}")
+        return {
+            item["symbol"]: item
+            for item in raw.get("results", [])
+            if item.get("symbol")
+        }
+
+    def fetch_quotes_all(
+        self,
+        tickers: list[str],
+        cache: CacheManager,
+    ) -> tuple[dict[str, dict], list[str]]:
+        """
+        Busca quotes para todos os tickers em batches.
+
+        Falha parcial:
+          - Batch falha → retry individual com sleep entre cada um
+          - Individual falha → ticker vai para lista `failed`
+          - Tickers não retornados pelo brapi (sem erro HTTP) → também `failed`
+
+        Returns:
+          all_data: dict[ticker, raw_brapi_dict] para tickers bem-sucedidos
+          failed:   list[ticker] sem dados
+        """
+        all_data: dict[str, dict] = {}
+        failed: list[str] = []
+        batches = [tickers[i : i + BATCH_SIZE] for i in range(0, len(tickers), BATCH_SIZE)]
+
+        for batch_idx, batch in enumerate(batches):
+            cache_key = f"brapi_batch_{'_'.join(sorted(batch))}"
+            cached = cache.get(cache_key)
+            if cached:
+                all_data.update(cached)
+                logger.debug("Batch %d/%d: cache hit (%d tickers)", batch_idx + 1, len(batches), len(cached))
+                continue
+
+            logger.info("Batch %d/%d: requisitando %s...", batch_idx + 1, len(batches), batch)
+            try:
+                batch_data = self._fetch_batch(batch)
+                all_data.update(batch_data)
+                cache.set(cache_key, batch_data)
+
+                missing = [t for t in batch if t not in batch_data]
+                if missing:
+                    logger.warning("Brapi não retornou dados para %s (sem erro HTTP)", missing)
+                    failed.extend(missing)
+
+            except requests.HTTPError as e:
+                logger.warning("Batch %s → HTTP %s — retry individual", batch, e.response.status_code)
+                self._retry_individual(batch, all_data, failed, cache)
+
+            except (requests.ConnectionError, requests.Timeout) as e:
+                logger.warning("Batch %s → timeout/conexão (%s) — retry individual", batch, e)
+                self._retry_individual(batch, all_data, failed, cache)
+
+            time.sleep(self.rate_limit)
+
+        logger.info("Brapi: %d coletados, %d falhos", len(all_data), len(failed))
+        return all_data, failed
+
+    def _retry_individual(
+        self,
+        tickers: list[str],
+        all_data: dict,
+        failed: list,
+        cache: CacheManager,
+    ) -> None:
+        for ticker in tickers:
+            cache_key = f"brapi_single_{ticker}"
+            cached = cache.get(cache_key)
+            if cached:
+                all_data[ticker] = cached
+                continue
+            try:
+                time.sleep(self.rate_limit * 2)  # back-off maior no retry
+                data = self._fetch_batch([ticker])
+                if ticker in data:
+                    all_data[ticker] = data[ticker]
+                    cache.set(cache_key, data[ticker])
+                    logger.debug("Retry individual OK: %s", ticker)
+                else:
+                    logger.error("Retry individual sem dados: %s", ticker)
+                    failed.append(ticker)
+            except Exception as exc:
+                logger.error("Retry individual falhou para %s: %s", ticker, exc)
+                failed.append(ticker)
+
+    def fetch_historical(
+        self,
+        ticker: str,
+        range_: str = "1y",
+        interval: str = "1d",
+    ) -> Optional[pd.DataFrame]:
+        """
+        Retorna DataFrame OHLCV para o ticker.
+        Brapi retorna historicalDataPrice como lista de dicts com timestamp Unix.
+        """
+        try:
+            raw = self._get(
+                f"/quote/{ticker}",
+                extra_params={"range": range_, "interval": interval, "fundamental": "false"},
+            )
+            results = raw.get("results", [])
+            if not results:
+                return None
+            hist = results[0].get("historicalDataPrice", [])
+            if not hist:
+                return None
+
+            df = pd.DataFrame(hist)
+            # brapi retorna timestamp Unix em segundos
+            df["date"] = pd.to_datetime(df["date"], unit="s", utc=True).dt.tz_localize(None)
+            df = df.set_index("date").sort_index()
+            df = df.rename(columns={
+                "open":          "Open",
+                "high":          "High",
+                "low":           "Low",
+                "close":         "Close",
+                "volume":        "Volume",
+                "adjustedClose": "Adj Close",
+            })
+            close_col = "Adj Close" if "Adj Close" in df.columns else "Close"
+            df = df[df[close_col].notna() & (df[close_col] > 0)]
+            return df[[c for c in ["Open", "High", "Low", "Close", "Adj Close", "Volume"] if c in df.columns]]
+
+        except Exception as exc:
+            logger.warning("Brapi histórico %s falhou: %s", ticker, exc)
+            return None
+
+
+# ---------------------------------------------------------------------------
+# YFinanceClient — fallback para fundamentais e histórico
+# ---------------------------------------------------------------------------
+class YFinanceClient:
+    """
+    Usa yfinance como fonte secundária.
+    Tickers brasileiros precisam de sufixo .SA (ex: PETR4.SA).
+
+    Retorna fundamentais que o brapi free tier não oferece:
+      priceToBook (P/VP), returnOnEquity (ROE),
+      returnOnCapitalEmployed (ROIC), totalDebt + ebitda → Dívida/EBITDA
+    """
+
+    # Mapeamento yfinance key → nossa key interna
+    _FIELD_MAP = {
+        "trailingPE":               "pl",
+        "priceToBook":              "pvp",
+        "returnOnEquity":           "roe",
+        "returnOnCapitalEmployed":  "roic",
+        "dividendYield":            "dividend_yield",
+        "beta":                     "beta",
+        "averageVolume":            "avg_volume_30d",
+        "marketCap":                "market_cap",
+        "currentPrice":             "current_price",
+        "fiftyTwoWeekHigh":         "week52_high",
+        "fiftyTwoWeekLow":          "week52_low",
+        "totalDebt":                "_total_debt",
+        "ebitda":                   "_ebitda",
+        "returnOnAssets":           "_roa",  # proxy ROIC quando ROCE indisponível
+    }
+
+    def fetch_info(self, ticker: str) -> dict:
+        """
+        Retorna dict com fundamentais ou {"_source": "failed"} em caso de erro.
+
+        Sobre ROIC: yfinance expõe returnOnCapitalEmployed quando disponível.
+        Caso indisponível, usamos returnOnAssets como proxy (conservador mas razoável).
+        """
+        try:
+            info = yf.Ticker(f"{ticker}.SA").info or {}
+            if not info or info.get("regularMarketPrice") is None and info.get("currentPrice") is None:
+                # yfinance retornou dict vazio ou ticker inexistente
+                return {"_source": "failed", "ticker": ticker}
+
+            result: dict = {"_source": "yfinance", "ticker": ticker}
+            for yf_key, our_key in self._FIELD_MAP.items():
+                val = info.get(yf_key)
+                result[our_key] = val if val not in (None, "None", "N/A", 0.0) else None
+
+            # Calcular Dívida/EBITDA a partir dos campos brutos
+            debt  = result.pop("_total_debt", None)
+            ebitda = result.pop("_ebitda", None)
+            roa   = result.pop("_roa", None)
+
+            if debt is not None and ebitda and ebitda != 0:
+                result["divida_ebitda"] = debt / ebitda
+            else:
+                result["divida_ebitda"] = None
+
+            # ROIC: preferir ROCE; se None, usar ROA como proxy
+            if result.get("roic") is None and roa is not None:
+                result["roic"] = roa
+
+            return result
+
+        except Exception as exc:
+            logger.error("yfinance info %s: %s", ticker, exc)
+            return {"_source": "failed", "ticker": ticker}
+
+    def fetch_history(self, ticker: str, period: str = "1y") -> Optional[pd.DataFrame]:
+        """Retorna DataFrame OHLCV (auto-adjusted) ou None."""
+        try:
+            df = yf.download(
+                f"{ticker}.SA",
+                period=period,
+                progress=False,
+                auto_adjust=True,
+                timeout=YFINANCE_TIMEOUT,
+            )
+            if df is None or df.empty:
+                return None
+            df.index = pd.to_datetime(df.index)
+            return df
+        except Exception as exc:
+            logger.warning("yfinance histórico %s: %s", ticker, exc)
+            return None
+
+
+# ---------------------------------------------------------------------------
+# Helpers de parsing e normalização de dados brapi
+# ---------------------------------------------------------------------------
+def _parse_brapi_quote(raw: dict) -> dict:
+    """
+    Extrai e renomeia campos de um item do endpoint /quote da brapi.
+
+    Atenção ao DY: brapi às vezes retorna 9.12 (porcentagem) e às vezes 0.0912.
+    Regra: se valor > 1.0, assumir que está em % e dividir por 100.
+    """
+    dy = raw.get("dividendYield")
+    if dy is not None and dy > 1.0:
+        dy = dy / 100.0
+
+    return {
+        "current_price":  raw.get("regularMarketPrice"),
+        "pl":             raw.get("priceEarningsRatio"),
+        "dividend_yield": dy,
+        "beta":           raw.get("beta"),
+        "avg_volume_30d": (
+            raw.get("averageDailyVolume3Month")
+            or raw.get("regularMarketVolume")
+        ),
+        "market_cap":    raw.get("marketCap"),
+        "week52_high":   raw.get("fiftyTwoWeekHigh"),
+        "week52_low":    raw.get("fiftyTwoWeekLow"),
+        "_source":       "brapi",
+    }
+
+
+def _merge_sources(brapi_parsed: dict, yf_info: dict) -> dict:
+    """
+    Mescla dados brapi (P/L, DY, volume) com yfinance (P/VP, ROE, ROIC, Dívida/EBITDA).
+    Regra: brapi tem prioridade para campos que ele retorna; yfinance preenche gaps.
+    """
+    merged = {**yf_info}  # base: yfinance
+    for key, value in brapi_parsed.items():
+        if key.startswith("_"):
+            continue
+        if value is not None:
+            merged[key] = value  # brapi sobrescreve se não-nulo
+
+    # Fonte composta
+    sources = set()
+    if brapi_parsed.get("_source") == "brapi":
+        sources.add("brapi")
+    if yf_info.get("_source") == "yfinance":
+        sources.add("yfinance")
+    merged["data_source"] = "+".join(sorted(sources)) if sources else "failed"
+    return merged
+
+
+# ---------------------------------------------------------------------------
+# DataCollector — orquestrador principal
+# ---------------------------------------------------------------------------
+class DataCollector:
+    """
+    Orquestra a coleta completa de dados para o universo de ações.
+
+    Uso:
+        collector = DataCollector()
+        df_fund, df_prices = collector.collect()
+    """
+
+    def __init__(
+        self,
+        universe_file: Path = UNIVERSE_FILE,
+        cache: Optional[CacheManager] = None,
+        brapi: Optional[BrapiClient] = None,
+        yf_client: Optional[YFinanceClient] = None,
+    ):
+        self.universe_file = Path(universe_file)
+        self.cache  = cache     or CacheManager()
+        self.brapi  = brapi     or BrapiClient(token=os.getenv("BRAPI_TOKEN") or None)
+        self.yf     = yf_client or YFinanceClient()
+        self._universe: Optional[pd.DataFrame] = None
+
+    @property
+    def universe(self) -> pd.DataFrame:
+        if self._universe is None:
+            self._universe = pd.read_csv(self.universe_file)
+        return self._universe
+
+    # ------------------------------------------------------------------
+    # Ponto de entrada público
+    # ------------------------------------------------------------------
+    def collect(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Executa a coleta completa com cache.
+
+        Returns:
+            df_fundamentals: uma linha por ticker, colunas tipadas float64
+            df_prices:       wide DataFrame (date × ticker, preço ajustado)
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        fund_key  = f"fundamentals_{today}"
+        price_key = f"prices_wide_{today}"
+
+        # --- Fundamentais ---
+        cached_fund = self.cache.get(fund_key)
+        if cached_fund:
+            df_fund = pd.DataFrame(cached_fund)
+            logger.info("Fundamentais: cache hit (%d tickers)", len(df_fund))
+        else:
+            df_fund = self._collect_fundamentals()
+            self.cache.set(fund_key, df_fund.to_dict(orient="records"))
+            logger.info("Fundamentais coletados e cacheados (%d tickers)", len(df_fund))
+
+        # --- Preços históricos ---
+        cached_prices = self.cache.get(price_key)
+        if cached_prices:
+            df_prices = pd.DataFrame.from_dict(cached_prices)
+            df_prices.index = pd.to_datetime(df_prices.index)
+            logger.info("Preços: cache hit (%d dias × %d tickers)", *df_prices.shape)
+        else:
+            valid_tickers = df_fund.loc[
+                df_fund["data_source"] != "failed", "ticker"
+            ].tolist()
+            df_prices = self._collect_prices(valid_tickers)
+            df_cache = df_prices.copy()
+            df_cache.index = df_cache.index.strftime("%Y-%m-%d")
+            self.cache.set(price_key, df_cache.to_dict())
+            logger.info("Preços coletados e cacheados (%d dias × %d tickers)", *df_prices.shape)
+
+        return df_fund, df_prices
+
+    # ------------------------------------------------------------------
+    # Coleta de Fundamentais
+    # ------------------------------------------------------------------
+    def _collect_fundamentals(self) -> pd.DataFrame:
+        tickers = self.universe["ticker"].tolist()
+        logger.info("Coletando fundamentais para %d tickers", len(tickers))
+
+        # Passo 1: batch brapi para quotes
+        brapi_data, brapi_failed = self.brapi.fetch_quotes_all(tickers, self.cache)
+
+        # Passo 2: yfinance para cada ticker (deep fundamentals)
+        # Fazemos independente do brapi: yfinance tem P/VP, ROE, ROIC, Dívida/EBITDA
+        records: list[dict] = []
+        yf_failed: list[str] = []
+
+        for _, row in self.universe.iterrows():
+            ticker = row["ticker"]
+            setor  = row["setor"]
+
+            # Base do registro: metadados do universe.csv
+            record: dict = {
+                "ticker":             ticker,
+                "nome":               row["nome"],
+                "setor":              setor,
+                "subsetor":           row["subsetor"],
+                "liquidez_minima_MM": float(row["liquidez_minima_MM"]),
+                "norm_method":        row["norm_method"],
+            }
+
+            # Dados brapi (price, P/L, DY, volume, 52w hi/lo)
+            brapi_parsed = (
+                _parse_brapi_quote(brapi_data[ticker])
+                if ticker in brapi_data
+                else {"_source": "missing"}
+            )
+
+            # Dados yfinance (P/VP, ROE, ROIC, Dívida/EBITDA, + fallback para resto)
+            yf_cache_key = f"yf_info_{ticker}_{datetime.now().strftime('%Y-%m-%d')}"
+            yf_cached = self.cache.get(yf_cache_key)
+            if yf_cached:
+                yf_info = yf_cached
+            else:
+                yf_info = self.yf.fetch_info(ticker)
+                self.cache.set(yf_cache_key, yf_info)
+                time.sleep(0.4)  # rate limit yfinance
+
+            if yf_info.get("_source") == "failed":
+                yf_failed.append(ticker)
+
+            # Mesclar as duas fontes
+            merged = _merge_sources(brapi_parsed, yf_info)
+            record.update({k: v for k, v in merged.items() if not k.startswith("_")})
+
+            # Setor financeiro: Dívida/EBITDA não se aplica (modelo bancário)
+            if setor in FINANCIAL_SECTORS:
+                record["divida_ebitda"] = float("nan")
+
+            # Se ambas as fontes falharam, marcar explicitamente
+            if brapi_parsed.get("_source") == "missing" and yf_info.get("_source") == "failed":
+                record["data_source"] = "failed"
+                logger.error("Sem dados de nenhuma fonte para %s", ticker)
+
+            records.append(record)
+
+        # Passo 3: avaliar taxa de falha global
+        total_failed = len(
+            set(t for t, r in zip(tickers, records) if r.get("data_source") == "failed")
+        )
+        fail_ratio = total_failed / len(tickers)
+        if fail_ratio > MAX_FAILURES_RATIO:
+            raise DataCollectionError(
+                f"{total_failed}/{len(tickers)} tickers sem dados ({fail_ratio:.0%}). "
+                "Verifique conexão, rate limits ou disponibilidade das APIs."
+            )
+        if total_failed:
+            failed_tickers = [r["ticker"] for r in records if r.get("data_source") == "failed"]
+            logger.warning("%d tickers excluídos por falha total de dados: %s", total_failed, failed_tickers)
+
+        df = pd.DataFrame(records)
+        df = self._cast_and_clean(df)
+        self._log_coverage_report(df)
+        return df
+
+    # ------------------------------------------------------------------
+    # Coleta de Preços Históricos (12 meses)
+    # ------------------------------------------------------------------
+    def _collect_prices(self, tickers: list[str]) -> pd.DataFrame:
+        """
+        Retorna DataFrame wide: index=date (DatetimeIndex), columns=tickers.
+
+        Estratégia por ticker:
+          1. brapi.dev /quote/{ticker}?range=1y&interval=1d
+          2. yfinance download (period='1y') como fallback
+          3. Se ambos falham, ticker excluído (logged)
+
+        Forward-fill de até 3 dias úteis para cobrir feriados/pregões sem negócio.
+        """
+        logger.info("Coletando preços históricos (1y) para %d tickers", len(tickers))
+        series: dict[str, pd.Series] = {}
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        for ticker in tickers:
+            cache_key = f"prices_{ticker}_{today}"
+            cached = self.cache.get(cache_key)
+
+            if cached:
+                s = pd.Series(
+                    data=cached["close"],
+                    index=pd.to_datetime(cached["dates"]),
+                    name=ticker,
+                )
+                series[ticker] = s
+                continue
+
+            # Histórico via yfinance (brapi free tier não suporta endpoint histórico)
+            df_hist = self.yf.fetch_history(ticker)
+            source = "yfinance"
+
+            if df_hist is None or df_hist.empty:
+                logger.warning("Sem histórico de preços para %s — excluído do df_prices", ticker)
+                continue
+
+            # Achatar colunas multi-nível do yfinance (ex: ("Close", "PETR4.SA"))
+            if isinstance(df_hist.columns, pd.MultiIndex):
+                df_hist.columns = df_hist.columns.get_level_values(0)
+
+            close_col = "Adj Close" if "Adj Close" in df_hist.columns else "Close"
+            raw = df_hist[close_col].dropna()
+            # Garantir Series 1-D (yfinance às vezes retorna DataFrame de 1 coluna)
+            if isinstance(raw, pd.DataFrame):
+                raw = raw.iloc[:, 0]
+            s = raw.astype(float)
+            s.name = ticker
+            series[ticker] = s
+
+            self.cache.set(cache_key, {
+                "ticker":  ticker,
+                "source":  source,
+                "dates":   [str(d.date()) for d in s.index],
+                "close":   [round(float(v), 4) for v in s.to_numpy()],
+            })
+            logger.debug("Histórico %s: %d dias (%s)", ticker, len(s), source)
+            time.sleep(BRAPI_RATE_LIMIT)
+
+        if not series:
+            raise DataCollectionError("Nenhum histórico de preços coletado.")
+
+        df_prices = pd.DataFrame(series)
+        df_prices.index = pd.to_datetime(df_prices.index)
+        df_prices = df_prices.sort_index()
+
+        # Manter apenas o último 1 ano
+        cutoff = pd.Timestamp.now() - pd.DateOffset(years=1)
+        df_prices = df_prices.loc[df_prices.index >= cutoff]
+
+        # Forward fill de lacunas curtas (feriados, circuit breakers)
+        df_prices = df_prices.ffill(limit=3)
+
+        logger.info(
+            "df_prices final: %d dias × %d tickers (%.1f%% cobertura)",
+            len(df_prices),
+            len(df_prices.columns),
+            df_prices.notna().mean().mean() * 100,
+        )
+        return df_prices
+
+    # ------------------------------------------------------------------
+    # Limpeza e tipagem do DataFrame de fundamentais
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _cast_and_clean(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Garante tipagem float64 e trata anomalias nos dados fundamentalistas.
+
+        Anomalias tratadas:
+          - P/L negativo: empresa com prejuízo → NaN (não ranking-ável)
+          - ROE em porcentagem (> 5.0): dividir por 100 para normalizar em fração
+          - DY em porcentagem (> 1.0): dividir por 100
+          - Volume em unidades de ações: converter para R$ multiplicando pelo preço
+          - ROIC negativo extremo (< -1.0): provável erro de dados → NaN
+        """
+        float_cols = [
+            "pl", "pvp", "roe", "roic", "divida_ebitda",
+            "dividend_yield", "beta", "avg_volume_30d",
+            "current_price", "market_cap", "liquidez_minima_MM",
+            "week52_high", "week52_low",
+        ]
+        for col in float_cols:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce").astype("float64")
+
+        # P/L: negativo = empresa em prejuízo; P/L zero = divisão impossível
+        if "pl" in df.columns:
+            df.loc[df["pl"] <= 0, "pl"] = np.nan
+
+        # ROE: yfinance retorna em fração (0.28 = 28%); brapi às vezes em % (28.0)
+        if "roe" in df.columns:
+            high_mask = df["roe"].abs() > 5.0
+            df.loc[high_mask, "roe"] = df.loc[high_mask, "roe"] / 100.0
+            df.loc[df["roe"] < -1.0, "roe"] = np.nan  # > -100% = dado inválido
+
+        # ROIC: mesma lógica do ROE
+        if "roic" in df.columns:
+            high_mask = df["roic"].abs() > 5.0
+            df.loc[high_mask, "roic"] = df.loc[high_mask, "roic"] / 100.0
+            df.loc[df["roic"] < -1.0, "roic"] = np.nan
+
+        # DY: normalizar para fração
+        if "dividend_yield" in df.columns:
+            high_mask = df["dividend_yield"] > 1.0
+            df.loc[high_mask, "dividend_yield"] = df.loc[high_mask, "dividend_yield"] / 100.0
+
+        # Volume: se avg_volume_30d parece ser número de ações (< 1M para ações do IBrX),
+        # converter para BRL multiplicando pelo preço atual
+        if "avg_volume_30d" in df.columns and "current_price" in df.columns:
+            vol = df["avg_volume_30d"]
+            price = df["current_price"]
+            # Heurística: volume financeiro de ação do IBrX raramente abaixo de R$ 1M
+            needs_convert = (vol < 1_000_000) & (vol > 0) & (price > 0)
+            df.loc[needs_convert, "avg_volume_30d"] = (
+                df.loc[needs_convert, "avg_volume_30d"]
+                * df.loc[needs_convert, "current_price"]
+            )
+
+        str_cols = ["ticker", "nome", "setor", "subsetor", "norm_method", "data_source"]
+        for col in str_cols:
+            if col in df.columns:
+                df[col] = df[col].fillna("").astype(str)
+
+        return df
+
+    # ------------------------------------------------------------------
+    # Relatório de cobertura de dados (log apenas)
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _log_coverage_report(df: pd.DataFrame) -> None:
+        metrics = ["pl", "pvp", "roe", "roic", "divida_ebitda", "dividend_yield", "beta"]
+        logger.info("=== Cobertura de dados por métrica ===")
+        for m in metrics:
+            if m in df.columns:
+                coverage = df[m].notna().sum()
+                total = len(df)
+                logger.info("  %-20s %3d/%d tickers (%.0f%%)", m, coverage, total, 100 * coverage / total)
+        failed = (df["data_source"] == "failed").sum()
+        if failed:
+            logger.warning("  FAILED: %d tickers sem dados de nenhuma fonte", failed)
+
+
+# ---------------------------------------------------------------------------
+# Função de conveniência para uso em main.py e outros módulos
+# ---------------------------------------------------------------------------
+def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Ponto de entrada público do módulo.
+
+    Returns:
+        df_fundamentals: pd.DataFrame com métricas fundamentalistas por ticker
+        df_prices:       pd.DataFrame wide (date × ticker) de preços ajustados
+    """
+    collector = DataCollector()
+    return collector.collect()

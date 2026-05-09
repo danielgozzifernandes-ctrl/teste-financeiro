@@ -1,0 +1,18 @@
+# B3 Stock Recommender — dependências
+# Testado com Python 3.11
+
+# Dados de mercado
+yfinance>=0.2.36
+python-bcb>=0.3.0
+requests>=2.31.0
+
+# Análise de dados
+pandas>=2.1.0
+numpy>=1.26.0
+scipy>=1.11.0
+
+# Visualização
+matplotlib>=3.8.0
+
+# Utilitários
+python-dotenv>=1.0.0
