@@ -1,0 +1,72 @@
+name: Daily Morning Report
+
+on:
+  schedule:
+    # Segunda a sexta às 08:30 Brasília (UTC-3) = 11:30 UTC
+    - cron: "30 11 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (não envia ao Telegram)"
+        type: boolean
+        default: false
+      date:
+        description: "Data de referência (YYYY-MM-DD, opcional)"
+        type: string
+        default: ""
+
+jobs:
+  morning-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Restaura snapshots com recomendações semanais (necessário para top 5)
+      - name: Restore snapshots
+        uses: actions/cache@v4
+        with:
+          path: data/snapshots/
+          key: snapshots-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            snapshots-${{ runner.os }}-
+
+      # Restaura histórico de recomendações
+      - name: Restore history
+        uses: actions/cache@v4
+        with:
+          path: data/history/
+          key: history-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            history-${{ runner.os }}-
+
+      - name: Run morning report
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          BRAPI_TOKEN:        ${{ secrets.BRAPI_TOKEN }}
+        run: |
+          DATE_ARG=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            DATE_ARG="--date ${{ github.event.inputs.date }}"
+          fi
+
+          DRY_FLAG=""
+          SEND_FLAG="--send"
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            DRY_FLAG="--dry-run"
+            SEND_FLAG=""
+          fi
+
+          python main_daily.py --mode morning $DATE_ARG $DRY_FLAG $SEND_FLAG

@@ -51,6 +51,15 @@ jobs:
           restore-keys: |
             snapshots-${{ runner.os }}-
 
+      # Restaura histórico de recomendações (lido pelos relatórios diários)
+      - name: Restore history
+        uses: actions/cache@v4
+        with:
+          path: data/history/
+          key: history-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            history-${{ runner.os }}-
+
       - name: Run weekly report
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -85,6 +94,14 @@ jobs:
         with:
           path: data/snapshots/
           key: snapshots-${{ runner.os }}-${{ github.run_id }}
+
+      # Persiste histórico de recomendações (lido pelos relatórios diários)
+      - name: Save history
+        if: always()
+        uses: actions/cache@v4
+        with:
+          path: data/history/
+          key: history-${{ runner.os }}-${{ github.run_id }}
 
       # Salva o gráfico como artefato para inspeção manual
       - name: Upload chart artifact

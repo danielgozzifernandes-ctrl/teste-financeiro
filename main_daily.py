@@ -1,0 +1,431 @@
+"""
+main_daily.py — Orquestrador do Relatório Diário B3
+
+Executa o pipeline de relatório diário em dois modos:
+
+  morning  (08:30 Brasília):
+    1. Busca macro global (USD, S&P, petróleo, VIX...)
+    2. Carrega última recomendação semanal do SnapshotManager
+    3. Calcula indicadores técnicos do Top 5 (RSI, MACD, BBands, MAs)
+    4. Detecta alertas (gaps, volume anormal, cruzamentos MACD)
+    5. Constrói e envia relatório de texto ao Telegram
+
+  closing  (18:00 Brasília):
+    1. Carrega última recomendação semanal
+    2. Busca preços do dia para Top 5 + IBOV
+    3. Calcula retornos do dia
+    4. Gera gráfico de barras (desempenho por ticker)
+    5. Constrói e envia relatório ao Telegram com gráfico
+
+Flags CLI:
+  --mode morning | closing    Modo de execução (obrigatório)
+  --date YYYY-MM-DD           Data de referência (default: hoje)
+  --dry-run                   Executa tudo mas não envia ao Telegram
+  --send                      Envia ao Telegram
+  --debug                     Logging DEBUG
+
+Exit codes:
+  0  Sucesso
+  1  Falha (dados insuficientes, erro de envio)
+  2  Erro de configuração
+"""
+
+import argparse
+import logging
+import sys
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from typing import Optional
+
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent / ".env")
+
+sys.path.insert(0, str(Path(__file__).parent))
+
+import numpy as np
+import pandas as pd
+import yfinance as yf
+
+from src.config import OUTPUT_DIR, HISTORY_DIR, CACHE_DIR
+from src.snapshot_manager import SnapshotManager
+from src.macro_fetcher import MacroFetcher
+from src.technical_analyzer import TechnicalAnalyzer
+from src.daily_report_builder import build_daily_report
+from src.closing_report_builder import build_closing_report
+from src.closing_chart_generator import ClosingChartGenerator
+from src.telegram_sender import send_report, TelegramError
+
+logger = logging.getLogger(__name__)
+
+
+# ─── CLI ─────────────────────────────────────────────────────────────────────
+
+def _parse_args(argv: Optional[list] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="B3 Daily Recommender — Relatório Matinal e de Fechamento",
+    )
+    parser.add_argument(
+        "--mode", choices=["morning", "closing"], required=True,
+        help="Modo: morning (08:30) ou closing (18:00)",
+    )
+    parser.add_argument(
+        "--date", default=None, metavar="YYYY-MM-DD",
+        help="Data de referência (default: hoje)",
+    )
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--send",    action="store_true")
+    parser.add_argument("--debug",   action="store_true")
+    return parser.parse_args(argv)
+
+
+def _setup_logging(debug: bool) -> None:
+    level = logging.DEBUG if debug else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+
+def _resolve_date(date_arg: Optional[str]) -> str:
+    if date_arg:
+        try:
+            datetime.strptime(date_arg, "%Y-%m-%d")
+            return date_arg
+        except ValueError:
+            logger.error("Formato inválido: %s (esperado YYYY-MM-DD)", date_arg)
+            sys.exit(2)
+    return date.today().strftime("%Y-%m-%d")
+
+
+def _ensure_dirs() -> None:
+    for d in (OUTPUT_DIR, HISTORY_DIR, CACHE_DIR):
+        Path(d).mkdir(parents=True, exist_ok=True)
+
+
+# ─── Fetch today's prices ─────────────────────────────────────────────────────
+
+def _fetch_daily_prices(tickers: list[str]) -> tuple[dict[str, float], dict[str, float], float]:
+    """
+    Fetches today's close prices and returns for a list of B3 tickers + IBOV.
+
+    Returns:
+        (ticker_returns, ticker_prices, ibov_return)
+        All returns are decimal (0.01 = 1%).
+    """
+    yf_symbols = [f"{t}.SA" for t in tickers] + ["^BVSP"]
+    ticker_returns: dict[str, float] = {}
+    ticker_prices:  dict[str, float] = {}
+    ibov_return: float = 0.0
+
+    try:
+        raw = yf.download(
+            tickers=yf_symbols,
+            period="5d",
+            interval="1d",
+            auto_adjust=True,
+            progress=False,
+        )
+    except Exception as exc:
+        logger.error("_fetch_daily_prices: download falhou: %s", exc)
+        return ticker_returns, ticker_prices, ibov_return
+
+    if raw is None or raw.empty:
+        logger.error("_fetch_daily_prices: dados vazios")
+        return ticker_returns, ticker_prices, ibov_return
+
+    def _extract(symbol: str) -> tuple[Optional[float], Optional[float]]:
+        try:
+            if isinstance(raw.columns, pd.MultiIndex):
+                level1 = raw.columns.get_level_values(1)
+                if symbol not in level1:
+                    return None, None
+                close = raw["Close"][symbol].dropna()
+            else:
+                close = raw["Close"].dropna()
+
+            if len(close) < 2:
+                return None, None
+
+            today_close = float(close.iloc[-1])
+            prev_close  = float(close.iloc[-2])
+            ret = (today_close - prev_close) / prev_close if prev_close else 0.0
+            return ret, today_close
+        except Exception as exc:
+            logger.debug("_extract %s: %s", symbol, exc)
+            return None, None
+
+    # IBOV
+    ibov_ret, _ = _extract("^BVSP")
+    if ibov_ret is not None:
+        ibov_return = ibov_ret
+
+    # Tickers
+    for ticker in tickers:
+        ret, price = _extract(f"{ticker}.SA")
+        if ret is not None:
+            ticker_returns[ticker] = ret
+        if price is not None:
+            ticker_prices[ticker] = price
+
+    logger.info(
+        "Preços do dia: %d/%d tickers, IBOV %.2f%%",
+        len(ticker_returns), len(tickers), ibov_return * 100,
+    )
+    return ticker_returns, ticker_prices, ibov_return
+
+
+def _portfolio_return(ticker_returns: dict[str, float]) -> float:
+    """Equal-weight portfolio return (mean of all tickers)."""
+    valid = [r for r in ticker_returns.values()
+             if r is not None and not np.isnan(r)]
+    return float(np.mean(valid)) if valid else 0.0
+
+
+# ─── Fetch historical prices for technical analysis ──────────────────────────
+
+def _fetch_hist_prices(tickers: list[str], lookback_days: int = 300) -> pd.DataFrame:
+    """
+    Fetches historical adjusted-close prices for technical indicator computation.
+    Returns wide DataFrame (date × ticker).
+    """
+    start = (date.today() - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+    yf_symbols = [f"{t}.SA" for t in tickers]
+
+    try:
+        raw = yf.download(
+            tickers=yf_symbols,
+            start=start,
+            auto_adjust=True,
+            progress=False,
+        )
+        if raw is None or raw.empty:
+            return pd.DataFrame()
+
+        if isinstance(raw.columns, pd.MultiIndex):
+            close = raw["Close"]
+        else:
+            close = raw[["Close"]]
+
+        close.index = pd.to_datetime(close.index).tz_localize(None)
+
+        # Rename columns from "PETR4.SA" → "PETR4"
+        rename = {f"{t}.SA": t for t in tickers}
+        close = close.rename(columns=rename)
+
+        # Keep only requested tickers
+        available = [t for t in tickers if t in close.columns]
+        return close[available].dropna(how="all")
+
+    except Exception as exc:
+        logger.error("_fetch_hist_prices: %s", exc)
+        return pd.DataFrame()
+
+
+# ─── Morning pipeline ─────────────────────────────────────────────────────────
+
+def run_morning(run_date: str, do_send: bool, dry_run: bool) -> int:
+    logger.info("=== MORNING REPORT | %s ===", run_date)
+
+    # Load latest weekly recommendation for top 5 tickers
+    snap = SnapshotManager()
+    recommendation = snap.load_latest_recommendation(mode="weekly")
+
+    top5_tickers: list[str] = []
+    if recommendation:
+        top5_tickers = [r["ticker"] for r in recommendation.get("top5", [])]
+        logger.info("Top 5 carregado: %s", top5_tickers)
+    else:
+        logger.warning("Nenhuma recomendação semanal encontrada — relatório sem análise técnica")
+
+    # Step 1: Macro
+    logger.info("Etapa 1/3 — Buscando macro...")
+    macro_snapshot: dict = {}
+    try:
+        fetcher = MacroFetcher()
+        macro_snapshot = fetcher.get_snapshot()
+        sentiment = fetcher.risk_sentiment(macro_snapshot)
+        logger.info("Macro: %d indicadores, sentimento=%s", len(macro_snapshot), sentiment)
+    except Exception as exc:
+        logger.warning("Macro falhou (não crítico): %s", exc)
+        sentiment = "neutral"
+
+    # Step 2: Technical analysis
+    logger.info("Etapa 2/3 — Análise técnica do Top 5...")
+    tech_data: dict = {}
+    alerts: list = []
+    if top5_tickers:
+        try:
+            analyzer = TechnicalAnalyzer()
+            df_hist = _fetch_hist_prices(top5_tickers)
+            intraday = analyzer.fetch_intraday(top5_tickers)
+            tech_data = analyzer.analyze_all(top5_tickers, df_hist, intraday)
+            alerts = analyzer.detect_alerts(tech_data, intraday)
+            logger.info(
+                "Técnico: %d tickers analisados, %d alertas",
+                len(tech_data), len(alerts),
+            )
+        except Exception as exc:
+            logger.warning("Análise técnica falhou (não crítico): %s", exc, exc_info=True)
+
+    # Step 3: Build report
+    logger.info("Etapa 3/3 — Construindo relatório matinal...")
+    try:
+        report_text = build_daily_report(
+            macro_snapshot=macro_snapshot,
+            tech_data=tech_data,
+            alerts=alerts,
+            run_date=run_date,
+            sentiment=sentiment,
+            recommendation=recommendation,
+        )
+        logger.info("Relatório matinal: %d caracteres", len(report_text))
+    except Exception as exc:
+        logger.error("Falha ao construir relatório: %s", exc, exc_info=True)
+        return 1
+
+    if dry_run:
+        print("\n" + "-" * 60)
+        print(report_text)
+        print("-" * 60 + "\n")
+        return 0
+
+    if not do_send:
+        logger.info("Envio desativado. Use --send para enviar ao Telegram.")
+        print("\n" + "-" * 60)
+        print(report_text)
+        print("-" * 60 + "\n")
+        return 0
+
+    try:
+        send_report(text=report_text, chart_path=None)
+        logger.info("Relatório matinal enviado ao Telegram.")
+    except TelegramError as exc:
+        logger.error("Falha ao enviar ao Telegram: %s", exc)
+        return 1
+
+    return 0
+
+
+# ─── Closing pipeline ─────────────────────────────────────────────────────────
+
+def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
+    logger.info("=== CLOSING REPORT | %s ===", run_date)
+
+    # Load latest weekly recommendation
+    snap = SnapshotManager()
+    recommendation = snap.load_latest_recommendation(mode="weekly")
+
+    top5_tickers: list[str] = []
+    if recommendation:
+        top5_tickers = [r["ticker"] for r in recommendation.get("top5", [])]
+        logger.info("Top 5 carregado: %s", top5_tickers)
+    else:
+        logger.error("Nenhuma recomendação semanal encontrada — não é possível gerar o relatório de fechamento")
+        return 1
+
+    # Step 1: Fetch today's prices
+    logger.info("Etapa 1/3 — Buscando preços do dia...")
+    try:
+        ticker_returns, ticker_prices, ibov_return = _fetch_daily_prices(top5_tickers)
+    except Exception as exc:
+        logger.error("Falha ao buscar preços do dia: %s", exc, exc_info=True)
+        return 1
+
+    if not ticker_returns:
+        logger.error("Sem dados de preço para hoje — mercado fechado ou dados indisponíveis")
+        return 1
+
+    port_return = _portfolio_return(ticker_returns)
+
+    # Step 2: Volume ratios (from intraday)
+    volume_ratios: dict[str, float] = {}
+    try:
+        analyzer = TechnicalAnalyzer()
+        intraday = analyzer.fetch_intraday(top5_tickers)
+        volume_ratios = {
+            t: d.get("volume_ratio", float("nan"))
+            for t, d in intraday.items()
+            if d.get("volume_ratio") is not None
+        }
+    except Exception as exc:
+        logger.warning("Volume ratios: %s", exc)
+
+    # Step 3: Chart + report
+    logger.info("Etapa 2/3 — Gerando gráfico de fechamento...")
+    chart_path: Optional[Path] = None
+    try:
+        chart_filename = OUTPUT_DIR / f"closing_chart_{run_date}.png"
+        chart_gen = ClosingChartGenerator()
+        chart_path = chart_gen.generate(
+            ticker_returns=ticker_returns,
+            ibov_return=ibov_return,
+            portfolio_return=port_return,
+            run_date=run_date,
+            ticker_prices=ticker_prices,
+            output_path=chart_filename,
+        )
+        logger.info("Gráfico de fechamento: %s", chart_path)
+    except Exception as exc:
+        logger.warning("Gráfico de fechamento falhou (não crítico): %s", exc, exc_info=True)
+
+    logger.info("Etapa 3/3 — Construindo relatório de fechamento...")
+    try:
+        report_text = build_closing_report(
+            ticker_returns=ticker_returns,
+            ticker_prices=ticker_prices,
+            ibov_return=ibov_return,
+            portfolio_return=port_return,
+            run_date=run_date,
+            recommendation=recommendation,
+            volume_ratios=volume_ratios,
+        )
+        logger.info("Relatório de fechamento: %d caracteres", len(report_text))
+    except Exception as exc:
+        logger.error("Falha ao construir relatório: %s", exc, exc_info=True)
+        return 1
+
+    if dry_run:
+        print("\n" + "-" * 60)
+        print(report_text)
+        print("-" * 60 + "\n")
+        if chart_path:
+            print(f"Gráfico: {chart_path}")
+        return 0
+
+    if not do_send:
+        logger.info("Envio desativado. Use --send para enviar ao Telegram.")
+        print("\n" + "-" * 60)
+        print(report_text)
+        print("-" * 60 + "\n")
+        return 0
+
+    try:
+        send_report(text=report_text, chart_path=chart_path)
+        logger.info("Relatório de fechamento enviado ao Telegram.")
+    except TelegramError as exc:
+        logger.error("Falha ao enviar ao Telegram: %s", exc)
+        return 1
+
+    return 0
+
+
+# ─── Entrypoint ───────────────────────────────────────────────────────────────
+
+def main(argv: Optional[list] = None) -> int:
+    args = _parse_args(argv)
+    _setup_logging(args.debug)
+
+    run_date = _resolve_date(args.date)
+    do_send  = args.send and not args.dry_run
+
+    _ensure_dirs()
+
+    if args.mode == "morning":
+        return run_morning(run_date, do_send, args.dry_run)
+    else:
+        return run_closing(run_date, do_send, args.dry_run)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

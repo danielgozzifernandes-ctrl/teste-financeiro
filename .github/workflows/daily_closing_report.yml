@@ -1,0 +1,74 @@
+name: Daily Closing Report
+
+on:
+  schedule:
+    # Segunda a sexta às 18:00 Brasília (UTC-3) = 21:00 UTC
+    # B3 fecha às 17:30 (leilão até 17:55) — às 21:00 UTC os dados já estão disponíveis
+    - cron: "0 21 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (não envia ao Telegram)"
+        type: boolean
+        default: false
+      date:
+        description: "Data de referência (YYYY-MM-DD, opcional)"
+        type: string
+        default: ""
+
+jobs:
+  closing-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Restaura histórico de recomendações (necessário para saber o top 5)
+      - name: Restore history
+        uses: actions/cache@v4
+        with:
+          path: data/history/
+          key: history-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            history-${{ runner.os }}-
+
+      - name: Run closing report
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          BRAPI_TOKEN:        ${{ secrets.BRAPI_TOKEN }}
+        run: |
+          DATE_ARG=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            DATE_ARG="--date ${{ github.event.inputs.date }}"
+          fi
+
+          DRY_FLAG=""
+          SEND_FLAG="--send"
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            DRY_FLAG="--dry-run"
+            SEND_FLAG=""
+          fi
+
+          python main_daily.py --mode closing $DATE_ARG $DRY_FLAG $SEND_FLAG
+
+      # Salva o gráfico de fechamento como artefato
+      - name: Upload closing chart
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: closing-chart-${{ github.run_id }}
+          path: output/closing_chart_*.png
+          if-no-files-found: ignore
+          retention-days: 7
