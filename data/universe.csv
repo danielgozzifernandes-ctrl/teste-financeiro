@@ -3,20 +3,16 @@ PETR4,Petróleo Brasileiro PN,Petróleo Gás e Biocombustíveis,Exploração e P
 PETR3,Petróleo Brasileiro ON,Petróleo Gás e Biocombustíveis,Exploração e Produção,80.0,percentile
 PRIO3,PetroRio ON,Petróleo Gás e Biocombustíveis,Exploração e Produção,40.0,percentile
 RECV3,Petrorecôncavo ON,Petróleo Gás e Biocombustíveis,Exploração e Produção,15.0,percentile
-RRRP3,3R Petroleum ON,Petróleo Gás e Biocombustíveis,Exploração e Produção,10.0,percentile
 VBBR3,Vibra Energia ON,Petróleo Gás e Biocombustíveis,Distribuição de Combustíveis,25.0,percentile
-ELET3,Eletrobras ON,Energia Elétrica,Geração de Energia,80.0,zscore
-ELET6,Eletrobras PNB,Energia Elétrica,Geração de Energia,30.0,zscore
 EGIE3,Engie Brasil ON,Energia Elétrica,Geração de Energia,30.0,zscore
 EQTL3,Equatorial Energia ON,Energia Elétrica,Distribuição de Energia,50.0,zscore
 CPFE3,CPFL Energia ON,Energia Elétrica,Geração e Distribuição,20.0,zscore
 ENGI11,Energisa Unit,Energia Elétrica,Distribuição de Energia,25.0,zscore
 TAEE11,Transmissão Paulista Unit,Energia Elétrica,Transmissão de Energia,15.0,zscore
-TRPL4,ISA Cteep PN,Energia Elétrica,Transmissão de Energia,10.0,zscore
+ISAE4,ISA CTEEP PN,Energia Elétrica,Transmissão de Energia,10.0,zscore
 AURE3,Auren Energia ON,Energia Elétrica,Geração de Energia,15.0,zscore
-CPLE6,Copel PNB,Energia Elétrica,Geração e Distribuição,20.0,zscore
+CPLE3,Copel ON,Energia Elétrica,Geração e Distribuição,20.0,zscore
 CMIG4,Cemig PN,Energia Elétrica,Geração e Distribuição,30.0,zscore
-ENEVA3,Eneva ON,Energia Elétrica,Geração de Energia,20.0,zscore
 VALE3,Vale ON,Materiais Básicos,Mineração,400.0,zscore
 GGBR4,Gerdau PN,Materiais Básicos,Siderurgia e Metalurgia,60.0,zscore
 CSNA3,CSN ON,Materiais Básicos,Siderurgia e Metalurgia,25.0,zscore
@@ -33,10 +29,8 @@ MOVI3,Movida ON,Consumo Cíclico,Locação de Veículos,15.0,zscore
 CYRE3,Cyrela ON,Consumo Cíclico,Construção Civil,15.0,zscore
 EZTC3,EZTEC ON,Consumo Cíclico,Construção Civil,10.0,zscore
 MRVE3,MRV ON,Consumo Cíclico,Construção Civil,20.0,zscore
-ARZZ3,Arezzo ON,Consumo Cíclico,Tecidos e Calçados,10.0,zscore
-SOMA3,Grupo Soma ON,Consumo Cíclico,Tecidos e Vestuário,10.0,zscore
+AZZA3,Azzas 2154 ON,Consumo Cíclico,Tecidos e Calçados,15.0,zscore
 ALPA4,Alpargatas PN,Consumo Cíclico,Tecidos e Calçados,10.0,zscore
-AZUL4,Azul PN,Consumo Cíclico,Transporte Aéreo,15.0,zscore
 SMFT3,Smart Fit ON,Consumo Cíclico,Academias e Fitness,10.0,zscore
 GRND3,Grendene ON,Consumo Cíclico,Tecidos e Calçados,8.0,zscore
 CEAB3,C&A Modas ON,Consumo Cíclico,Comércio de Tecidos e Vestuário,8.0,zscore

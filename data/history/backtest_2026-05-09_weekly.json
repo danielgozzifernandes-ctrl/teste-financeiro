@@ -1,0 +1,68 @@
+{
+  "status": "success",
+  "backtest_date": "2026-05-09",
+  "recommendation_date": "2026-05-09",
+  "mode": "weekly",
+  "period_days": 0,
+  "portfolio_return": 0.0,
+  "portfolio_return_pct": 0.0,
+  "benchmark_returns": {
+    "ibovespa": 0.0,
+    "cdi": 0.0,
+    "selic": 0.0
+  },
+  "alpha_vs_ibov": 0.0,
+  "alpha_vs_cdi": 0.0,
+  "alpha_vs_ibov_pp": 0.0,
+  "alpha_vs_cdi_pp": 0.0,
+  "holdings": [
+    {
+      "ticker": "PETR4",
+      "entry_price": 45.67,
+      "current_price": 45.67,
+      "return": 0.0,
+      "return_pct": 0.0,
+      "included": true
+    },
+    {
+      "ticker": "PETR3",
+      "entry_price": 50.11,
+      "current_price": 50.11,
+      "return": 0.0,
+      "return_pct": 0.0,
+      "included": true
+    },
+    {
+      "ticker": "B3SA3",
+      "entry_price": 17.93,
+      "current_price": 17.93,
+      "return": 0.0,
+      "return_pct": 0.0,
+      "included": true
+    },
+    {
+      "ticker": "ABCB4",
+      "entry_price": 24.31,
+      "current_price": 24.31,
+      "return": 0.0,
+      "return_pct": 0.0,
+      "included": true
+    },
+    {
+      "ticker": "VALE3",
+      "entry_price": 81.49,
+      "current_price": 81.49,
+      "return": 0.0,
+      "return_pct": 0.0,
+      "included": true
+    }
+  ],
+  "previous_top5": [
+    "PETR4",
+    "PETR3",
+    "B3SA3",
+    "ABCB4",
+    "VALE3"
+  ],
+  "generated_at": "2026-05-09T18:12:22.175342"
+}
