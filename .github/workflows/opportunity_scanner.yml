@@ -1,0 +1,72 @@
+name: Opportunity Scanner
+
+on:
+  schedule:
+    # Segunda a sexta às 10:30 Brasília (UTC-3) = 13:30 UTC
+    # Roda 30 min após abertura da B3 (10h00) — volume e gaps já estabilizados
+    # SÓ envia mensagem ao Telegram quando uma oportunidade qualifica o filtro rigoroso
+    # Na maioria dos dias não envia nada — isso é esperado
+    - cron: "30 13 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (não envia ao Telegram)"
+        type: boolean
+        default: true
+      date:
+        description: "Data de referência (YYYY-MM-DD, opcional)"
+        type: string
+        default: ""
+
+jobs:
+  opportunity-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: cache/
+          key: data-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            data-cache-${{ runner.os }}-
+
+      - name: Run opportunity scanner
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          BRAPI_TOKEN:        ${{ secrets.BRAPI_TOKEN }}
+        run: |
+          DATE_ARG=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            DATE_ARG="--date ${{ github.event.inputs.date }}"
+          fi
+
+          DRY_FLAG=""
+          SEND_FLAG="--send"
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            DRY_FLAG="--dry-run"
+            SEND_FLAG=""
+          fi
+
+          python main_scanner.py $DATE_ARG $DRY_FLAG $SEND_FLAG
+
+      - name: Save data cache
+        if: always()
+        uses: actions/cache@v4
+        with:
+          path: cache/
+          key: data-cache-${{ runner.os }}-${{ github.run_id }}
