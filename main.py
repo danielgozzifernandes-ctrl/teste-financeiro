@@ -53,6 +53,8 @@ from src.benchmark import BenchmarkManager, get_ibov_prices as _get_ibov_prices
 from src.report_builder import build_report
 from src.chart_generator import ChartGenerator
 from src.snapshot_manager import SnapshotManager
+from src.technical_analyzer import TechnicalAnalyzer
+from src.trade_advisor import TradeAdvisor
 from src.telegram_sender import send_report, TelegramError
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
@@ -221,6 +223,40 @@ def run(args: argparse.Namespace) -> int:
     except Exception as exc:
         logger.warning("Snapshot falhou (não crítico): %s", exc)
 
+    # ── 4b. Análise técnica + trade advice para o top 5 ──────────────────
+    logger.info("Etapa 4b/7 — Análise técnica e trade advice do top 5...")
+    trade_advice: dict = {}
+    try:
+        top5_tickers = df_scored.head(5)["ticker"].tolist() if "ticker" in df_scored.columns else []
+        if top5_tickers and not df_prices.empty:
+            analyzer = TechnicalAnalyzer()
+            intraday = analyzer.fetch_intraday(top5_tickers)
+            tech_top5 = analyzer.analyze_all(top5_tickers, df_prices, intraday)
+
+            # Enrich tech price from intraday when available
+            for ticker, day in intraday.items():
+                if ticker in tech_top5 and day.get("today_close"):
+                    tech_top5[ticker]["price"] = day["today_close"]
+
+            advisor = TradeAdvisor()
+            for _, row in df_scored.head(5).iterrows():
+                ticker = str(row.get("ticker", ""))
+                tech = tech_top5.get(ticker, {})
+                result = advisor.compute(row, df_scored, tech)
+                if result:
+                    trade_advice[ticker] = result
+                    logger.debug(
+                        "Trade advice %s: entrada=%.2f alvo=%.2f stop=%.2f R/R=%.1f",
+                        ticker,
+                        result.get("entry_low", 0),
+                        result.get("target_conservative", 0),
+                        result.get("stop", 0),
+                        result.get("rr", 0),
+                    )
+        logger.info("Trade advice calculado para %d tickers.", len(trade_advice))
+    except Exception as exc:
+        logger.warning("Trade advice falhou (não crítico): %s", exc, exc_info=True)
+
     # ── 5. Backtesting ────────────────────────────────────────────────────
     logger.info("Etapa 5/7 — Executando backtesting...")
     backtest_result = None
@@ -277,6 +313,7 @@ def run(args: argparse.Namespace) -> int:
             backtest_result=backtest_result,
             mode=mode,
             run_date=run_date,
+            trade_advice=trade_advice,
         )
         logger.info("Relatório construído: %d caracteres.", len(report_text))
     except Exception as exc:

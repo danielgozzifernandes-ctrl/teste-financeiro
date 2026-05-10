@@ -152,6 +152,7 @@ class ReportBuilder:
         backtest_result: Optional[dict] = None,
         mode: str = "weekly",
         run_date: Optional[str] = None,
+        trade_advice: Optional[dict] = None,
     ) -> str:
         """
         Monta a mensagem completa em MarkdownV2.
@@ -168,7 +169,7 @@ class ReportBuilder:
         sections: list[str] = []
 
         sections.append(self._header(mode, run_date))
-        sections.append(self._top5_section(df_scored))
+        sections.append(self._top5_section(df_scored, trade_advice or {}))
 
         if backtest_result:
             sections.append(self._performance_section(backtest_result))
@@ -212,18 +213,25 @@ class ReportBuilder:
             f"{italic('Análise quantitativa automatizada · B3')}"
         )
 
-    def _top5_section(self, df_scored: pd.DataFrame) -> str:
+    def _top5_section(self, df_scored: pd.DataFrame, trade_advice: dict) -> str:
         """Seção Top 5 com detalhes de cada recomendação."""
         if df_scored.empty:
             return f"🏆 {bold('Top 5 Ações')}\n\n{italic('Sem dados disponíveis.')}"
 
         lines = [f"🏆 {bold('Top 5 Ações')}"]
         for rank, (_, row) in enumerate(df_scored.head(5).iterrows(), start=1):
-            lines.append(self._format_recommendation(row, rank))
+            ticker = str(row.get("ticker", ""))
+            trade = trade_advice.get(ticker)
+            lines.append(self._format_recommendation(row, rank, trade))
 
         return "\n".join(lines)
 
-    def _format_recommendation(self, row: pd.Series, rank: int) -> str:
+    def _format_recommendation(
+        self,
+        row: pd.Series,
+        rank: int,
+        trade: Optional[dict] = None,
+    ) -> str:
         """Formata um único ticker com todas as informações."""
         ticker  = str(row.get("ticker", ""))
         setor   = str(row.get("setor", ""))
@@ -249,8 +257,12 @@ class ReportBuilder:
         else:
             line1 = f"\n{rank_emoji} {bold(ticker)} — Score: {bold_pre(score_str)}"
 
-        # Linha 2: setor
-        line2 = f"   {setor_emoji} {italic(setor)}"
+        # Linha 2: setor + tipo de oportunidade (se disponível)
+        opp_type = trade.get("opportunity_type") if trade else None
+        if opp_type:
+            line2 = f"   {setor_emoji} {italic(setor)}  {escape('•')}  {escape(opp_type)}"
+        else:
+            line2 = f"   {setor_emoji} {italic(setor)}"
 
         # Linha 3: métricas — "=" deve ser escapado no MarkdownV2
         metrics_parts: list[str] = []
@@ -276,13 +288,53 @@ class ReportBuilder:
             a6m_str = fmt_pct(a6m, 1, sign=True)
             line4 = f"   ⚡ Alpha 6m vs IBOV: {a6m_str}"
 
-        # Linha 5: explicação (why) — truncada e em itálico
-        line5 = ""
+        # Linhas de trade (entrada / alvo / stop) — só quando disponível
+        trade_lines: list[str] = []
+        if trade:
+            e_low  = trade.get("entry_low")
+            e_high = trade.get("entry_high")
+            t_cons = trade.get("target_conservative")
+            t_ext  = trade.get("target_extended")
+            stop   = trade.get("stop")
+            rr     = trade.get("rr")
+            horizon = trade.get("horizon")
+            p_ref  = price if (price is not None and not pd.isna(price)) else None
+
+            if e_low is not None and e_high is not None:
+                lo_str = fmt_float(e_low, 2)
+                hi_str = fmt_float(e_high, 2)
+                trade_lines.append(f"   📥 Entrada: R\\$ {lo_str} – R\\$ {hi_str}")
+
+            if t_cons is not None and t_ext is not None and p_ref:
+                cons_str = fmt_float(t_cons, 2)
+                ext_str  = fmt_float(t_ext, 2)
+                cons_up  = fmt_pct((t_cons - p_ref) / p_ref, 1, sign=True)
+                ext_up   = fmt_pct((t_ext - p_ref) / p_ref, 1, sign=True)
+                sep_e    = escape("  |  ")
+                trade_lines.append(
+                    f"   🎯 Alvo: R\\$ {cons_str} \\({cons_up}\\){sep_e}Ext: R\\$ {ext_str} \\({ext_up}\\)"
+                )
+
+            if stop is not None and rr is not None and p_ref:
+                stop_str  = fmt_float(stop, 2)
+                stop_down = fmt_pct((stop - p_ref) / p_ref, 1, sign=True)
+                rr_str    = fmt_float(rr, 1)
+                rr_emoji  = "🟢" if rr >= 2.0 else ("🟡" if rr >= 1.2 else "🔴")
+                sep_e     = escape("  |  ")
+                trade_lines.append(
+                    f"   🛑 Stop: R\\$ {stop_str} \\({stop_down}\\){sep_e}R/R: {bold_pre(rr_str)}{escape('×')} {rr_emoji}"
+                )
+
+            if horizon:
+                trade_lines.append(f"   ⏱ {escape(horizon)}")
+
+        # Linha final: explicação (why) — truncada e em itálico
+        line_why = ""
         why_short = self._truncate_why(why_raw)
         if why_short:
-            line5 = f"   💡 {italic(why_short)}"
+            line_why = f"   💡 {italic(why_short)}"
 
-        return "\n".join(filter(None, [line1, line2, line3, line4, line5]))
+        return "\n".join(filter(None, [line1, line2, line3, line4] + trade_lines + [line_why]))
 
     @staticmethod
     def _performance_section(backtest_result: dict) -> str:
@@ -420,6 +472,7 @@ def build_report(
     backtest_result: Optional[dict] = None,
     mode: str = "weekly",
     run_date: Optional[str] = None,
+    trade_advice: Optional[dict] = None,
 ) -> str:
     """Ponto de entrada simplificado para main.py."""
-    return ReportBuilder().build(df_scored, backtest_result, mode, run_date)
+    return ReportBuilder().build(df_scored, backtest_result, mode, run_date, trade_advice)
