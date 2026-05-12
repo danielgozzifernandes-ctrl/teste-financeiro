@@ -420,9 +420,7 @@ class ReportBuilder:
         sep = escape("━" * 16)
         return (
             f"{sep}\n"
-            f"⚠️ {italic('Não é recomendação de investimento. '  )}"
-            f"{italic('Análise quantitativa automatizada. '      )}"
-            f"{italic('Faça sua própria análise antes de investir.')}"
+            f"⚠️ {italic('Não é recomendação de investimento. Análise quantitativa automatizada. Faça sua própria análise antes de investir.')}"
         )
 
     # ═══════════════════════════════════════════════════════════════════════

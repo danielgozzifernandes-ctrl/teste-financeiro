@@ -216,8 +216,7 @@ class ClosingReportBuilder:
         sep = escape("─" * 20)
         return (
             f"{sep}\n"
-            f"⚠️ {italic('Não é recomendação de investimento. ')}"
-            f"{italic('Análise quantitativa automatizada.')}"
+            f"⚠️ {italic('Não é recomendação de investimento. Análise quantitativa automatizada.')}"
         )
 
 
