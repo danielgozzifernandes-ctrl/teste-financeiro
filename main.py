@@ -148,6 +148,53 @@ def _resolve_date(date_arg: Optional[str]) -> str:
     return date.today().strftime("%Y-%m-%d")
 
 
+# ─── Regime de mercado ───────────────────────────────────────────────────────
+
+def _fetch_vix_prices(start_date: str):
+    """Download VIX from yfinance. Returns empty Series on failure."""
+    import pandas as pd
+    import yfinance as yf
+    try:
+        raw = yf.download("^VIX", start=start_date, auto_adjust=True, progress=False)
+        if raw is None or raw.empty:
+            return pd.Series(dtype=float)
+        close = raw["Close"]
+        if isinstance(close, pd.DataFrame):
+            close = close.iloc[:, 0]
+        return close.dropna()
+    except Exception as exc:
+        logger.debug("VIX fetch falhou: %s", exc)
+        import pandas as pd
+        return pd.Series(dtype=float)
+
+
+def _detect_regime(ibov_prices, vix_prices) -> str:
+    """
+    3-state market regime:
+      risk_on:  IBOV > MA200 AND VIX < 18
+      bear:     VIX > 25
+      mean_rev: everything else
+    """
+    import pandas as pd
+    ibov_clean = ibov_prices.dropna() if not ibov_prices.empty else pd.Series(dtype=float)
+
+    ibov_above_ma200 = False
+    if len(ibov_clean) >= 200:
+        ma200 = float(ibov_clean.tail(200).mean())
+        ibov_above_ma200 = float(ibov_clean.iloc[-1]) > ma200
+
+    latest_vix = None
+    vix_clean = vix_prices.dropna() if not vix_prices.empty else pd.Series(dtype=float)
+    if not vix_clean.empty:
+        latest_vix = float(vix_clean.iloc[-1])
+
+    if latest_vix is not None and latest_vix > 25:
+        return "bear"
+    if ibov_above_ma200 and (latest_vix is None or latest_vix < 18):
+        return "risk_on"
+    return "mean_rev"
+
+
 # ─── Pipeline principal ───────────────────────────────────────────────────────
 
 def run(args: argparse.Namespace) -> int:
@@ -194,6 +241,13 @@ def run(args: argparse.Namespace) -> int:
     except Exception as exc:
         logger.warning("Benchmarks falhou (não crítico): %s", exc)
 
+    # ── 2b. Regime de mercado ─────────────────────────────────────────────
+    vix_prices = _fetch_vix_prices(
+        (date.today() - timedelta(days=365)).strftime("%Y-%m-%d")
+    )
+    market_regime = _detect_regime(ibov_prices, vix_prices)
+    logger.info("Regime de mercado detectado: %s", market_regime)
+
     # ── 3. Scoring ────────────────────────────────────────────────────────
     logger.info("Etapa 3/7 — Calculando scores...")
     try:
@@ -201,6 +255,7 @@ def run(args: argparse.Namespace) -> int:
             df_fund=df_fundamentals,
             df_prices=df_prices,
             ibov_prices=ibov_prices,
+            regime=market_regime,
         )
     except Exception as exc:
         logger.error("Falha no scoring: %s", exc, exc_info=True)

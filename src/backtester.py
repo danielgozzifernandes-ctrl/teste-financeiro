@@ -40,6 +40,11 @@ from src.snapshot_manager import SnapshotManager, _write_atomic, _date_str
 
 logger = logging.getLogger(__name__)
 
+# 13 bps per leg (entry + exit) = 26 bps round-trip.
+# Covers: corretagem ~3 bps, emolumentos ~3 bps, slippage ~7 bps.
+_FRICTION_BPS = 13
+_FRICTION = _FRICTION_BPS / 10_000
+
 
 # ─── Tipos de resultado ───────────────────────────────────────────────────────
 
@@ -245,12 +250,15 @@ class Backtester:
         if not top5:
             return None, [], BacktestStatus.ERROR
 
+        # Stored inverse-volatility weights from SnapshotManager (may be absent in old snapshots)
+        stored_weights: dict[str, float] = previous.get("portfolio_weights", {})
+
         holdings: list[dict]  = []
         excluded: list[str]   = []
 
         for stock in top5:
-            ticker       = stock.get("ticker", "")
-            entry_price  = entry_prices.get(ticker) or stock.get("entry_price")
+            ticker        = stock.get("ticker", "")
+            entry_price   = entry_prices.get(ticker) or stock.get("entry_price")
             current_price = current_prices.get(ticker)
 
             if entry_price is None or entry_price <= 0:
@@ -266,13 +274,18 @@ class Backtester:
                 excluded.append(ticker)
                 continue
 
-            stock_return = (current_price / entry_price) - 1
+            # Frictional cost: 13 bps per leg (buy + sell)
+            stock_return = (
+                (current_price * (1 - _FRICTION)) / (entry_price * (1 + _FRICTION))
+            ) - 1
+
             holdings.append({
                 "ticker":        ticker,
                 "entry_price":   round(float(entry_price), 4),
                 "current_price": round(float(current_price), 4),
                 "return":        round(float(stock_return), 6),
                 "return_pct":    round(float(stock_return * 100), 4),
+                "weight":        stored_weights.get(ticker),
                 "included":      True,
             })
 
@@ -290,10 +303,19 @@ class Backtester:
             logger.error("Backtester: nenhum ticker válido para cálculo.")
             return None, holdings, BacktestStatus.ERROR
 
-        # Pesos iguais com redistribuição proporcional
-        weight = 1.0 / n_valid
+        # Portfolio weights: use inverse-volatility weights when available,
+        # redistributing excluded tickers' weights proportionally.
+        valid_tickers = [h["ticker"] for h in holdings if h.get("included")]
+        if stored_weights and all(t in stored_weights for t in valid_tickers):
+            raw_w = {t: stored_weights[t] for t in valid_tickers}
+            total_w = sum(raw_w.values())
+            eff_weights = {t: w / total_w for t, w in raw_w.items()} if total_w > 0 else {}
+        else:
+            eq = 1.0 / n_valid
+            eff_weights = {t: eq for t in valid_tickers}
+
         portfolio_return = sum(
-            weight * h["return"]
+            eff_weights[h["ticker"]] * h["return"]
             for h in holdings
             if h.get("included")
         )
@@ -305,8 +327,8 @@ class Backtester:
 
         if status == BacktestStatus.PARTIAL_DATA:
             logger.warning(
-                "Backtester: %d/%d tickers disponíveis. Peso efetivo por ticker: %.1f%%",
-                n_valid, len(top5), weight * 100,
+                "Backtester: %d/%d tickers disponíveis. Pesos redistribuídos.",
+                n_valid, len(top5),
             )
 
         return float(portfolio_return), holdings, status

@@ -51,8 +51,9 @@ from src.config import (
 
 logger = logging.getLogger(__name__)
 
-# Brapi suporta vários tickers separados por vírgula; 10 é conservador para free tier
-BATCH_SIZE = 1  # brapi free tier não suporta batch — requisição individual
+# Brapi suporta /quote/T1,T2,...,TN em um único request.
+# Batch de 10 reduz chamadas de ~350 para ~35, mantendo-se dentro do rate limit.
+BATCH_SIZE = 10
 
 # Se mais de 20% dos tickers falharem em ambas as fontes, abortamos
 MAX_FAILURES_RATIO = 0.20

@@ -149,6 +149,17 @@ BCB_SELIC_SERIES = 11   # Taxa SELIC diária
 BCB_CDI_SERIES   = 12   # Taxa CDI diária
 
 # ---------------------------------------------------------------------------
+# Graham Number
+# ---------------------------------------------------------------------------
+# Graham's constant 22.5 = P/L 15 × P/VP 1.5, calibrated for ~4% risk-free rate.
+# Brazil's higher rate environment lowers the fair-value multiple.
+# Formula: GRAHAM_CONSTANT = 22.5 × (GRAHAM_RF_BASE / current_selic)
+# GRAHAM_CONSTANT_FALLBACK is used when live SELIC is unavailable.
+GRAHAM_RF_BASE          = 0.04    # Graham's original US rf assumption (~4% a.a.)
+GRAHAM_SELIC_FALLBACK   = 0.1375  # update when SELIC changes significantly
+GRAHAM_CONSTANT_FALLBACK = round(22.5 * (GRAHAM_RF_BASE / GRAHAM_SELIC_FALLBACK), 4)  # ≈ 6.55
+
+# ---------------------------------------------------------------------------
 # Benchmarks
 # ---------------------------------------------------------------------------
 BENCHMARKS = {

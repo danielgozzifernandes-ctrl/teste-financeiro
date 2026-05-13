@@ -31,16 +31,43 @@ logger = logging.getLogger(__name__)
 # ─── Indicator functions ──────────────────────────────────────────────────────
 
 def _rsi(series: pd.Series, period: int = 14) -> float:
-    """Wilder's RSI using EWM smoothing (equivalent to Wilder's MA)."""
-    delta = series.diff()
-    gain = delta.clip(lower=0.0)
-    loss = (-delta).clip(lower=0.0)
-    avg_gain = gain.ewm(alpha=1.0 / period, adjust=False).mean()
-    avg_loss = loss.ewm(alpha=1.0 / period, adjust=False).mean()
-    last_loss = avg_loss.iloc[-1]
+    """
+    RSI with canonical Wilder's smoothing.
+
+    Seeds the smoothed average with the SMA of the first `period` bars,
+    then applies Wilder's recurrence: avg = (prev*(N-1) + x) / N.
+    This matches TradingView and Bloomberg exactly after the warm-up period.
+    """
+    if len(series) < period + 1:
+        return 50.0
+
+    delta = series.diff().dropna()
+    gain = delta.clip(lower=0.0).to_numpy()
+    loss = (-delta).clip(lower=0.0).to_numpy()
+    n = len(gain)
+
+    avg_gain = np.empty(n)
+    avg_loss = np.empty(n)
+    avg_gain[:] = np.nan
+    avg_loss[:] = np.nan
+
+    # Wilder's seed: SMA of first `period` values
+    avg_gain[period - 1] = gain[:period].mean()
+    avg_loss[period - 1] = loss[:period].mean()
+
+    # Wilder's recurrence
+    for i in range(period, n):
+        avg_gain[i] = (avg_gain[i - 1] * (period - 1) + gain[i]) / period
+        avg_loss[i] = (avg_loss[i - 1] * (period - 1) + loss[i]) / period
+
+    last_gain = avg_gain[-1]
+    last_loss = avg_loss[-1]
+
+    if np.isnan(last_gain) or np.isnan(last_loss):
+        return 50.0
     if last_loss == 0:
-        return 100.0
-    rs = avg_gain.iloc[-1] / last_loss
+        return 100.0 if last_gain > 0 else 50.0  # sem perda mas com ganho = 100; sem movimento = 50
+    rs = last_gain / last_loss
     return float(100.0 - 100.0 / (1.0 + rs))
 
 
@@ -99,6 +126,29 @@ def _bollinger(series: pd.Series, period: int = 20, std_dev: float = 2.0) -> dic
         "position":  float(np.clip(position, -0.2, 1.2)),
         "bandwidth": float(bandwidth),
     }
+
+
+def _atr(series: pd.Series, period: int = 14) -> Optional[float]:
+    """
+    ATR(14) approximated from close-only prices using |ΔClose| as True Range proxy.
+
+    Without OHLC data, |close_i - close_{i-1}| is the best proxy for daily range.
+    Wilder's smoothing: seeds with SMA of first `period` values then uses
+    ATR_i = (ATR_{i-1} × (N-1) + TR_i) / N — same recurrence as RSI.
+    """
+    if len(series) < period + 1:
+        return None
+    tr = series.diff().abs().dropna().to_numpy()
+    n = len(tr)
+    if n < period:
+        return None
+    atr_arr = np.empty(n)
+    atr_arr[:] = np.nan
+    atr_arr[period - 1] = tr[:period].mean()
+    for i in range(period, n):
+        atr_arr[i] = (atr_arr[i - 1] * (period - 1) + tr[i]) / period
+    last = atr_arr[-1]
+    return float(last) if not np.isnan(last) else None
 
 
 def _sma(series: pd.Series, period: int) -> Optional[float]:
@@ -254,6 +304,11 @@ class TechnicalAnalyzer:
         result["ma20"]  = _sma(series, 20)
         result["ma50"]  = _sma(series, 50)
         result["ma200"] = _sma(series, 200)
+
+        # ── ATR(14) — Average True Range ────────────────────────────────────
+        atr = _atr(series)
+        result["atr"] = atr
+        result["atr_pct"] = round(atr / price, 4) if atr and price else None
 
         result["trend"] = _trend_label(
             price,

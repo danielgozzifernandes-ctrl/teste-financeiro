@@ -182,6 +182,51 @@ def _portfolio_return(ticker_returns: dict[str, float]) -> float:
     return float(np.mean(valid)) if valid else 0.0
 
 
+def _calc_cumulative_returns(
+    ticker_prices: dict[str, float],
+    entry_prices: dict[str, float],
+) -> dict[str, float]:
+    """
+    Cumulative return since recommendation for each ticker.
+    Formula: (close_today / entry_price) - 1
+    """
+    result: dict[str, float] = {}
+    for ticker, current in ticker_prices.items():
+        entry = entry_prices.get(ticker)
+        if entry and entry > 0 and current and current > 0:
+            result[ticker] = (current / entry) - 1
+    return result
+
+
+def _fetch_ibov_cumulative(rec_date: str) -> Optional[float]:
+    """
+    Fetches IBOV cumulative return from rec_date (first available close) to today.
+    Returns None on failure.
+    """
+    try:
+        raw = yf.download(
+            tickers=["^BVSP"],
+            start=rec_date,
+            auto_adjust=True,
+            progress=False,
+        )
+        if raw is None or raw.empty:
+            return None
+
+        if isinstance(raw.columns, pd.MultiIndex):
+            close = raw["Close"]["^BVSP"].dropna()
+        else:
+            close = raw["Close"].dropna()
+
+        if len(close) < 2:
+            return None
+
+        return float(close.iloc[-1] / close.iloc[0]) - 1
+    except Exception as exc:
+        logger.warning("_fetch_ibov_cumulative: %s", exc)
+        return None
+
+
 # ─── Fetch historical prices for technical analysis ──────────────────────────
 
 def _fetch_hist_prices(tickers: list[str], lookback_days: int = 300) -> pd.DataFrame:
@@ -338,6 +383,19 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
 
     port_return = _portfolio_return(ticker_returns)
 
+    # Cumulative returns since recommendation
+    entry_prices: dict[str, float] = recommendation.get("entry_prices", {})
+    rec_date: str = recommendation.get("date", "")
+    cumulative_returns = _calc_cumulative_returns(ticker_prices, entry_prices)
+    cumulative_portfolio = _portfolio_return(cumulative_returns) if cumulative_returns else None
+    ibov_cumulative = _fetch_ibov_cumulative(rec_date) if rec_date else None
+    logger.info(
+        "Retorno acumulado desde %s: carteira=%.2f%% IBOV=%.2f%%",
+        rec_date,
+        (cumulative_portfolio or 0) * 100,
+        (ibov_cumulative or 0) * 100,
+    )
+
     # Step 2: Volume ratios (from intraday)
     volume_ratios: dict[str, float] = {}
     try:
@@ -379,6 +437,10 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
             run_date=run_date,
             recommendation=recommendation,
             volume_ratios=volume_ratios,
+            cumulative_returns=cumulative_returns,
+            cumulative_portfolio_return=cumulative_portfolio,
+            ibov_cumulative_return=ibov_cumulative,
+            recommendation_date=rec_date,
         )
         logger.info("Relatório de fechamento: %d caracteres", len(report_text))
     except Exception as exc:

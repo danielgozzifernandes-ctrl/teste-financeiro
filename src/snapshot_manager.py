@@ -228,6 +228,21 @@ class SnapshotManager:
         # Capturar preços de entrada dos top-N tickers
         entry_prices = _extract_entry_prices(df_scored, df_prices, top_n)
 
+        # Inverse-volatility weights para o top-5 (usados pelo backtester)
+        portfolio_weights = _compute_inv_vol_weights(df_scored, n=5)
+
+        # Validar cobertura: backtester depende de entry_prices para todo o top-N
+        top_n_tickers = df_scored.head(top_n)["ticker"].tolist()
+        missing_prices = [t for t in top_n_tickers if t not in entry_prices or entry_prices[t] is None]
+        if missing_prices:
+            logger.warning(
+                "entry_prices incompleto: %d/%d tickers sem preço de entrada "
+                "(%s). Backtesting desses tickers será excluído.",
+                len(missing_prices), len(top_n_tickers), missing_prices,
+            )
+        else:
+            logger.debug("entry_prices: cobertura 100%% (%d/%d tickers)", len(entry_prices), len(top_n_tickers))
+
         # Montar lista de recomendações
         top_recs: list[dict] = []
         for _, row in df_scored.head(top_n).iterrows():
@@ -246,10 +261,12 @@ class SnapshotManager:
             "top10":                  top10,
             "weights":                WEIGHTS,
             "entry_prices":           entry_prices,
+            "portfolio_weights":      portfolio_weights,
             "execution_metadata": {
                 "universe_size":      len(df_scored),
                 "tickers_scored":     int(df_scored["total_score"].notna().sum()),
                 "generated_at":       datetime.now().isoformat(),
+                "portfolio_weights_method": "inverse_volatility",
                 "score_range": {
                     "max": _safe_float(df_scored["total_score"].max()),
                     "min": _safe_float(df_scored["total_score"].min()),
@@ -418,6 +435,38 @@ def _extract_entry_prices(
             if not series.empty:
                 prices[ticker] = round(float(series.iloc[-1]), 2)
     return prices
+
+
+def _compute_inv_vol_weights(df_scored: pd.DataFrame, n: int = 5) -> dict[str, float]:
+    """
+    Inverse-volatility portfolio weights for top-N tickers.
+
+    W_i = (1/σ_i) / Σ(1/σ_j)
+
+    Tickers with missing volatility receive the mean inverse-vol weight of
+    available tickers. Falls back to equal-weight if no volatility data at all.
+    """
+    top_n = df_scored.head(n)
+    tickers = [str(row.get("ticker", "")) for _, row in top_n.iterrows()]
+
+    inv_vols: dict[str, float] = {}
+    for ticker, (_, row) in zip(tickers, top_n.iterrows()):
+        v = _safe_float(row.get("volatility_180d"))
+        if v and v > 0:
+            inv_vols[ticker] = 1.0 / v
+
+    if not inv_vols:
+        eq = round(1.0 / len(tickers), 6)
+        return {t: eq for t in tickers}
+
+    total_known = sum(inv_vols.values())
+    mean_iv = total_known / len(inv_vols)
+    n_missing = len(tickers) - len(inv_vols)
+
+    full_weights = {t: inv_vols.get(t, mean_iv) for t in tickers}
+    total_full = total_known + mean_iv * n_missing
+
+    return {t: round(w / total_full, 6) for t, w in full_weights.items()}
 
 
 def _row_to_recommendation(row: pd.Series, entry_price: Optional[float]) -> dict:

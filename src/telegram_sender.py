@@ -43,6 +43,30 @@ _REQUEST_TIMEOUT = 30
 _MAX_RETRIES = 3
 _BACKOFF_BASE = 2  # segundos: 2, 4, 8
 
+# Limite de caracteres do Telegram por mensagem
+_TELEGRAM_MSG_LIMIT   = 4096
+_TELEGRAM_CAP_LIMIT   = 1024
+# Nota adicionada ao final quando a mensagem é truncada pelo sender
+_TRUNCATE_NOTICE = "\n\n⚠️ _\\[relatório truncado para caber no limite do Telegram\\]_"
+
+
+def _truncate_message(text: str, limit: int) -> str:
+    """
+    Trunca texto para caber no limite do Telegram, adicionando nota visível.
+
+    Preserva o máximo de conteúdo possível cortando pelo último caractere
+    que cabe, depois acrescenta _TRUNCATE_NOTICE ao final.
+    """
+    if len(text) <= limit:
+        return text
+    notice = _TRUNCATE_NOTICE
+    available = limit - len(notice)
+    logger.warning(
+        "Mensagem (%d chars) excede limite do Telegram (%d). Truncando.",
+        len(text), limit,
+    )
+    return text[:available] + notice
+
 
 class TelegramError(Exception):
     """Erro não-recuperável ao enviar para o Telegram."""
@@ -114,15 +138,19 @@ class TelegramSender:
         """
         POST /sendMessage com parse_mode=MarkdownV2.
 
+        Trunca automaticamente se o texto exceder 4096 chars, adicionando
+        nota visível ao leitor. Preferível a receber HTTP 400 da API.
+
         Returns:
             Resposta JSON do Telegram em caso de sucesso.
 
         Raises:
             TelegramError: após _MAX_RETRIES tentativas falhas.
         """
+        safe_text = _truncate_message(text, _TELEGRAM_MSG_LIMIT)
         payload = {
             "chat_id":              self.chat_id,
-            "text":                 text,
+            "text":                 safe_text,
             "parse_mode":           "MarkdownV2",
             "disable_notification": disable_notification,
         }

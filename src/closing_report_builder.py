@@ -67,18 +67,26 @@ class ClosingReportBuilder:
         run_date: Optional[str] = None,
         recommendation: Optional[dict] = None,
         volume_ratios: Optional[dict[str, float]] = None,
+        cumulative_returns: Optional[dict[str, float]] = None,
+        cumulative_portfolio_return: Optional[float] = None,
+        ibov_cumulative_return: Optional[float] = None,
+        recommendation_date: Optional[str] = None,
     ) -> str:
         """
         Assembles the full closing report.
 
         Args:
-            ticker_returns:   {ticker: daily_return_decimal}
-            ticker_prices:    {ticker: close_price}
-            ibov_return:      IBOV daily return decimal
-            portfolio_return: Equal-weight portfolio return for the day
-            run_date:         Reference date (YYYY-MM-DD)
-            recommendation:   Latest weekly rec dict from SnapshotManager
-            volume_ratios:    Optional {ticker: volume_ratio}
+            ticker_returns:              {ticker: daily_return_decimal}
+            ticker_prices:               {ticker: close_price}
+            ibov_return:                 IBOV daily return decimal
+            portfolio_return:            Equal-weight portfolio daily return
+            run_date:                    Reference date (YYYY-MM-DD)
+            recommendation:              Latest weekly rec dict from SnapshotManager
+            volume_ratios:               Optional {ticker: volume_ratio}
+            cumulative_returns:          {ticker: cumulative_return since recommendation}
+            cumulative_portfolio_return: Equal-weight cumulative portfolio return since rec
+            ibov_cumulative_return:      IBOV cumulative return since recommendation date
+            recommendation_date:         Date the recommendation was made (YYYY-MM-DD)
 
         Returns:
             MarkdownV2 string.
@@ -89,11 +97,14 @@ class ClosingReportBuilder:
             self._tickers_section(
                 ticker_returns, ticker_prices,
                 recommendation, volume_ratios or {},
+                cumulative_returns or {},
             )
         )
         sections.append(
             self._summary_section(
                 ticker_returns, ibov_return, portfolio_return,
+                cumulative_portfolio_return, ibov_cumulative_return,
+                recommendation_date,
             )
         )
         sections.append(self._disclaimer())
@@ -115,6 +126,7 @@ class ClosingReportBuilder:
         ticker_prices: dict[str, float],
         recommendation: Optional[dict],
         volume_ratios: dict[str, float],
+        cumulative_returns: dict[str, float],
     ) -> str:
         lines = [_SEP, "📋 " + bold("Carteira da Semana — Resultado do Dia")]
 
@@ -125,7 +137,7 @@ class ClosingReportBuilder:
                 t = item.get("ticker", "")
                 meta[t] = item
 
-        # Sort by return descending
+        # Sort by daily return descending
         sorted_tickers = sorted(
             ticker_returns.keys(),
             key=lambda t: ticker_returns.get(t, 0),
@@ -143,7 +155,7 @@ class ClosingReportBuilder:
             arrow     = "▲" if ret > 0 else ("▼" if ret < 0 else "─")
             arrow_esc = escape(arrow)
 
-            # Price
+            # Price + daily return
             if price and not np.isnan(price):
                 price_str = fmt_float(price, 2)
                 tick_line = f"  {arrow_esc} {bold(ticker)} R\\$ {price_str}  {bold_pre(pct_str)}"
@@ -152,7 +164,7 @@ class ClosingReportBuilder:
 
             lines.append(tick_line)
 
-            # Sub-line: sector + volume ratio
+            # Sub-line: sector, volume, cumulative since recommendation
             sub = []
             ticker_meta = meta.get(ticker, {})
             sector = ticker_meta.get("sector", "")
@@ -162,8 +174,12 @@ class ClosingReportBuilder:
 
             vol_r = volume_ratios.get(ticker)
             if vol_r and not np.isnan(vol_r):
-                vol_str = escape(f"Vol {vol_r:.1f}x")
-                sub.append(vol_str)
+                sub.append(escape(f"Vol {vol_r:.1f}x"))
+
+            cum_r = cumulative_returns.get(ticker)
+            if cum_r is not None and not np.isnan(cum_r):
+                cum_str = fmt_pct(cum_r, 2, sign=True)
+                sub.append(escape("desde rec.: ") + bold_pre(cum_str))
 
             if sub:
                 lines.append("     " + "  ".join(sub))
@@ -175,6 +191,9 @@ class ClosingReportBuilder:
         ticker_returns: dict[str, float],
         ibov_return: float,
         portfolio_return: float,
+        cumulative_portfolio_return: Optional[float] = None,
+        ibov_cumulative_return: Optional[float] = None,
+        recommendation_date: Optional[str] = None,
     ) -> str:
         alpha_day  = portfolio_return - ibov_return
         alpha_sign = "🟢" if alpha_day >= 0 else "🔴"
@@ -185,12 +204,37 @@ class ClosingReportBuilder:
 
         lines = [
             _SEP,
-            "📊 " + bold("Resumo do Dia"),
+            "📊 " + bold("Resumo"),
             "",
-            f"   Carteira:  {bold_pre(port_str)}",
-            f"   IBOVESPA:  {ibov_str}",
-            f"   {alpha_sign} Alpha:    {bold_pre(alpha_str)}",
+            italic("Hoje"),
+            f"   Portfólio:  {bold_pre(port_str)}",
+            f"   IBOVESPA:   {ibov_str}",
+            f"   {alpha_sign} Alpha:     {bold_pre(alpha_str)}",
         ]
+
+        # Cumulative block — only when data is available
+        if cumulative_portfolio_return is not None and ibov_cumulative_return is not None:
+            cum_alpha = cumulative_portfolio_return - ibov_cumulative_return
+            cum_sign  = "🟢" if cum_alpha >= 0 else "🔴"
+
+            cum_port_str  = fmt_pct(cumulative_portfolio_return, 2, sign=True)
+            cum_ibov_str  = fmt_pct(ibov_cumulative_return, 2, sign=True)
+            cum_alpha_str = fmt_pct(cum_alpha, 2, sign=True)
+
+            # Label: "Desde DD/MM" when date is known, else "Acumulado"
+            if recommendation_date and len(recommendation_date) == 10:
+                parts = recommendation_date.split("-")
+                since_label = italic(f"Desde {parts[2]}/{parts[1]}")
+            else:
+                since_label = italic("Acumulado")
+
+            lines += [
+                "",
+                since_label,
+                f"   Portfólio:  {bold_pre(cum_port_str)}",
+                f"   IBOVESPA:   {cum_ibov_str}",
+                f"   {cum_sign} Alpha:     {bold_pre(cum_alpha_str)}",
+            ]
 
         # Best + worst of the day
         valid = {t: r for t, r in ticker_returns.items()
@@ -198,15 +242,13 @@ class ClosingReportBuilder:
         if valid:
             best_t  = max(valid, key=lambda t: valid[t])
             worst_t = min(valid, key=lambda t: valid[t])
-            best_r  = valid[best_t]
-            worst_r = valid[worst_t]
 
             lines.append("")
             lines.append(
-                f"   🏆 Melhor: {bold(best_t)} {bold_pre(fmt_pct(best_r, 2, sign=True))}"
+                f"   🏆 Melhor: {bold(best_t)} {bold_pre(fmt_pct(valid[best_t], 2, sign=True))}"
             )
             lines.append(
-                f"   💤 Pior:   {bold(worst_t)} {bold_pre(fmt_pct(worst_r, 2, sign=True))}"
+                f"   💤 Pior:   {bold(worst_t)} {bold_pre(fmt_pct(valid[worst_t], 2, sign=True))}"
             )
 
         return "\n".join(lines)
@@ -230,6 +272,10 @@ def build_closing_report(
     run_date: Optional[str] = None,
     recommendation: Optional[dict] = None,
     volume_ratios: Optional[dict[str, float]] = None,
+    cumulative_returns: Optional[dict[str, float]] = None,
+    cumulative_portfolio_return: Optional[float] = None,
+    ibov_cumulative_return: Optional[float] = None,
+    recommendation_date: Optional[str] = None,
 ) -> str:
     return ClosingReportBuilder().build(
         ticker_returns=ticker_returns,
@@ -239,6 +285,10 @@ def build_closing_report(
         run_date=run_date,
         recommendation=recommendation,
         volume_ratios=volume_ratios,
+        cumulative_returns=cumulative_returns,
+        cumulative_portfolio_return=cumulative_portfolio_return,
+        ibov_cumulative_return=ibov_cumulative_return,
+        recommendation_date=recommendation_date,
     )
 
 

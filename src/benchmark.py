@@ -53,7 +53,14 @@ _BCB_MAX_RETRIES = 3
 _BCB_BACKOFF_BASE = 2  # segundos (exponencial: 2s, 4s, 8s)
 
 # Máximo de dias de forward-fill para lacunas do BCB
-_BCB_FFILL_LIMIT = 3
+# 5 cobre Carnaval (quarta a sexta = 3 pregões) + margem para feriados estaduais
+_BCB_FFILL_LIMIT = 5
+
+# Intervalo plausível para taxa diária brasileira (decimal, não %)
+# SELIC mín histórico ~2% a.a. → (1.02)^(1/252)-1 ≈ 0.0000788
+# SELIC máx histórico ~45% a.a. (1999) → (1.45)^(1/252)-1 ≈ 0.00148
+_BCB_DAILY_RATE_MIN = 0.00005   # 0.005% a.d.  (~1.3% a.a.) — limite inferior seguro
+_BCB_DAILY_RATE_MAX = 0.00200   # 0.200% a.d. (~65% a.a.)  — limite superior seguro
 
 
 class BenchmarkError(Exception):
@@ -360,39 +367,70 @@ class BenchmarkManager:
         """
         Converte taxa do BCB para retorno decimal diário.
 
-        Lógica de detecção de formato:
-          median > 1.0  → taxa anualizada em % (ex: 13.75)
-                          r = (1 + taxa/100)^(1/252) - 1
-          median ≤ 1.0  → taxa já diária em % (ex: 0.0487)
-                          r = taxa/100
+        As séries 11 (SELIC) e 12 (CDI) sempre retornam taxa anualizada em %
+        (ex: 13.75 = 13,75% a.a.). A detecção automática de formato existe como
+        salvaguarda caso o BCB mude o formato — mas a lógica primária assume anual.
 
-        O threshold 1.0 funciona porque:
-          - Taxa anual SELIC/CDI: histórico BR entre 2% e 45% → sempre > 1
-          - Taxa diária: 13.75% a.a. → 0.0487% a.d. → sempre < 1
+        Detecção de formato:
+          median > 1.0 → % a.a.  → r = (1 + taxa/100)^(1/252) - 1
+          median ≤ 1.0 → % a.d.  → r = taxa/100
+
+        Após conversão, valida se resultado está em faixa plausível para o Brasil.
+        Se não estiver, tenta o formato alternativo. Se ainda inválido, loga erro crítico.
         """
         valid = series.dropna()
         if valid.empty:
             return series
 
+        # Usar mediana robusta; outlier único não inverte a interpretação
         median_val = float(valid.median())
+        is_annual = median_val > 1.0
 
-        if median_val > 1.0:
-            # Formato: % ao ano (ex: 13.75) → DU/252
-            annual = series / 100.0
-            daily  = (1.0 + annual) ** (1.0 / _DU_YEAR) - 1.0
-            logger.debug(
-                "%s: detectado formato anual (mediana=%.2f%% a.a.). "
-                "Retorno diário médio: %.5f%%",
-                col_name, median_val, daily.mean() * 100,
-            )
-        else:
-            # Formato: % ao dia (ex: 0.0487) → dividir por 100
-            daily = series / 100.0
-            logger.debug(
-                "%s: detectado formato diário (mediana=%.5f%% a.d.).",
-                col_name, median_val,
-            )
+        def _apply_conversion(s: pd.Series, annual: bool) -> pd.Series:
+            if annual:
+                return (1.0 + s / 100.0) ** (1.0 / _DU_YEAR) - 1.0
+            return s / 100.0
 
+        daily = _apply_conversion(series, is_annual)
+
+        # Validação de plausibilidade — detectar conversão incorreta
+        daily_median = float(daily.dropna().median())
+        is_plausible = _BCB_DAILY_RATE_MIN <= daily_median <= _BCB_DAILY_RATE_MAX
+
+        if not is_plausible:
+            logger.error(
+                "BCB %s: taxa diária suspeita após conversão "
+                "(mediana=%.6f = %.4f%% a.d., formato='%s'). "
+                "Esperado entre %.5f e %.5f. Tentando formato alternativo.",
+                col_name, daily_median, daily_median * 100,
+                "anual" if is_annual else "diário",
+                _BCB_DAILY_RATE_MIN, _BCB_DAILY_RATE_MAX,
+            )
+            # Tentar formato inverso
+            alt_daily = _apply_conversion(series, not is_annual)
+            alt_median = float(alt_daily.dropna().median())
+            if _BCB_DAILY_RATE_MIN <= alt_median <= _BCB_DAILY_RATE_MAX:
+                logger.warning(
+                    "BCB %s: formato alternativo ('%s') é plausível "
+                    "(mediana=%.6f = %.4f%% a.d.). Usando-o.",
+                    col_name, "anual" if not is_annual else "diário",
+                    alt_median, alt_median * 100,
+                )
+                daily = alt_daily
+                is_annual = not is_annual
+            else:
+                logger.error(
+                    "BCB %s: nenhum formato produz taxa plausível. "
+                    "Dados podem estar corrompidos. Mantendo conversão original.",
+                    col_name,
+                )
+
+        logger.debug(
+            "BCB %s: formato '%s' (mediana_entrada=%.4f), "
+            "retorno diário médio=%.6f%%",
+            col_name, "anual" if is_annual else "diário",
+            median_val, float(daily.dropna().mean()) * 100,
+        )
         return daily
 
     # ═══════════════════════════════════════════════════════════════════════

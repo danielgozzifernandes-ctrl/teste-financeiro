@@ -47,6 +47,17 @@ logger = logging.getLogger(__name__)
 
 FINANCIAL_SECTORS = {"Financeiro e Outros"}
 
+# ── Regime-adaptive scoring weights ──────────────────────────────────────────
+# 3-state market regime determined by IBOV vs MA200 and VIX level.
+#   risk_on:  IBOV > MA200 and VIX < 18 — trending bull; favour momentum
+#   bear:     VIX > 25 — global risk-off; favour quality/low-vol
+#   mean_rev: everything else — range-bound; favour fundamental value
+_REGIME_WEIGHTS: dict[str, dict[str, float]] = {
+    "risk_on":  {"fundamental": 0.30, "momentum": 0.50, "quality": 0.20},
+    "mean_rev": {"fundamental": 0.50, "momentum": 0.20, "quality": 0.30},
+    "bear":     {"fundamental": 0.30, "momentum": 0.10, "quality": 0.60},
+}
+
 # Configuração dos fatores fundamentalistas com pesos base e direção
 _FUNDAMENTAL_CFG: dict[str, dict] = {
     "earnings_yield": {"base_weight": 0.20, "direction": "higher_is_better", "label": "Earnings Yield"},
@@ -58,9 +69,9 @@ _FUNDAMENTAL_CFG: dict[str, dict] = {
 }
 
 _MOMENTUM_CFG: dict[str, dict] = {
-    "alpha_3m":  {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 3m"},
-    "alpha_6m":  {"base_weight": 0.40, "direction": "higher_is_better", "label": "Alpha 6m"},
-    "alpha_12m": {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 12m"},
+    "alpha_3m":      {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 3m"},
+    "idio_alpha_6m": {"base_weight": 0.40, "direction": "higher_is_better", "label": "Momentum Idiossincr. 6m"},
+    "alpha_12m":     {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 12m"},
 }
 
 _QUALITY_CFG: dict[str, dict] = {
@@ -118,6 +129,7 @@ class ScoringEngine:
         df_fund: pd.DataFrame,
         df_prices: pd.DataFrame,
         ibov_prices: pd.Series,
+        regime: str = "mean_rev",
     ) -> pd.DataFrame:
         """
         Executa o pipeline completo de scoring.
@@ -126,10 +138,24 @@ class ScoringEngine:
             df_fund:      DataFrame do DataCollector (uma linha por ticker)
             df_prices:    Wide DataFrame (date × ticker) de preços ajustados
             ibov_prices:  Série de preços IBOVESPA (index=date, values=preço)
+            regime:       Regime de mercado detectado: "risk_on" | "mean_rev" | "bear"
+                          Determina os pesos relativos dos pilares de score.
 
         Returns:
             DataFrame ordenado por total_score DESC com todas as colunas de score.
         """
+        active_weights = _REGIME_WEIGHTS.get(regime, WEIGHTS)
+        if regime not in _REGIME_WEIGHTS:
+            logger.warning("Regime '%s' desconhecido — usando pesos padrão (mean_rev)", regime)
+        else:
+            logger.info(
+                "Regime de mercado: %s → Fundamental=%.0f%% Momentum=%.0f%% Quality=%.0f%%",
+                regime,
+                active_weights["fundamental"] * 100,
+                active_weights["momentum"] * 100,
+                active_weights["quality"] * 100,
+            )
+
         # Trabalhar com ticker como índice durante o scoring
         df = df_fund.copy()
         if "ticker" in df.columns:
@@ -139,6 +165,7 @@ class ScoringEngine:
         # ── Pré-processamento ─────────────────────────────────────────────
         df = self._derive_metrics(df)
         df = self._add_momentum_metrics(df, df_prices, ibov_prices)
+        df = self._add_idiosyncratic_momentum(df, df_prices, ibov_prices, sector_map)
         df = self._add_quality_metrics(df, df_prices, ibov_prices)
         df = self._apply_hard_filters(df)
         sector_map = sector_map.reindex(df.index)  # re-alinhar após filtros
@@ -148,14 +175,15 @@ class ScoringEngine:
         mom_scores,  mom_details  = self._score_momentum(df)
         qual_scores, qual_details = self._score_quality(df)
 
-        # ── Score composto ────────────────────────────────────────────────
+        # ── Score composto — regime-adaptive weights ──────────────────────
         df["fundamental_score"] = fund_scores.round(2)
         df["momentum_score"]    = mom_scores.round(2)
         df["quality_score"]     = qual_scores.round(2)
+        df["market_regime"]     = regime
         df["total_score"] = (
-            WEIGHTS["fundamental"] * fund_scores
-            + WEIGHTS["momentum"]  * mom_scores
-            + WEIGHTS["quality"]   * qual_scores
+            active_weights["fundamental"] * fund_scores
+            + active_weights["momentum"]  * mom_scores
+            + active_weights["quality"]   * qual_scores
         ).round(2)
 
         # ── Campos de rastreabilidade ─────────────────────────────────────
@@ -193,11 +221,12 @@ class ScoringEngine:
             "nome", "setor", "subsetor", "normalization_method", "data_source",
             # métricas brutas
             "earnings_yield", "pvp", "roe", "roic", "divida_ebitda", "dividend_yield",
-            "alpha_3m", "alpha_6m", "alpha_12m",
+            "alpha_3m", "alpha_6m", "idio_alpha_6m", "alpha_12m",
             "volatility_180d", "beta", "avg_volume_30d",
             "current_price", "market_cap",
             # pilares e total
             "fundamental_score", "momentum_score", "quality_score", "total_score",
+            "market_regime",
             # explicabilidade
             "why", "norm_details",
         ]
@@ -287,12 +316,102 @@ class ScoringEngine:
         if "beta" not in df.columns:
             df["beta"] = np.nan
         missing_beta = df["beta"].isna()
-        df.loc[missing_beta, "beta"] = df.loc[missing_beta].index.map(beta_series)
+        if missing_beta.any():
+            df.loc[missing_beta, "beta"] = df.loc[missing_beta].index.map(beta_series).astype(float)
 
         logger.debug(
             "Qualidade: vol OK=%d, beta OK=%d",
             df["volatility_180d"].notna().sum(),
             df["beta"].notna().sum(),
+        )
+        return df
+
+    def _add_idiosyncratic_momentum(
+        self,
+        df: pd.DataFrame,
+        df_prices: pd.DataFrame,
+        ibov_prices: pd.Series,
+        sector_map: pd.Series,
+    ) -> pd.DataFrame:
+        """
+        Idiosyncratic momentum — cumulative OLS residual over 6 months.
+
+        Model: R_acao = α + β1·R_ibov + β2·R_setor + ε
+
+        ε captures stock-level alpha orthogonal to both market and sector
+        risk. Stocks that consistently beat both benchmarks get high scores
+        regardless of whether the market or sector was also rallying.
+
+        Sector returns are computed leave-one-out (excluding the target
+        ticker) to avoid perfect multicollinearity when a sector has only
+        2 constituents.
+
+        Uses 126-day (≈6 month) window; falls back to NaN if < 30 common
+        observations are available after alignment.
+        """
+        _WINDOW = 126
+        _MIN_OBS = 30
+
+        ibov_daily = ibov_prices.dropna().pct_change().dropna()
+
+        # Pre-compute full-sector daily return series {sector: pd.Series}
+        full_sector_daily: dict[str, pd.Series] = {}
+        for sector in sector_map.dropna().unique():
+            s_tickers = sector_map[sector_map == sector].index.tolist()
+            avail = [t for t in s_tickers if t in df_prices.columns]
+            if len(avail) >= 2:
+                full_sector_daily[sector] = df_prices[avail].pct_change().mean(axis=1)
+
+        idio_col = pd.Series(np.nan, index=df.index, dtype=float)
+
+        for ticker in df.index:
+            if ticker not in df_prices.columns:
+                continue
+            series = df_prices[ticker].dropna()
+            if len(series) < _WINDOW + 1:
+                continue
+
+            stock_daily = series.pct_change().dropna().tail(_WINDOW)
+            sector = sector_map.get(ticker)
+
+            # Leave-one-out sector return
+            if sector and sector in full_sector_daily:
+                s_tickers = sector_map[sector_map == sector].index.tolist()
+                avail_loo = [t for t in s_tickers if t in df_prices.columns and t != ticker]
+                if len(avail_loo) >= 1:
+                    sec_ret = df_prices[avail_loo].pct_change().mean(axis=1)
+                else:
+                    sec_ret = full_sector_daily[sector]
+            else:
+                sec_ret = pd.Series(dtype=float)
+
+            # Align all series on common dates
+            common = stock_daily.index.intersection(ibov_daily.index)
+            has_sector = not sec_ret.empty
+            if has_sector:
+                common = common.intersection(sec_ret.index)
+            if len(common) < _MIN_OBS:
+                continue
+
+            y = stock_daily.loc[common].to_numpy(dtype=float)
+            ibov_x = ibov_daily.loc[common].to_numpy(dtype=float)
+
+            if has_sector:
+                X = np.column_stack([np.ones(len(common)), ibov_x, sec_ret.loc[common].to_numpy(dtype=float)])
+            else:
+                X = np.column_stack([np.ones(len(common)), ibov_x])
+
+            try:
+                beta, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
+                residuals = y - X @ beta
+                idio_col[ticker] = float(residuals.sum())
+            except Exception:
+                pass
+
+        df["idio_alpha_6m"] = idio_col
+        logger.debug(
+            "Idiosyncratic momentum: %d/%d tickers com dado válido",
+            idio_col.notna().sum(), len(df),
         )
         return df
 
@@ -416,21 +535,28 @@ class ScoringEngine:
         Calcula pesos ajustados dinamicamente para um ticker específico.
 
         Regras (em ordem de aplicação):
-          1. ROIC → ROE: se ROIC é NaN ou setor Financeiro,
-             seus 20% são somados ao ROE (total ROE: 25% + 20% = 45%)
-          2. Outros fatores NaN: peso redistribuído proporcionalmente
-             entre fatores com dados válidos
+          1. ROIC ausente/inaplicável: remove ROIC e redistribui seu peso
+             proporcionalmente entre os demais fatores ativos. Para o setor
+             Financeiro, ROIC não é calculado (modelo bancário de alavancagem),
+             então redistribuição é sempre aplicada. Redistribuição proporcional
+             evita inflar artificialmente ROE (que antes recebia os 20% do ROIC).
+          2. Outros fatores NaN: redistribuição proporcional entre ativos.
         """
         weights = {f: cfg["base_weight"] for f, cfg in _FUNDAMENTAL_CFG.items()}
 
-        # Regra 1 — ROIC → ROE
+        # Regra 1 — ROIC: redistribuição proporcional quando ausente
         roic_missing = (
             "roic" not in factor_scores_map
             or pd.isna(factor_scores_map["roic"].get(ticker, np.nan))
             or str(row.get("setor", "")) in FINANCIAL_SECTORS
         )
         if roic_missing:
-            weights["roe"] = weights["roe"] + weights.pop("roic")  # 0.25 + 0.20 = 0.45
+            roic_weight = weights.pop("roic")  # 0.20
+            remaining = {f: w for f, w in weights.items()}
+            total_remaining = sum(remaining.values())
+            if total_remaining > 0:
+                for f in remaining:
+                    weights[f] += roic_weight * (remaining[f] / total_remaining)
 
         # Regra 2 — NaN em demais fatores: redistribuição proporcional
         nan_factors = {
@@ -965,11 +1091,16 @@ def compute_scores(
     df_fund: pd.DataFrame,
     df_prices: pd.DataFrame,
     ibov_prices: pd.Series,
+    regime: str = "mean_rev",
 ) -> pd.DataFrame:
     """
     Ponto de entrada simplificado.
 
+    Args:
+        regime: Market regime detected externally ("risk_on" | "mean_rev" | "bear").
+                Controls pillar weights. Default "mean_rev" matches old WEIGHTS config.
+
     Returns:
         DataFrame ordenado por total_score DESC, com todas as colunas de score.
     """
-    return ScoringEngine().score(df_fund, df_prices, ibov_prices)
+    return ScoringEngine().score(df_fund, df_prices, ibov_prices, regime=regime)
