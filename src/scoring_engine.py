@@ -428,6 +428,8 @@ class ScoringEngine:
           1. Liquidez < R$5M/dia — ação ilíquida impossibilita execução
           2. Dívida/EBITDA > 5x (fora do setor financeiro) — risco de crédito extremo
           3. data_source == "failed" — sem dados de nenhuma fonte
+          4. Value trap: P/L negativo (empresa no prejuízo) + ROE < -5%
+             — empresa destruindo capital; score baixo de PVP pode ser ilusório
         """
         n_before = len(df)
 
@@ -455,6 +457,19 @@ class ScoringEngine:
                 excluded = df[over_levered].index.tolist()
                 logger.info("Hard filter alavancagem: %s removidos", excluded)
                 df = df[~over_levered]
+
+        # Filtro value trap: prejuízo (P/L < 0) + ROE negativo (> -5%)
+        # P/L negativo = empresa reportou perda no período.
+        # Combinado com ROE < -5% indica destruição ativa de patrimônio,
+        # não uma distorção temporária de resultado.
+        if "pl" in df.columns and "roe" in df.columns:
+            is_loss = df["pl"].notna() & (df["pl"] < 0)
+            is_neg_roe = df["roe"].notna() & (df["roe"] < -0.05)
+            value_trap = is_loss & is_neg_roe
+            if value_trap.any():
+                excluded = df[value_trap].index.tolist()
+                logger.info("Hard filter value trap (P/L<0 & ROE<-5%%): %s removidos", excluded)
+                df = df[~value_trap]
 
         n_after = len(df)
         if n_before != n_after:
@@ -558,7 +573,28 @@ class ScoringEngine:
                 for f in remaining:
                     weights[f] += roic_weight * (remaining[f] / total_remaining)
 
-        # Regra 2 — NaN em demais fatores: redistribuição proporcional
+        # Regra 2 — DY sustentabilidade: zerar DY quando payout > 150% do lucro
+        # payout ≈ DY / EY. Se a empresa está pagando mais do que ganha,
+        # o dividendo não é recorrente (pode ser extraordinário, amortização
+        # de capital ou simplesmente insustentável). Não deve ser premiado.
+        try:
+            ey_raw = row.get("earnings_yield")
+            dy_raw = row.get("dividend_yield")
+            ey_f = float(ey_raw) if ey_raw is not None else None
+            dy_f = float(dy_raw) if dy_raw is not None else None
+            if (ey_f and not pd.isna(ey_f) and ey_f > 0
+                    and dy_f and not pd.isna(dy_f) and dy_f > 0):
+                payout = dy_f / ey_f
+                if payout > 1.5:
+                    weights.pop("dividend_yield", None)
+                    logger.debug(
+                        "DY insustentável (%s): payout≈%.1fx — DY excluído do scoring",
+                        ticker, payout,
+                    )
+        except (TypeError, ValueError):
+            pass
+
+        # Regra 3 — NaN em demais fatores: redistribuição proporcional entre ativos
         nan_factors = {
             f for f in list(weights.keys())
             if f not in factor_scores_map
@@ -1082,6 +1118,77 @@ class ScoringEngine:
                 }
             result[ticker] = serialized
         return pd.Series(result, index=index)
+
+
+# ---------------------------------------------------------------------------
+# Seleção de portfólio diversificado
+# ---------------------------------------------------------------------------
+
+def select_diverse_portfolio(
+    df_scored: pd.DataFrame,
+    n: int = 5,
+    max_per_sector: int = 2,
+) -> pd.DataFrame:
+    """
+    Reordena df_scored colocando o top-n diversificado nas primeiras posições.
+
+    Regras de diversificação (aplicadas em ordem de score DESC):
+      1. Máximo 1 ticker por empresa — identificado pelos 4 primeiros caracteres
+         do ticker (PETR4 e PETR3 → mesma empresa "PETR"). Mantém o de maior score.
+      2. Máximo max_per_sector tickers por setor no top-n.
+
+    O restante do DataFrame mantém a ordem original de score.
+    Todo uso de df_scored.head(5) automaticamente recebe o portfólio diversificado.
+
+    Se for impossível preencher n posições com as restrições (universo pequeno),
+    preenche sem restrições para garantir sempre n recomendações.
+    """
+    if df_scored.empty:
+        return df_scored
+
+    selected: list[int] = []
+    sector_count: dict[str, int] = {}
+    company_seen: set[str] = set()
+
+    for pos in range(len(df_scored)):
+        if len(selected) >= n:
+            break
+        row     = df_scored.iloc[pos]
+        ticker  = str(row.get("ticker", ""))
+        sector  = str(row.get("setor", ""))
+        company = ticker[:4]
+
+        if company in company_seen:
+            continue
+        if sector_count.get(sector, 0) >= max_per_sector:
+            continue
+
+        selected.append(pos)
+        company_seen.add(company)
+        sector_count[sector] = sector_count.get(sector, 0) + 1
+
+    # Fallback sem restrições se não conseguiu preencher n posições
+    if len(selected) < n:
+        for pos in range(len(df_scored)):
+            if len(selected) >= n:
+                break
+            if pos not in set(selected):
+                selected.append(pos)
+
+    remaining = [p for p in range(len(df_scored)) if p not in set(selected)]
+    result = df_scored.iloc[selected + remaining].reset_index(drop=True)
+
+    # Log se o top 5 mudou
+    if "ticker" in df_scored.columns:
+        original = df_scored.head(n)["ticker"].tolist()
+        new      = result.head(n)["ticker"].tolist()
+        if original != new:
+            logger.info(
+                "Portfolio diversificado: %s → %s (deduplicação empresa/setor)",
+                original, new,
+            )
+
+    return result
 
 
 # ---------------------------------------------------------------------------

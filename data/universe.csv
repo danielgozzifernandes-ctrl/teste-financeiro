@@ -76,3 +76,23 @@ PSSA3,Porto Seguro ON,Financeiro e Outros,Seguros,10.0,zscore
 SULA11,SulAmérica Unit,Financeiro e Outros,Seguros,8.0,zscore
 ABCB4,ABC Brasil PN,Financeiro e Outros,Bancos,8.0,zscore
 BRSR6,Banrisul PNB,Financeiro e Outros,Bancos,8.0,zscore
+ELET3,Eletrobras ON,Energia Elétrica,Geração e Transmissão,80.0,zscore
+ELET6,Eletrobras PNB,Energia Elétrica,Geração e Transmissão,30.0,zscore
+NEOE3,Neoenergia ON,Energia Elétrica,Distribuição de Energia,25.0,zscore
+CSAN3,Cosan ON,Petróleo Gás e Biocombustíveis,Distribuição de Combustíveis,30.0,zscore
+DXCO3,Dexco ON,Materiais Básicos,Madeira e Papel,10.0,zscore
+MULT3,Multiplan ON,Consumo Cíclico,Shoppings,20.0,zscore
+IGTI11,Iguatemi Unit,Consumo Cíclico,Shoppings,10.0,zscore
+VIVA3,Vivara ON,Consumo Cíclico,Joalheria,10.0,zscore
+SBFG3,SBF Group ON,Consumo Cíclico,Artigos Esportivos,10.0,zscore
+GMAT3,Grupo Mateus ON,Consumo Não Cíclico,Supermercados,20.0,zscore
+NTCO3,Natura e Co ON,Consumo Não Cíclico,Higiene e Beleza,25.0,zscore
+SLCE3,SLC Agrícola ON,Consumo Não Cíclico,Agricultura,10.0,zscore
+SMTO3,São Martinho ON,Consumo Não Cíclico,Açúcar e Álcool,10.0,zscore
+MDIA3,M.Dias Branco ON,Consumo Não Cíclico,Alimentos Processados,10.0,zscore
+ODPV3,Odontoprev ON,Saúde,Planos de Saúde,10.0,zscore
+HYPE3,Hypera Pharma ON,Saúde,Farmacêuticos,20.0,zscore
+INTB3,Intelbras ON,Tecnologia da Informação,Hardware,8.0,zscore
+ITSA4,Itaúsa PN,Financeiro e Outros,Holding Financeira,50.0,zscore
+BBSE3,BB Seguridade ON,Financeiro e Outros,Seguros,25.0,zscore
+CXSE3,Caixa Seguridade ON,Financeiro e Outros,Seguros,10.0,zscore

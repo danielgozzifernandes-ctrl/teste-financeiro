@@ -153,6 +153,7 @@ class ReportBuilder:
         mode: str = "weekly",
         run_date: Optional[str] = None,
         trade_advice: Optional[dict] = None,
+        regime: Optional[str] = None,
     ) -> str:
         """
         Monta a mensagem completa em MarkdownV2.
@@ -162,13 +163,18 @@ class ReportBuilder:
             backtest_result: Resultado do Backtester ou None (primeira execução).
             mode:            "weekly" ou "monthly".
             run_date:        Data de referência no formato "YYYY-MM-DD" ou "DD/MM/YYYY".
+            regime:          Regime de mercado detectado ("risk_on" | "mean_rev" | "bear").
 
         Returns:
             String pronta para envio via Telegram Bot API (parse_mode=MarkdownV2).
         """
+        # Regime do df_scored tem precedência sobre arg explícito (fonte mais confiável)
+        if regime is None and not df_scored.empty and "market_regime" in df_scored.columns:
+            regime = str(df_scored.iloc[0].get("market_regime", "mean_rev"))
+
         sections: list[str] = []
 
-        sections.append(self._header(mode, run_date))
+        sections.append(self._header(mode, run_date, regime))
         sections.append(self._top5_section(df_scored, trade_advice or {}))
 
         if backtest_result:
@@ -193,9 +199,15 @@ class ReportBuilder:
     # Seções da mensagem
     # ═══════════════════════════════════════════════════════════════════════
 
+    _REGIME_LABELS: dict[str, str] = {
+        "risk_on":  "Risk\\-On  🟢  Fund 30% · Mom 50% · Qual 20%",
+        "mean_rev": "Mean\\-Rev 🟡  Fund 50% · Mom 20% · Qual 30%",
+        "bear":     "Bear      🔴  Fund 30% · Mom 10% · Qual 60%",
+    }
+
     @staticmethod
-    def _header(mode: str, run_date: Optional[str]) -> str:
-        """Cabeçalho com data e modo do relatório."""
+    def _header(mode: str, run_date: Optional[str], regime: Optional[str] = None) -> str:
+        """Cabeçalho com data, modo e regime de mercado."""
         mode_label = "Semana" if mode == "weekly" else "Mês"
 
         # Normalizar data para DD/MM/AAAA
@@ -208,10 +220,21 @@ class ReportBuilder:
         else:
             date_display = date.today().strftime("%d/%m/%Y")
 
-        return (
-            f"📊 {bold(f'Recomendações da {mode_label} — {date_display}')}\n"
-            f"{italic('Análise quantitativa automatizada · B3')}"
-        )
+        lines = [
+            f"📊 {bold(f'Recomendações da {mode_label} — {date_display}')}",
+            italic("Análise quantitativa automatizada · B3"),
+        ]
+
+        if regime:
+            regime_labels = {
+                "risk_on":  "Risk\\-On  🟢  Fund 30% · Mom 50% · Qual 20%",
+                "mean_rev": "Mean\\-Rev 🟡  Fund 50% · Mom 20% · Qual 30%",
+                "bear":     "Bear      🔴  Fund 30% · Mom 10% · Qual 60%",
+            }
+            regime_str = regime_labels.get(regime, escape(regime))
+            lines.append(f"🌡 {italic_pre(f'Regime: {regime_str}')}")
+
+        return "\n".join(lines)
 
     def _top5_section(self, df_scored: pd.DataFrame, trade_advice: dict) -> str:
         """Seção Top 5 com detalhes de cada recomendação."""
@@ -471,6 +494,7 @@ def build_report(
     mode: str = "weekly",
     run_date: Optional[str] = None,
     trade_advice: Optional[dict] = None,
+    regime: Optional[str] = None,
 ) -> str:
     """Ponto de entrada simplificado para main.py."""
-    return ReportBuilder().build(df_scored, backtest_result, mode, run_date, trade_advice)
+    return ReportBuilder().build(df_scored, backtest_result, mode, run_date, trade_advice, regime)

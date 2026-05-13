@@ -47,7 +47,7 @@ from src.config import (
     CHART_OUTPUT_PATH,
 )
 from src.data_collector import load_data
-from src.scoring_engine import compute_scores
+from src.scoring_engine import compute_scores, select_diverse_portfolio
 from src.backtester import run_backtest
 from src.benchmark import BenchmarkManager, get_ibov_prices as _get_ibov_prices
 from src.report_builder import build_report
@@ -265,6 +265,9 @@ def run(args: argparse.Namespace) -> int:
         logger.error("Nenhum ticker sobreviveu ao scoring — abortando.")
         return 1
 
+    # Aplicar filtros de diversificação: 1 por empresa, máx 2 por setor
+    df_scored = select_diverse_portfolio(df_scored, n=5, max_per_sector=2)
+
     top_ticker = df_scored.iloc[0]["ticker"] if "ticker" in df_scored.columns else "?"
     logger.info("Scoring concluído: %d tickers pontuados. Top: %s", len(df_scored), top_ticker)
 
@@ -369,6 +372,7 @@ def run(args: argparse.Namespace) -> int:
             mode=mode,
             run_date=run_date,
             trade_advice=trade_advice,
+            regime=market_regime,
         )
         logger.info("Relatório construído: %d caracteres.", len(report_text))
     except Exception as exc:
