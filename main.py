@@ -379,7 +379,8 @@ def run(args: argparse.Namespace) -> int:
     if dry_run:
         logger.info("=== DRY RUN — relatório não enviado ao Telegram ===")
         print("\n" + "-" * 60)
-        print(report_text)
+        sys.stdout.buffer.write((report_text + "\n").encode("utf-8", errors="replace"))
+        sys.stdout.buffer.flush()
         print("-" * 60 + "\n")
         if chart_path:
             print(f"Gráfico gerado: {chart_path}")
