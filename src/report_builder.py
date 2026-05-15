@@ -177,6 +177,11 @@ class ReportBuilder:
         sections.append(self._header(mode, run_date, regime))
         sections.append(self._top5_section(df_scored, trade_advice or {}))
 
+        # Alerta de concentração (theme/setor) — só aparece se houver risco real
+        warn = self._concentration_warning(df_scored)
+        if warn:
+            sections.append(warn)
+
         if backtest_result:
             sections.append(self._performance_section(backtest_result))
 
@@ -358,6 +363,75 @@ class ReportBuilder:
             line_why = f"   💡 {italic(why_short)}"
 
         return "\n".join(filter(None, [line1, line2, line3, line4] + trade_lines + [line_why]))
+
+    @staticmethod
+    def _concentration_warning(df_scored: pd.DataFrame) -> str:
+        """
+        Alerta visível quando o top 5 tem concentração elevada em um tema macro
+        ou setor B3, ou quando alguma posição está abaixo do score mínimo.
+
+        Lê df_scored.attrs["portfolio_diagnostics"] que é populado por
+        select_diverse_portfolio(). Se ausente, calcula on-the-fly do top 5.
+        """
+        if df_scored.empty:
+            return ""
+
+        diag = getattr(df_scored, "attrs", {}).get("portfolio_diagnostics") or {}
+        if not diag:
+            return ""
+
+        warnings: list[str] = []
+
+        # Concentração de tema macro
+        dom_theme = diag.get("dominant_theme")
+        dom_count = diag.get("dominant_theme_count", 0)
+        if dom_theme and dom_count >= 3 and dom_theme != "other":
+            theme_label = {
+                "commodity_export":     "commodities (petróleo/minério/papel)",
+                "domestic_consumer":    "consumo doméstico",
+                "defensive_utilities":  "utilities defensivas",
+                "rate_sensitive_growth": "growth sensível a juros",
+                "financials":           "financeiro",
+                "industrials":          "industriais",
+            }.get(dom_theme, dom_theme)
+            warnings.append(
+                f"{dom_count}/5 ações expostas a {escape(theme_label)} "
+                f"{escape('— alta correlação macro')}"
+            )
+
+        # Concentração de setor B3
+        sectors = diag.get("sectors") or []
+        if sectors:
+            from collections import Counter
+            sector_counts = Counter(sectors)
+            top_sec, top_n = sector_counts.most_common(1)[0]
+            if top_n >= 2:
+                # 2 do mesmo setor é ok, mas 3+ vira alerta. Subsetor cap já cobre 2 do mesmo subsetor.
+                if top_n >= 3:
+                    warnings.append(
+                        f"{top_n}/5 ações do setor {escape(top_sec)}"
+                    )
+
+        # Score abaixo do threshold mínimo
+        below = diag.get("below_threshold", 0)
+        if below > 0:
+            min_score_val = diag.get("min_score")
+            if min_score_val is not None:
+                warnings.append(
+                    f"{below}/5 com score abaixo de 50 "
+                    f"\\(menor: {escape(f'{min_score_val:.1f}')}\\)"
+                )
+
+        if not warnings:
+            return ""
+
+        sep = escape("━" * 16)
+        body = "\n".join(f"   {escape('•')} {w}" for w in warnings)
+        return (
+            f"{sep}\n"
+            f"⚠️ {bold('Alertas de concentração')}\n\n"
+            f"{body}"
+        )
 
     @staticmethod
     def _performance_section(backtest_result: dict) -> str:

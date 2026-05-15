@@ -119,11 +119,50 @@ MAX_DIVIDA_EBITDA     = 5.0         # filtro hard: acima disso, ação é exclu�
 MAX_PL                = 80.0        # filtro hard: P/L > 80 é distorção (prejuízo)
 MIN_ROE               = -0.50       # filtro hard: ROE < -50% indica destruição de valor
 
+# ---------------------------------------------------------------------------
+# Filtros de sanidade de dados
+# ---------------------------------------------------------------------------
+# Acima de 20% costuma indicar provento extraordinário/amortização de capital
+# (ex.: SBSP3 retornou DY=55% após distribuição especial em 2024 — não é
+# dividend yield recorrente). Setamos para NaN para não contaminar o ranking.
+MAX_PLAUSIBLE_DY      = 0.20
+# Mínimo de fundamentos não-NaN para que um ticker seja elegível a ranking.
+# Empresas com 0-2 fundamentos válidos têm score dominado por momentum/qualidade
+# e tendem a entrar artificialmente no top 5 por dados ausentes.
+MIN_FUNDAMENTALS_REQUIRED = 3
+# Score mínimo para entrar no top 5. Universo pequeno + score baixo = forçar
+# recomendação medíocre. Melhor recomendar 3 boas que 5 marginais.
+MIN_SCORE_THRESHOLD   = 50.0
+
 # Normalização adaptativa
 MIN_SECTOR_ZSCORE     = 8           # N mínimo para Z-Score setorial (estatisticamente válido)
 MIN_SECTOR_PERCENTILE = 4           # N mínimo para Percentil setorial
 TOP_N_RECOMMENDATIONS = 5           # Top 5 na carteira recomendada
 EQUAL_WEIGHT          = 1.0 / TOP_N_RECOMMENDATIONS  # 20% cada posição
+
+# ---------------------------------------------------------------------------
+# Diversificação do portfólio
+# ---------------------------------------------------------------------------
+MAX_PER_SECTOR        = 2           # máx 2 ações do mesmo setor B3
+MAX_PER_SUBSECTOR     = 1           # máx 1 ação por sub-setor (evita 2 bancos)
+MAX_PER_MACRO_THEME   = 3           # máx 3 ações exposição a mesmo tema macro
+
+# Mapeamento setor B3 → tema macroeconômico
+# Tema captura sensibilidade dominante: commodity vs doméstico vs juros etc.
+# É grosseiro de propósito — quebrar concentração macro, não fina classificação.
+MACRO_THEME_MAP: dict[str, str] = {
+    "Petróleo Gás e Biocombustíveis": "commodity_export",
+    "Materiais Básicos":              "commodity_export",
+    "Energia Elétrica":               "defensive_utilities",
+    "Utilidade Pública":              "defensive_utilities",
+    "Saúde":                          "rate_sensitive_growth",
+    "Tecnologia da Informação":       "rate_sensitive_growth",
+    "Comunicações":                   "rate_sensitive_growth",
+    "Consumo Cíclico":                "domestic_consumer",
+    "Consumo Não Cíclico":            "domestic_consumer",
+    "Financeiro e Outros":            "financials",
+    "Bens Industriais":               "industrials",
+}
 
 # Janelas de momentum (dias úteis aproximados)
 MOMENTUM_WINDOWS = {

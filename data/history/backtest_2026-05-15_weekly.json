@@ -1,0 +1,73 @@
+{
+  "status": "success",
+  "backtest_date": "2026-05-15",
+  "recommendation_date": "2026-05-15",
+  "mode": "weekly",
+  "period_days": 0,
+  "portfolio_return": -0.002597,
+  "portfolio_return_pct": -0.2597,
+  "benchmark_returns": {
+    "ibovespa": -0.006067,
+    "cdi": 0.0005340000000000001,
+    "selic": 0.0005340000000000001
+  },
+  "alpha_vs_ibov": 0.003470142140318227,
+  "alpha_vs_cdi": -0.0031310000000000344,
+  "alpha_vs_ibov_pp": 0.347,
+  "alpha_vs_cdi_pp": -0.3131,
+  "holdings": [
+    {
+      "ticker": "PETR4",
+      "entry_price": 45.47,
+      "current_price": 45.47,
+      "return": -0.002597,
+      "return_pct": -0.2597,
+      "weight": 0.225313,
+      "included": true
+    },
+    {
+      "ticker": "UGPA3",
+      "entry_price": 29.13,
+      "current_price": 29.13,
+      "return": -0.002597,
+      "return_pct": -0.2597,
+      "weight": 0.188704,
+      "included": true
+    },
+    {
+      "ticker": "POMO4",
+      "entry_price": 6.05,
+      "current_price": 6.05,
+      "return": -0.002597,
+      "return_pct": -0.2597,
+      "weight": 0.168886,
+      "included": true
+    },
+    {
+      "ticker": "WEGE3",
+      "entry_price": 43.13,
+      "current_price": 43.13,
+      "return": -0.002597,
+      "return_pct": -0.2597,
+      "weight": 0.200303,
+      "included": true
+    },
+    {
+      "ticker": "PSSA3",
+      "entry_price": 47.92,
+      "current_price": 47.92,
+      "return": -0.002597,
+      "return_pct": -0.2597,
+      "weight": 0.216794,
+      "included": true
+    }
+  ],
+  "previous_top5": [
+    "PETR4",
+    "UGPA3",
+    "POMO4",
+    "WEGE3",
+    "PSSA3"
+  ],
+  "generated_at": "2026-05-15T18:54:49.885687"
+}

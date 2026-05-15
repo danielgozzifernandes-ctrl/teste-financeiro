@@ -34,8 +34,14 @@ import pandas as pd
 from scipy import stats
 
 from src.config import (
+    MACRO_THEME_MAP,
     MAX_DIVIDA_EBITDA,
+    MAX_PER_MACRO_THEME,
+    MAX_PER_SECTOR,
+    MAX_PER_SUBSECTOR,
     MIN_DAILY_VOLUME_BRL,
+    MIN_FUNDAMENTALS_REQUIRED,
+    MIN_SCORE_THRESHOLD,
     MIN_SECTOR_PERCENTILE,
     MIN_SECTOR_ZSCORE,
     MOMENTUM_WINDOWS,
@@ -470,6 +476,30 @@ class ScoringEngine:
                 excluded = df[value_trap].index.tolist()
                 logger.info("Hard filter value trap (P/L<0 & ROE<-5%%): %s removidos", excluded)
                 df = df[~value_trap]
+
+        # Filtro de cobertura mínima de fundamentos:
+        # tickers com <MIN_FUNDAMENTALS_REQUIRED métricas não-NaN têm score
+        # dominado pelo que está presente (geralmente momentum + qualidade)
+        # e tendem a entrar artificialmente no top porque os fatores ruins
+        # foram excluídos via redistribuição de peso. Excluir é mais correto
+        # que penalizar.
+        fund_cols = [c for c in ("pl", "pvp", "roe", "roic", "divida_ebitda", "dividend_yield")
+                     if c in df.columns]
+        if fund_cols:
+            fund_valid_count = df[fund_cols].notna().sum(axis=1)
+            insufficient = fund_valid_count < MIN_FUNDAMENTALS_REQUIRED
+            # Exceção: setor financeiro não tem divida_ebitda (nem ROIC útil)
+            # → exigir 1 a menos para esses casos.
+            if "setor" in df.columns:
+                is_financial = df["setor"].isin(FINANCIAL_SECTORS)
+                insufficient = insufficient & ~(is_financial & (fund_valid_count >= MIN_FUNDAMENTALS_REQUIRED - 1))
+            if insufficient.any():
+                excluded = df[insufficient].index.tolist()
+                logger.info(
+                    "Hard filter cobertura (<%d fundamentos): %s removidos",
+                    MIN_FUNDAMENTALS_REQUIRED, excluded,
+                )
+                df = df[~insufficient]
 
         n_after = len(df)
         if n_before != n_after:
@@ -1127,65 +1157,122 @@ class ScoringEngine:
 def select_diverse_portfolio(
     df_scored: pd.DataFrame,
     n: int = 5,
-    max_per_sector: int = 2,
+    max_per_sector: int = MAX_PER_SECTOR,
+    max_per_subsector: int = MAX_PER_SUBSECTOR,
+    max_per_theme: int = MAX_PER_MACRO_THEME,
+    min_score: float = MIN_SCORE_THRESHOLD,
 ) -> pd.DataFrame:
     """
     Reordena df_scored colocando o top-n diversificado nas primeiras posições.
 
     Regras de diversificação (aplicadas em ordem de score DESC):
-      1. Máximo 1 ticker por empresa — identificado pelos 4 primeiros caracteres
-         do ticker (PETR4 e PETR3 → mesma empresa "PETR"). Mantém o de maior score.
-      2. Máximo max_per_sector tickers por setor no top-n.
+      1. Máximo 1 ticker por empresa (PETR4 e PETR3 → mesma empresa "PETR").
+      2. Máximo max_per_subsector por sub-setor (evita 2 bancos, 2 mineradoras).
+      3. Máximo max_per_sector por setor B3.
+      4. Máximo max_per_theme por tema macroeconômico (commodity_export,
+         domestic_consumer, defensive_utilities, financials, etc.). Quebra
+         a concentração macro: top 5 não pode ser 4 commodities + 1 outra.
+      5. Score mínimo: tickers com total_score < min_score são marcados
+         como "tentativa" — só entram no top se não houver alternativa.
+
+    Estratégia de fallback (em cascata, da mais restritiva para a mais relaxada):
+      a) Tentar preencher com todas as restrições + score ≥ min_score
+      b) Relaxar sub-setor se faltar (subsector cap → sector cap apenas)
+      c) Aceitar tickers abaixo de min_score só se ainda faltar posição
 
     O restante do DataFrame mantém a ordem original de score.
-    Todo uso de df_scored.head(5) automaticamente recebe o portfólio diversificado.
-
-    Se for impossível preencher n posições com as restrições (universo pequeno),
-    preenche sem restrições para garantir sempre n recomendações.
     """
     if df_scored.empty:
         return df_scored
 
-    selected: list[int] = []
-    sector_count: dict[str, int] = {}
-    company_seen: set[str] = set()
+    # Helper: mapa setor → tema macro (com fallback "other")
+    def _theme(sector: str) -> str:
+        return MACRO_THEME_MAP.get(sector, "other")
 
-    for pos in range(len(df_scored)):
-        if len(selected) >= n:
-            break
-        row     = df_scored.iloc[pos]
-        ticker  = str(row.get("ticker", ""))
-        sector  = str(row.get("setor", ""))
-        company = ticker[:4]
+    def _try_fill(
+        positions: range,
+        require_min_score: bool,
+        enforce_subsector: bool,
+    ) -> tuple[list[int], dict[str, int], dict[str, int], dict[str, int], set[str]]:
+        """Tenta preencher n posições aplicando restrições graduadas."""
+        sel: list[int] = []
+        sec_cnt: dict[str, int] = {}
+        sub_cnt: dict[str, int] = {}
+        theme_cnt: dict[str, int] = {}
+        seen_co: set[str] = set()
 
-        if company in company_seen:
-            continue
-        if sector_count.get(sector, 0) >= max_per_sector:
-            continue
+        for pos in positions:
+            if len(sel) >= n:
+                break
+            row = df_scored.iloc[pos]
+            ticker = str(row.get("ticker", ""))
+            sector = str(row.get("setor", ""))
+            subsector = str(row.get("subsetor", ""))
+            theme = _theme(sector)
+            company = ticker[:4]
+            score = float(row.get("total_score", 0) or 0)
 
-        selected.append(pos)
-        company_seen.add(company)
-        sector_count[sector] = sector_count.get(sector, 0) + 1
+            if require_min_score and score < min_score:
+                continue
+            if company in seen_co:
+                continue
+            if sec_cnt.get(sector, 0) >= max_per_sector:
+                continue
+            if enforce_subsector and subsector and sub_cnt.get(subsector, 0) >= max_per_subsector:
+                continue
+            if theme_cnt.get(theme, 0) >= max_per_theme:
+                continue
 
-    # Fallback sem restrições se não conseguiu preencher n posições
+            sel.append(pos)
+            seen_co.add(company)
+            sec_cnt[sector] = sec_cnt.get(sector, 0) + 1
+            if subsector:
+                sub_cnt[subsector] = sub_cnt.get(subsector, 0) + 1
+            theme_cnt[theme] = theme_cnt.get(theme, 0) + 1
+
+        return sel, sec_cnt, sub_cnt, theme_cnt, seen_co
+
+    # Cascata de fallback
+    selected, *_ = _try_fill(range(len(df_scored)), require_min_score=True, enforce_subsector=True)
     if len(selected) < n:
+        logger.debug("Fallback 1: relaxar sub-setor (n=%d/%d)", len(selected), n)
+        selected, *_ = _try_fill(range(len(df_scored)), require_min_score=True, enforce_subsector=False)
+    if len(selected) < n:
+        logger.debug("Fallback 2: relaxar min_score (n=%d/%d)", len(selected), n)
+        selected, *_ = _try_fill(range(len(df_scored)), require_min_score=False, enforce_subsector=False)
+    if len(selected) < n:
+        # Último recurso: preencher sem restrições para sempre retornar n
+        logger.warning("Fallback 3: relaxar todas as restrições (n=%d/%d)", len(selected), n)
+        already = set(selected)
         for pos in range(len(df_scored)):
             if len(selected) >= n:
                 break
-            if pos not in set(selected):
+            if pos not in already:
                 selected.append(pos)
 
     remaining = [p for p in range(len(df_scored)) if p not in set(selected)]
     result = df_scored.iloc[selected + remaining].reset_index(drop=True)
 
-    # Log se o top 5 mudou
+    # Anotar diagnóstico no DataFrame para o report_builder usar
+    top_n = result.head(n)
+    themes_in_top = [_theme(str(s)) for s in top_n.get("setor", []).tolist()]
+    sectors_in_top = top_n.get("setor", []).tolist() if "setor" in top_n.columns else []
+    result.attrs["portfolio_diagnostics"] = {
+        "themes":          themes_in_top,
+        "sectors":         sectors_in_top,
+        "min_score":       float(top_n["total_score"].min()) if "total_score" in top_n.columns and not top_n.empty else None,
+        "below_threshold": int(sum(1 for s in top_n.get("total_score", []) if s is not None and s < min_score)),
+        "dominant_theme":  max(set(themes_in_top), key=themes_in_top.count) if themes_in_top else None,
+        "dominant_theme_count": themes_in_top.count(max(set(themes_in_top), key=themes_in_top.count)) if themes_in_top else 0,
+    }
+
     if "ticker" in df_scored.columns:
         original = df_scored.head(n)["ticker"].tolist()
-        new      = result.head(n)["ticker"].tolist()
+        new = result.head(n)["ticker"].tolist()
         if original != new:
             logger.info(
-                "Portfolio diversificado: %s → %s (deduplicação empresa/setor)",
-                original, new,
+                "Portfolio diversificado: %s → %s (dedupe empresa/subsetor/setor/tema, min_score=%.1f)",
+                original, new, min_score,
             )
 
     return result

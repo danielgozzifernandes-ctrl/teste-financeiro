@@ -141,17 +141,31 @@ class TradeAdvisor:
 
         # ── Stop-loss ─────────────────────────────────────────────────────────
         # Priority: ATR(14) × 2.0 → MA50 × 0.99 → -7% flat; always capped at -10%
+        #
+        # Salvaguardas adicionais:
+        #   - ATR > 10% do preço (volatilidade anômala, ex: dia de crash) é
+        #     ignorado — usar default 7% para não posicionar stop absurdo
+        #   - Stop nunca abaixo do cap (max risco -10%)
+        #   - Stop nunca a menos de 3% abaixo do preço (sob-risco/ruído)
         ma50 = tech.get("ma50")
         atr  = tech.get("atr")
         cap  = round(price * (1 - _STOP_MAX_PCT), 2)
+        floor_close = round(price * 0.97, 2)  # stop não pode ficar dentro do ruído de 3%
 
-        if atr and not np.isnan(atr) and atr > 0:
+        atr_usable = (atr is not None and not np.isnan(atr)
+                      and 0 < atr < price * 0.10)
+
+        if atr_usable:
             stop = max(round(price - 2.0 * atr, 2), cap)
         elif (ma50 and not np.isnan(ma50)
                 and price * _STOP_TECH_FLOOR < ma50 < price):
             stop = max(round(ma50 * 0.99, 2), cap)
         else:
             stop = max(round(price * (1 - _STOP_DEFAULT_PCT), 2), cap)
+
+        # Garantir separação mínima do preço (anti-ruído)
+        if stop > floor_close:
+            stop = floor_close
 
         # ── Risk / Reward ─────────────────────────────────────────────────────
         downside = max(entry_mid - stop, 0.01)

@@ -1,0 +1,1919 @@
+{
+  "date": "2026-05-15",
+  "mode": "weekly",
+  "universe_snapshot": "C:\\Users\\danie\\Downloads\\teste-financeiro\\data\\history\\universe_2026-05-15.json",
+  "top5": [
+    {
+      "ticker": "PETR4",
+      "nome": "Petróleo Brasileiro PN",
+      "score": 77.53,
+      "score_breakdown": {
+        "fundamental": 38.16,
+        "momentum": 20.26,
+        "quality": 18.01
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Petróleo Gás e Biocombustíveis",
+      "sector_peers_count": 5,
+      "why": "P/VP 1.41 — top 0% do setor (N=5); ROE 25.6% — top 10% do setor (N=5); ROIC 8.2% — top 10% do setor (N=5)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.178799,
+        "pvp": 1.409486,
+        "roe": 0.25601,
+        "roic": 0.08231,
+        "divida_ebitda": 1.826491,
+        "dy": 0.0862,
+        "alpha_6m": 0.32682,
+        "volatility": 0.252713,
+        "beta": -0.064
+      },
+      "entry_price": 45.47,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 80.0,
+          "z_score": null,
+          "percentile": 80.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 90.0,
+          "z_score": null,
+          "percentile": 90.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 90.0,
+          "z_score": null,
+          "percentile": 90.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 70.0,
+          "z_score": null,
+          "percentile": 70.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "zscore_global",
+          "n_peers": 32,
+          "score": 63.14,
+          "z_score": 0.789,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 77.11,
+          "z_score": 1.626,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 59.55,
+          "z_score": 0.573,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 68.61,
+          "z_score": 1.117,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 63.74,
+          "z_score": 0.824,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 70.89,
+          "z_score": 1.254,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 86.94,
+          "z_score": 2.217,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "UGPA3",
+      "nome": "Ultrapar ON",
+      "score": 63.19,
+      "score_breakdown": {
+        "fundamental": 31.95,
+        "momentum": 19.96,
+        "quality": 11.99
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Consumo Não Cíclico",
+      "sector_peers_count": 5,
+      "why": "ROE 19.2% — top 0% do setor (N=5); ROIC 8.3% — top 20% do setor (N=5); Dividend Yield 5.9% — top 20% do setor (N=5)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.097837,
+        "pvp": 1.987175,
+        "roe": 0.19181,
+        "roic": 0.08301,
+        "divida_ebitda": 2.859382,
+        "dy": 0.0592,
+        "alpha_6m": 0.211435,
+        "volatility": 0.301741,
+        "beta": 0.397
+      },
+      "entry_price": 29.13,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 60.0,
+          "z_score": null,
+          "percentile": 60.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 40.0,
+          "z_score": null,
+          "percentile": 40.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 80.0,
+          "z_score": null,
+          "percentile": 80.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 40.0,
+          "z_score": null,
+          "percentile": 40.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 80.0,
+          "z_score": null,
+          "percentile": 80.0,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 62.29,
+          "z_score": 0.737,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 61.1,
+          "z_score": 0.666,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 78.0,
+          "z_score": 1.68,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 51.86,
+          "z_score": 0.112,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 51.24,
+          "z_score": 0.075,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 37.08,
+          "z_score": -0.775,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "POMO4",
+      "nome": "Marcopolo PN",
+      "score": 62.4,
+      "score_breakdown": {
+        "fundamental": 37.59,
+        "momentum": 14.49,
+        "quality": 9.14
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Bens Industriais",
+      "sector_peers_count": 4,
+      "why": "Earnings Yield EY=16.5% (P/L≈6.0) — top 0% do setor (N=4); P/VP 1.96 — top 0% do setor (N=4); Dividend Yield 16.7% — 2.9σ acima da média do universo (N=32)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.165289,
+        "pvp": 1.958563,
+        "roe": 0.30911,
+        "roic": 0.09597,
+        "divida_ebitda": 2.237693,
+        "dy": 0.1672,
+        "alpha_6m": -0.084574,
+        "volatility": 0.337149,
+        "beta": 0.937076
+      },
+      "entry_price": 6.05,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "zscore_global",
+          "n_peers": 32,
+          "score": 97.84,
+          "z_score": 2.87,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 49.44,
+          "z_score": -0.034,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 50.26,
+          "z_score": 0.016,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 44.57,
+          "z_score": -0.326,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 43.29,
+          "z_score": -0.403,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 28.22,
+          "z_score": -1.307,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 37.5,
+          "z_score": -0.75,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "WEGE3",
+      "nome": "WEG ON",
+      "score": 61.45,
+      "score_breakdown": {
+        "fundamental": 31.87,
+        "momentum": 13.7,
+        "quality": 14.08
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Bens Industriais",
+      "sector_peers_count": 4,
+      "why": "ROE 32.5% — top 0% do setor (N=4); ROIC 11.8% — top 0% do setor (N=4); Dívida/EBITDA 0.57 — top 0% do setor (N=4)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.034779,
+        "pvp": 10.390267,
+        "roe": 0.32525,
+        "roic": 0.11803,
+        "divida_ebitda": 0.567619,
+        "dy": null,
+        "alpha_6m": -0.155635,
+        "volatility": 0.284267,
+        "beta": -0.062
+      },
+      "entry_price": 43.13,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "zscore_global",
+          "n_peers": 32,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 35.8,
+          "z_score": -0.852,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 55.77,
+          "z_score": 0.346,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 42.07,
+          "z_score": -0.476,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 56.1,
+          "z_score": 0.366,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 70.81,
+          "z_score": 1.248,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 36.41,
+          "z_score": -0.815,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "PSSA3",
+      "nome": "Porto Seguro ON",
+      "score": 58.83,
+      "score_breakdown": {
+        "fundamental": 29.82,
+        "momentum": 11.8,
+        "quality": 14.86
+      },
+      "normalization_method": "zscore_sectoral",
+      "sector": "Financeiro e Outros",
+      "sector_peers_count": 8,
+      "why": "Dividend Yield 5.1% — top 0% do setor (N=7); Momentum Idiossincr. 6m -0.00 — 1.2σ abaixo da média do universo (N=39); ROIC 6.1% — 1.0σ acima da média do setor (N=8)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.118531,
+        "pvp": 1.975186,
+        "roe": 0.25159,
+        "roic": 0.0609,
+        "divida_ebitda": null,
+        "dy": 0.0513,
+        "alpha_6m": -0.144942,
+        "volatility": 0.262644,
+        "beta": 0.514
+      },
+      "entry_price": 47.92,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 8,
+          "score": 62.72,
+          "z_score": 0.763,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 8,
+          "score": 50.76,
+          "z_score": 0.046,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 8,
+          "score": 64.9,
+          "z_score": 0.894,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 8,
+          "score": 66.83,
+          "z_score": 1.01,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "zscore_global",
+          "n_peers": 31,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 48.41,
+          "z_score": -0.096,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 29.85,
+          "z_score": -1.209,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 42.9,
+          "z_score": -0.426,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 61.33,
+          "z_score": 0.68,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 46.25,
+          "z_score": -0.225,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 74.84,
+          "z_score": 1.49,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    }
+  ],
+  "top10": [
+    {
+      "ticker": "PETR4",
+      "nome": "Petróleo Brasileiro PN",
+      "score": 77.53,
+      "score_breakdown": {
+        "fundamental": 38.16,
+        "momentum": 20.26,
+        "quality": 18.01
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Petróleo Gás e Biocombustíveis",
+      "sector_peers_count": 5,
+      "why": "P/VP 1.41 — top 0% do setor (N=5); ROE 25.6% — top 10% do setor (N=5); ROIC 8.2% — top 10% do setor (N=5)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.178799,
+        "pvp": 1.409486,
+        "roe": 0.25601,
+        "roic": 0.08231,
+        "divida_ebitda": 1.826491,
+        "dy": 0.0862,
+        "alpha_6m": 0.32682,
+        "volatility": 0.252713,
+        "beta": -0.064
+      },
+      "entry_price": 45.47,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 80.0,
+          "z_score": null,
+          "percentile": 80.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 90.0,
+          "z_score": null,
+          "percentile": 90.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 90.0,
+          "z_score": null,
+          "percentile": 90.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 70.0,
+          "z_score": null,
+          "percentile": 70.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "zscore_global",
+          "n_peers": 32,
+          "score": 63.14,
+          "z_score": 0.789,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 77.11,
+          "z_score": 1.626,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 59.55,
+          "z_score": 0.573,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 68.61,
+          "z_score": 1.117,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 63.74,
+          "z_score": 0.824,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 70.89,
+          "z_score": 1.254,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 86.94,
+          "z_score": 2.217,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "UGPA3",
+      "nome": "Ultrapar ON",
+      "score": 63.19,
+      "score_breakdown": {
+        "fundamental": 31.95,
+        "momentum": 19.96,
+        "quality": 11.99
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Consumo Não Cíclico",
+      "sector_peers_count": 5,
+      "why": "ROE 19.2% — top 0% do setor (N=5); ROIC 8.3% — top 20% do setor (N=5); Dividend Yield 5.9% — top 20% do setor (N=5)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.097837,
+        "pvp": 1.987175,
+        "roe": 0.19181,
+        "roic": 0.08301,
+        "divida_ebitda": 2.859382,
+        "dy": 0.0592,
+        "alpha_6m": 0.211435,
+        "volatility": 0.301741,
+        "beta": 0.397
+      },
+      "entry_price": 29.13,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 60.0,
+          "z_score": null,
+          "percentile": 60.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 40.0,
+          "z_score": null,
+          "percentile": 40.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 80.0,
+          "z_score": null,
+          "percentile": 80.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 40.0,
+          "z_score": null,
+          "percentile": 40.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 80.0,
+          "z_score": null,
+          "percentile": 80.0,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 62.29,
+          "z_score": 0.737,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 61.1,
+          "z_score": 0.666,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 78.0,
+          "z_score": 1.68,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 51.86,
+          "z_score": 0.112,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 51.24,
+          "z_score": 0.075,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 37.08,
+          "z_score": -0.775,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "POMO4",
+      "nome": "Marcopolo PN",
+      "score": 62.4,
+      "score_breakdown": {
+        "fundamental": 37.59,
+        "momentum": 14.49,
+        "quality": 9.14
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Bens Industriais",
+      "sector_peers_count": 4,
+      "why": "Earnings Yield EY=16.5% (P/L≈6.0) — top 0% do setor (N=4); P/VP 1.96 — top 0% do setor (N=4); Dividend Yield 16.7% — 2.9σ acima da média do universo (N=32)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.165289,
+        "pvp": 1.958563,
+        "roe": 0.30911,
+        "roic": 0.09597,
+        "divida_ebitda": 2.237693,
+        "dy": 0.1672,
+        "alpha_6m": -0.084574,
+        "volatility": 0.337149,
+        "beta": 0.937076
+      },
+      "entry_price": 6.05,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "zscore_global",
+          "n_peers": 32,
+          "score": 97.84,
+          "z_score": 2.87,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 49.44,
+          "z_score": -0.034,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 50.26,
+          "z_score": 0.016,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 44.57,
+          "z_score": -0.326,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 43.29,
+          "z_score": -0.403,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 28.22,
+          "z_score": -1.307,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 37.5,
+          "z_score": -0.75,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "WEGE3",
+      "nome": "WEG ON",
+      "score": 61.45,
+      "score_breakdown": {
+        "fundamental": 31.87,
+        "momentum": 13.7,
+        "quality": 14.08
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Bens Industriais",
+      "sector_peers_count": 4,
+      "why": "ROE 32.5% — top 0% do setor (N=4); ROIC 11.8% — top 0% do setor (N=4); Dívida/EBITDA 0.57 — top 0% do setor (N=4)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.034779,
+        "pvp": 10.390267,
+        "roe": 0.32525,
+        "roic": 0.11803,
+        "divida_ebitda": 0.567619,
+        "dy": null,
+        "alpha_6m": -0.155635,
+        "volatility": 0.284267,
+        "beta": -0.062
+      },
+      "entry_price": 43.13,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "zscore_global",
+          "n_peers": 32,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 35.8,
+          "z_score": -0.852,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 55.77,
+          "z_score": 0.346,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 42.07,
+          "z_score": -0.476,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 56.1,
+          "z_score": 0.366,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 70.81,
+          "z_score": 1.248,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 36.41,
+          "z_score": -0.815,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "PSSA3",
+      "nome": "Porto Seguro ON",
+      "score": 58.83,
+      "score_breakdown": {
+        "fundamental": 29.82,
+        "momentum": 11.8,
+        "quality": 14.86
+      },
+      "normalization_method": "zscore_sectoral",
+      "sector": "Financeiro e Outros",
+      "sector_peers_count": 8,
+      "why": "Dividend Yield 5.1% — top 0% do setor (N=7); Momentum Idiossincr. 6m -0.00 — 1.2σ abaixo da média do universo (N=39); ROIC 6.1% — 1.0σ acima da média do setor (N=8)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.118531,
+        "pvp": 1.975186,
+        "roe": 0.25159,
+        "roic": 0.0609,
+        "divida_ebitda": null,
+        "dy": 0.0513,
+        "alpha_6m": -0.144942,
+        "volatility": 0.262644,
+        "beta": 0.514
+      },
+      "entry_price": 47.92,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 8,
+          "score": 62.72,
+          "z_score": 0.763,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 8,
+          "score": 50.76,
+          "z_score": 0.046,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 8,
+          "score": 64.9,
+          "z_score": 0.894,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 8,
+          "score": 66.83,
+          "z_score": 1.01,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "zscore_global",
+          "n_peers": 31,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 48.41,
+          "z_score": -0.096,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 29.85,
+          "z_score": -1.209,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 42.9,
+          "z_score": -0.426,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 61.33,
+          "z_score": 0.68,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 46.25,
+          "z_score": -0.225,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 74.84,
+          "z_score": 1.49,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "PETR3",
+      "nome": "Petróleo Brasileiro ON",
+      "score": 69.45,
+      "score_breakdown": {
+        "fundamental": 34.87,
+        "momentum": 20.27,
+        "quality": 14.33
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Petróleo Gás e Biocombustíveis",
+      "sector_peers_count": 5,
+      "why": "ROE 25.6% — top 10% do setor (N=5); ROIC 8.2% — top 10% do setor (N=5); Alpha 3m +30.9% vs IBOV — 1.8σ acima da média do universo (N=39)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.16115,
+        "pvp": 1.563856,
+        "roe": 0.25601,
+        "roic": 0.08231,
+        "divida_ebitda": 1.826491,
+        "dy": 0.0785,
+        "alpha_6m": 0.383644,
+        "volatility": 0.284218,
+        "beta": -0.064
+      },
+      "entry_price": 50.45,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 60.0,
+          "z_score": null,
+          "percentile": 60.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 80.0,
+          "z_score": null,
+          "percentile": 80.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 90.0,
+          "z_score": null,
+          "percentile": 90.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 90.0,
+          "z_score": null,
+          "percentile": 90.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 70.0,
+          "z_score": null,
+          "percentile": 70.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "zscore_global",
+          "n_peers": 32,
+          "score": 59.85,
+          "z_score": 0.591,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 80.53,
+          "z_score": 1.832,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 55.06,
+          "z_score": 0.304,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 71.27,
+          "z_score": 1.276,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 56.11,
+          "z_score": 0.366,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 70.89,
+          "z_score": 1.254,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 40.31,
+          "z_score": -0.582,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "VALE3",
+      "nome": "Vale ON",
+      "score": 58.81,
+      "score_breakdown": {
+        "fundamental": 27.5,
+        "momentum": 17.89,
+        "quality": 13.61
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Materiais Básicos",
+      "sector_peers_count": 6,
+      "why": "Dívida/EBITDA 1.44 — top 0% do setor (N=6); ROIC 8.2% — top 17% do setor (N=6); Dividend Yield 8.3% — top 20% do setor (N=5)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.038802,
+        "pvp": 1.934034,
+        "roe": 0.06839,
+        "roic": 0.08187,
+        "divida_ebitda": 1.437294,
+        "dy": 0.0832,
+        "alpha_6m": 0.205742,
+        "volatility": 0.252737,
+        "beta": 0.753
+      },
+      "entry_price": 83.5,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 66.67,
+          "z_score": null,
+          "percentile": 66.7,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 80.0,
+          "z_score": null,
+          "percentile": 80.0,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 48.11,
+          "z_score": -0.114,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 58.79,
+          "z_score": 0.527,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 72.34,
+          "z_score": 1.34,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 63.73,
+          "z_score": 0.824,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 36.07,
+          "z_score": -0.836,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 65.26,
+          "z_score": 0.915,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "CMIG4",
+      "nome": "Cemig PN",
+      "score": 58.1,
+      "score_breakdown": {
+        "fundamental": 26.02,
+        "momentum": 16.45,
+        "quality": 15.19
+      },
+      "normalization_method": "zscore_global",
+      "sector": "Energia Elétrica",
+      "sector_peers_count": 39,
+      "why": "Dividend Yield 11.2% — 1.5σ acima da média do universo (N=32); Earnings Yield EY=15.4% (P/L≈6.5) — 0.9σ acima da média do universo (N=39); P/VP 1.12 — 0.6σ abaixo da média do universo (N=39)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.153505,
+        "pvp": 1.116063,
+        "roe": 0.17038,
+        "roic": 0.05927,
+        "divida_ebitda": 2.582107,
+        "dy": 0.1125,
+        "alpha_6m": -0.103376,
+        "volatility": 0.231217,
+        "beta": 0.19
+      },
+      "entry_price": 11.27,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 65.02,
+          "z_score": 0.901,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 59.93,
+          "z_score": 0.596,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 53.37,
+          "z_score": 0.202,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 50.67,
+          "z_score": 0.04,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "zscore_global",
+          "n_peers": 31,
+          "score": 49.13,
+          "z_score": -0.052,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "zscore_global",
+          "n_peers": 32,
+          "score": 74.41,
+          "z_score": 1.465,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 53.74,
+          "z_score": 0.224,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 58.86,
+          "z_score": 0.532,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 50.61,
+          "z_score": 0.037,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 68.94,
+          "z_score": 1.137,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 60.07,
+          "z_score": 0.604,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 48.57,
+          "z_score": -0.086,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "GMAT3",
+      "nome": "Grupo Mateus ON",
+      "score": 57.54,
+      "score_breakdown": {
+        "fundamental": 34.2,
+        "momentum": 12.58,
+        "quality": 9.3
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Consumo Não Cíclico",
+      "sector_peers_count": 5,
+      "why": "Earnings Yield EY=18.9% (P/L≈5.3) — top 0% do setor (N=5); P/VP 0.94 — top 20% do setor (N=5); ROE 17.9% — top 20% do setor (N=5)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.18894,
+        "pvp": 0.938176,
+        "roe": 0.17945,
+        "roic": 0.06637,
+        "divida_ebitda": 2.648356,
+        "dy": 0.0581,
+        "alpha_6m": -0.467042,
+        "volatility": 0.404171,
+        "beta": 0.522
+      },
+      "entry_price": 4.34,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 80.0,
+          "z_score": null,
+          "percentile": 80.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 80.0,
+          "z_score": null,
+          "percentile": 80.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 60.0,
+          "z_score": null,
+          "percentile": 60.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 60.0,
+          "z_score": null,
+          "percentile": 60.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 60.0,
+          "z_score": null,
+          "percentile": 60.0,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 38.51,
+          "z_score": -0.69,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 60.72,
+          "z_score": 0.643,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 20.28,
+          "z_score": -1.783,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 27.06,
+          "z_score": -1.377,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 45.91,
+          "z_score": -0.245,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 41.21,
+          "z_score": -0.527,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "ABEV3",
+      "nome": "Ambev ON",
+      "score": 57.24,
+      "score_breakdown": {
+        "fundamental": 26.1,
+        "momentum": 15.93,
+        "quality": 14.69
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Consumo Não Cíclico",
+      "sector_peers_count": 5,
+      "why": "ROIC 9.8% — top 0% do setor (N=5); Dívida/EBITDA 0.11 — top 0% do setor (N=5); P/VP 2.72 — abaixo da mediana (20º percentil) (N=5)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.063098,
+        "pvp": 2.715003,
+        "roe": 0.17251,
+        "roic": 0.09784,
+        "divida_ebitda": 0.114981,
+        "dy": 0.0114,
+        "alpha_6m": 0.100136,
+        "volatility": 0.276251,
+        "beta": 0.232
+      },
+      "entry_price": 15.69,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 40.0,
+          "z_score": null,
+          "percentile": 40.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 20.0,
+          "z_score": null,
+          "percentile": 20.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 60.0,
+          "z_score": null,
+          "percentile": 60.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 20.0,
+          "z_score": null,
+          "percentile": 20.0,
+          "direction": "higher_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 55.07,
+          "z_score": 0.304,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 55.21,
+          "z_score": 0.312,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 48.36,
+          "z_score": -0.098,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 58.04,
+          "z_score": 0.482,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 58.28,
+          "z_score": 0.497,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 60.52,
+          "z_score": 0.631,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    }
+  ],
+  "weights": {
+    "fundamental": 0.45,
+    "momentum": 0.3,
+    "quality": 0.25
+  },
+  "entry_prices": {
+    "PETR4": 45.47,
+    "UGPA3": 29.13,
+    "POMO4": 6.05,
+    "WEGE3": 43.13,
+    "PSSA3": 47.92,
+    "PETR3": 50.45,
+    "VALE3": 83.5,
+    "CMIG4": 11.27,
+    "GMAT3": 4.34,
+    "ABEV3": 15.69
+  },
+  "portfolio_weights": {
+    "PETR4": 0.225313,
+    "UGPA3": 0.188704,
+    "POMO4": 0.168886,
+    "WEGE3": 0.200303,
+    "PSSA3": 0.216794
+  },
+  "execution_metadata": {
+    "universe_size": 39,
+    "tickers_scored": 39,
+    "generated_at": "2026-05-15T18:54:47.508025",
+    "portfolio_weights_method": "inverse_volatility",
+    "score_range": {
+      "max": 77.53,
+      "min": 41.05,
+      "p50": 52.49
+    }
+  }
+}

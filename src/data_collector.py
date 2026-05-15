@@ -45,6 +45,7 @@ from src.config import (
     BRAPI_TIMEOUT,
     CACHE_DIR_PATH,
     CACHE_TTL_HOURS,
+    MAX_PLAUSIBLE_DY,
     UNIVERSE_FILE,
     YFINANCE_TIMEOUT,
 )
@@ -305,6 +306,7 @@ class YFinanceClient:
     # Mapeamento yfinance key → nossa key interna
     _FIELD_MAP = {
         "trailingPE":               "pl",
+        "forwardPE":                "_forward_pe",  # fallback quando trailing é NaN
         "priceToBook":              "pvp",
         "returnOnEquity":           "roe",
         "returnOnCapitalEmployed":  "roic",
@@ -317,6 +319,7 @@ class YFinanceClient:
         "fiftyTwoWeekLow":          "week52_low",
         "totalDebt":                "_total_debt",
         "ebitda":                   "_ebitda",
+        "enterpriseToEbitda":       "ev_ebitda",  # múltiplo de valor alternativo a P/L
         "returnOnAssets":           "_roa",  # proxy ROIC quando ROCE indisponível
     }
 
@@ -342,6 +345,7 @@ class YFinanceClient:
             debt  = result.pop("_total_debt", None)
             ebitda = result.pop("_ebitda", None)
             roa   = result.pop("_roa", None)
+            fwd_pe = result.pop("_forward_pe", None)
 
             if debt is not None and ebitda and ebitda != 0:
                 result["divida_ebitda"] = debt / ebitda
@@ -351,6 +355,18 @@ class YFinanceClient:
             # ROIC: preferir ROCE; se None, usar ROA como proxy
             if result.get("roic") is None and roa is not None:
                 result["roic"] = roa
+
+            # P/L: fallback para forward P/L quando trailing está NaN.
+            # Trailing P/L falta com frequência em ações que mudaram de regime
+            # de lucro (ex.: PETR4 com lucro recente após anos de prejuízo) ou
+            # quando o último ano fiscal teve evento não-recorrente.
+            if result.get("pl") is None and fwd_pe is not None:
+                try:
+                    fwd_pe_f = float(fwd_pe)
+                    if 0 < fwd_pe_f < 80:  # mesma faixa de plausibilidade
+                        result["pl"] = fwd_pe_f
+                except (TypeError, ValueError):
+                    pass
 
             return result
 
@@ -688,7 +704,7 @@ class DataCollector:
             "pl", "pvp", "roe", "roic", "divida_ebitda",
             "dividend_yield", "beta", "avg_volume_30d",
             "current_price", "market_cap", "liquidez_minima_MM",
-            "week52_high", "week52_low",
+            "week52_high", "week52_low", "ev_ebitda",
         ]
         for col in float_cols:
             if col in df.columns:
@@ -714,6 +730,18 @@ class DataCollector:
         if "dividend_yield" in df.columns:
             high_mask = df["dividend_yield"] > 1.0
             df.loc[high_mask, "dividend_yield"] = df.loc[high_mask, "dividend_yield"] / 100.0
+            # Filtrar outliers extremos: DY > MAX_PLAUSIBLE_DY (default 20%)
+            # indica provento extraordinário, amortização de capital ou erro
+            # de dados. Ex.: SBSP3 retornou DY=55% após dividendo especial 2024.
+            implausible = df["dividend_yield"].notna() & (df["dividend_yield"] > MAX_PLAUSIBLE_DY)
+            if implausible.any():
+                outliers = df.loc[implausible, ["ticker", "dividend_yield"]].to_dict("records")
+                logger.warning(
+                    "DY implausível (>%.0f%%): %s — setando NaN",
+                    MAX_PLAUSIBLE_DY * 100,
+                    [(o["ticker"], f"{o['dividend_yield']*100:.1f}%") for o in outliers],
+                )
+                df.loc[implausible, "dividend_yield"] = np.nan
 
         # Volume: se avg_volume_30d parece ser número de ações (< 1M para ações do IBrX),
         # converter para BRL multiplicando pelo preço atual
