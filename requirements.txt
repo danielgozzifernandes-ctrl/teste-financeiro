@@ -11,6 +11,10 @@ pandas>=2.1.0
 numpy>=1.26.0
 scipy>=1.11.0
 
+# Otimização de portfólio (HRP — Hierarchical Risk Parity)
+# Fallback automático para inverse-vol se import falhar.
+riskfolio-lib>=5.0.0
+
 # Visualização
 matplotlib>=3.8.0
 

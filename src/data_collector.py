@@ -30,6 +30,7 @@ import json
 import logging
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -392,10 +393,163 @@ class YFinanceClient:
             logger.warning("yfinance histórico %s: %s", ticker, exc)
             return None
 
+    def fetch_advanced_fundamentals(self, ticker: str) -> dict:
+        """
+        Coleta fundamentos derivados de demonstrações 3y + analyst recs.
+
+        Returns dict com (todos opcionais):
+          - net_margin_3y_avg     — média 3y de (Net Income / Total Revenue)
+          - revenue_growth_3y     — (revenue_now / revenue_3y_ago)^(1/3) - 1
+          - earnings_growth_3y    — análogo para net income (capped a [-1, +5])
+          - asset_growth_yoy      — total_assets YoY mais recente (fator Investment)
+          - free_cash_flow_ttm    — FCF anual mais recente
+          - fcf_payout_ratio      — dividendos pagos / FCF (lower_is_better)
+          - analyst_rec_score     — 1.0 (strong sell) a 5.0 (strong buy) média ponderada
+          - analyst_rec_trend     — variação score recente (90d) vs anterior (180d)
+
+        Falha silenciosa: qualquer chave que não puder ser computada vira None.
+        yfinance bloqueia se chamado muito rápido — rate-limit é externo.
+        """
+        result: dict = {}
+        try:
+            yticker = yf.Ticker(f"{ticker}.SA")
+
+            # ── Income statement (annual, last ~4 years) ─────────────────
+            inc = getattr(yticker, "income_stmt", None)
+            if inc is not None and not inc.empty:
+                # yfinance retorna colunas mais novas → mais antigas (DataFrames TTM-first)
+                years = list(inc.columns)
+                if years:
+                    # Net Income / Revenue series por ano
+                    ni_row = _find_row(inc, ["Net Income", "NetIncome", "Net Income Common Stockholders"])
+                    rev_row = _find_row(inc, ["Total Revenue", "TotalRevenue", "Operating Revenue", "OperatingRevenue"])
+
+                    if ni_row is not None and rev_row is not None:
+                        margins = []
+                        for col in years[:4]:  # até 4 anos
+                            ni = _to_float(ni_row.get(col))
+                            rev = _to_float(rev_row.get(col))
+                            if ni is not None and rev and rev > 0:
+                                margins.append(ni / rev)
+                        if margins:
+                            result["net_margin_3y_avg"] = float(np.mean(margins))
+
+                        # Earnings growth 3y CAGR
+                        if ni_row is not None and len(years) >= 4:
+                            ni_recent = _to_float(ni_row.get(years[0]))
+                            ni_old    = _to_float(ni_row.get(years[3]))
+                            if ni_recent is not None and ni_old is not None and ni_old > 0 and ni_recent > 0:
+                                cagr = (ni_recent / ni_old) ** (1/3) - 1
+                                # cap em [-100%, +500%] para outliers
+                                result["earnings_growth_3y"] = float(max(-1.0, min(5.0, cagr)))
+
+                        # Revenue growth 3y CAGR
+                        if rev_row is not None and len(years) >= 4:
+                            r_recent = _to_float(rev_row.get(years[0]))
+                            r_old    = _to_float(rev_row.get(years[3]))
+                            if r_recent is not None and r_old is not None and r_old > 0:
+                                cagr = (r_recent / r_old) ** (1/3) - 1
+                                result["revenue_growth_3y"] = float(max(-1.0, min(5.0, cagr)))
+
+            # ── Balance sheet (asset growth YoY) ─────────────────────────
+            bs = getattr(yticker, "balance_sheet", None)
+            if bs is not None and not bs.empty:
+                ta_row = _find_row(bs, ["Total Assets", "TotalAssets"])
+                if ta_row is not None and len(bs.columns) >= 2:
+                    ta_recent = _to_float(ta_row.get(bs.columns[0]))
+                    ta_prev   = _to_float(ta_row.get(bs.columns[1]))
+                    if ta_recent is not None and ta_prev is not None and ta_prev > 0:
+                        result["asset_growth_yoy"] = float((ta_recent / ta_prev) - 1.0)
+
+            # ── Cash flow (FCF + dividends paid) ─────────────────────────
+            cf = getattr(yticker, "cashflow", None)
+            if cf is not None and not cf.empty:
+                fcf_row = _find_row(cf, ["Free Cash Flow", "FreeCashFlow"])
+                if fcf_row is not None:
+                    fcf_recent = _to_float(fcf_row.get(cf.columns[0]))
+                    if fcf_recent is not None and fcf_recent != 0:
+                        result["free_cash_flow_ttm"] = fcf_recent
+                        # Dividendos pagos (sempre negativo no cashflow yfinance)
+                        div_row = _find_row(cf, ["Cash Dividends Paid", "CashDividendsPaid", "Common Stock Dividend Paid"])
+                        if div_row is not None:
+                            div_paid = _to_float(div_row.get(cf.columns[0]))
+                            if div_paid is not None and fcf_recent > 0:
+                                # div_paid é negativo (saída) — usar abs
+                                payout = abs(div_paid) / fcf_recent
+                                # cap razoável; se > 5 provavelmente dado quebrado
+                                if payout < 5.0:
+                                    result["fcf_payout_ratio"] = float(payout)
+
+            # ── Analyst recommendations ──────────────────────────────────
+            try:
+                rec = getattr(yticker, "recommendations", None)
+                if rec is not None and not rec.empty:
+                    # yfinance recommendations: colunas strongBuy/buy/hold/sell/strongSell,
+                    # uma linha por mês (4 meses recentes tipicamente)
+                    score = _analyst_score(rec.head(2))   # média dos 2 meses mais recentes
+                    score_prev = _analyst_score(rec.iloc[2:5]) if len(rec) >= 3 else None
+                    if score is not None:
+                        result["analyst_rec_score"] = score
+                    if score is not None and score_prev is not None:
+                        result["analyst_rec_trend"] = float(score - score_prev)
+            except Exception as exc:
+                logger.debug("Analyst rec fetch %s: %s", ticker, exc)
+
+        except Exception as exc:
+            logger.debug("yfinance advanced %s: %s", ticker, exc)
+
+        return result
+
 
 # ---------------------------------------------------------------------------
 # Helpers de parsing e normalização de dados brapi
 # ---------------------------------------------------------------------------
+def _find_row(df: pd.DataFrame, candidates: list[str]):
+    """Procura nas linhas do DataFrame o primeiro nome em `candidates` (case-insensitive)."""
+    if df is None or df.empty:
+        return None
+    idx_lower = {str(i).lower().strip(): i for i in df.index}
+    for cand in candidates:
+        key = cand.lower().strip()
+        if key in idx_lower:
+            return df.loc[idx_lower[key]]
+    return None
+
+
+def _to_float(v) -> Optional[float]:
+    """Conversão segura para float, tratando NaN/None/strings."""
+    if v is None:
+        return None
+    try:
+        f = float(v)
+        if np.isnan(f) or np.isinf(f):
+            return None
+        return f
+    except (TypeError, ValueError):
+        return None
+
+
+def _analyst_score(rec_df) -> Optional[float]:
+    """
+    Converte um sub-DataFrame de recommendations do yfinance em score 1-5.
+
+    Mapeamento: strongSell=1, sell=2, hold=3, buy=4, strongBuy=5.
+    Retorna média ponderada pelo número de analistas.
+    """
+    if rec_df is None or rec_df.empty:
+        return None
+    mapping = {"strongBuy": 5, "buy": 4, "hold": 3, "sell": 2, "strongSell": 1}
+    total_weight = 0.0
+    weighted_sum = 0.0
+    for col, val in mapping.items():
+        if col in rec_df.columns:
+            count = rec_df[col].sum()
+            if count > 0:
+                weighted_sum += val * count
+                total_weight += count
+    return float(weighted_sum / total_weight) if total_weight > 0 else None
+
+
 def _parse_brapi_quote(raw: dict) -> dict:
     """
     Extrai e renomeia campos de um item do endpoint /quote da brapi.
@@ -526,19 +680,41 @@ class DataCollector:
         tickers = self.universe["ticker"].tolist()
         logger.info("Coletando fundamentais para %d tickers", len(tickers))
 
-        # Passo 1: batch brapi para quotes
+        # Passo 1: batch brapi para quotes (já paraleliza por batch)
         brapi_data, brapi_failed = self.brapi.fetch_quotes_all(tickers, self.cache)
 
-        # Passo 2: yfinance para cada ticker (deep fundamentals)
-        # Fazemos independente do brapi: yfinance tem P/VP, ROE, ROIC, Dívida/EBITDA
-        records: list[dict] = []
+        # Passo 2: yfinance — fetch paralelo de info + advanced fundamentals.
+        # ThreadPoolExecutor: chamadas yfinance são I/O-bound (network), GIL libera
+        # durante o request. max_workers=6 é seguro vs rate limit do Yahoo.
+        # Sequencial seria ~10 min para 98 tickers × 5 chamadas. Paralelo: ~2 min.
+        yf_results: dict[str, tuple[dict, dict]] = {}  # ticker → (info, adv)
         yf_failed: list[str] = []
 
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            futures = {
+                pool.submit(self._fetch_yf_for_ticker, t): t
+                for t in tickers
+            }
+            for fut in as_completed(futures):
+                ticker = futures[fut]
+                try:
+                    info, adv = fut.result()
+                    yf_results[ticker] = (info, adv)
+                    if info.get("_source") == "failed":
+                        yf_failed.append(ticker)
+                except Exception as exc:
+                    logger.warning("yf fetch %s falhou: %s", ticker, exc)
+                    yf_results[ticker] = ({"_source": "failed", "ticker": ticker}, {})
+                    yf_failed.append(ticker)
+
+        logger.info("yfinance paralelo: %d ok, %d falhos", len(yf_results) - len(yf_failed), len(yf_failed))
+
+        # Passo 3: merge sequencial (sem I/O — rápido)
+        records: list[dict] = []
         for _, row in self.universe.iterrows():
             ticker = row["ticker"]
             setor  = row["setor"]
 
-            # Base do registro: metadados do universe.csv
             record: dict = {
                 "ticker":             ticker,
                 "nome":               row["nome"],
@@ -548,29 +724,20 @@ class DataCollector:
                 "norm_method":        row["norm_method"],
             }
 
-            # Dados brapi (price, P/L, DY, volume, 52w hi/lo)
             brapi_parsed = (
                 _parse_brapi_quote(brapi_data[ticker])
                 if ticker in brapi_data
                 else {"_source": "missing"}
             )
 
-            # Dados yfinance (P/VP, ROE, ROIC, Dívida/EBITDA, + fallback para resto)
-            yf_cache_key = f"yf_info_{ticker}_{datetime.now().strftime('%Y-%m-%d')}"
-            yf_cached = self.cache.get(yf_cache_key)
-            if yf_cached:
-                yf_info = yf_cached
-            else:
-                yf_info = self.yf.fetch_info(ticker)
-                self.cache.set(yf_cache_key, yf_info)
-                time.sleep(0.4)  # rate limit yfinance
+            yf_info, adv = yf_results.get(ticker, ({"_source": "failed", "ticker": ticker}, {}))
 
-            if yf_info.get("_source") == "failed":
-                yf_failed.append(ticker)
-
-            # Mesclar as duas fontes
             merged = _merge_sources(brapi_parsed, yf_info)
             record.update({k: v for k, v in merged.items() if not k.startswith("_")})
+
+            # Advanced fundamentals: adiciona apenas chaves não-None
+            if adv:
+                record.update({k: v for k, v in adv.items() if v is not None})
 
             # Setor financeiro: Dívida/EBITDA não se aplica (modelo bancário)
             if setor in FINANCIAL_SECTORS:
@@ -602,6 +769,41 @@ class DataCollector:
         self._log_coverage_report(df)
         return df
 
+    def _fetch_yf_for_ticker(self, ticker: str) -> tuple[dict, dict]:
+        """
+        Coleta info + advanced fundamentals de um único ticker via yfinance.
+
+        Cache de 24h por ticker. Designed para chamada em pool paralelo
+        (não usa state compartilhado além do cache, que é thread-safe via
+        atomic-write em disco — múltiplos workers escrevendo cache simultâneo
+        no mesmo arquivo é improvável já que tickers diferentes geram chaves
+        diferentes).
+
+        Returns:
+            (info, advanced) — dois dicts; info pode ter "_source": "failed"
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        # ── Info (básico)
+        info_key = f"yf_info_{ticker}_{today}"
+        info = self.cache.get(info_key)
+        if info is None:
+            info = self.yf.fetch_info(ticker)
+            self.cache.set(info_key, info)
+
+        # Skip advanced se info falhou
+        if info.get("_source") == "failed":
+            return info, {}
+
+        # ── Advanced (3y growth, FCF, analyst recs)
+        adv_key = f"yf_advanced_{ticker}_{today}"
+        adv = self.cache.get(adv_key)
+        if adv is None:
+            adv = self.yf.fetch_advanced_fundamentals(ticker)
+            self.cache.set(adv_key, adv)
+
+        return info, adv
+
     # ------------------------------------------------------------------
     # Coleta de Preços Históricos (12 meses)
     # ------------------------------------------------------------------
@@ -609,10 +811,8 @@ class DataCollector:
         """
         Retorna DataFrame wide: index=date (DatetimeIndex), columns=tickers.
 
-        Estratégia por ticker:
-          1. brapi.dev /quote/{ticker}?range=1y&interval=1d
-          2. yfinance download (period='1y') como fallback
-          3. Se ambos falham, ticker excluído (logged)
+        Estratégia: yfinance history (1y) por ticker em paralelo (6 workers).
+        Cache de 24h por ticker.
 
         Forward-fill de até 3 dias úteis para cobrir feriados/pregões sem negócio.
         """
@@ -620,48 +820,49 @@ class DataCollector:
         series: dict[str, pd.Series] = {}
         today = datetime.now().strftime("%Y-%m-%d")
 
-        for ticker in tickers:
+        def _fetch_one(ticker: str) -> Optional[pd.Series]:
             cache_key = f"prices_{ticker}_{today}"
             cached = self.cache.get(cache_key)
-
             if cached:
-                s = pd.Series(
+                return pd.Series(
                     data=cached["close"],
                     index=pd.to_datetime(cached["dates"]),
                     name=ticker,
                 )
-                series[ticker] = s
-                continue
 
-            # Histórico via yfinance (brapi free tier não suporta endpoint histórico)
             df_hist = self.yf.fetch_history(ticker)
-            source = "yfinance"
-
             if df_hist is None or df_hist.empty:
-                logger.warning("Sem histórico de preços para %s — excluído do df_prices", ticker)
-                continue
+                logger.warning("Sem histórico de preços para %s", ticker)
+                return None
 
-            # Achatar colunas multi-nível do yfinance (ex: ("Close", "PETR4.SA"))
             if isinstance(df_hist.columns, pd.MultiIndex):
                 df_hist.columns = df_hist.columns.get_level_values(0)
 
             close_col = "Adj Close" if "Adj Close" in df_hist.columns else "Close"
             raw = df_hist[close_col].dropna()
-            # Garantir Series 1-D (yfinance às vezes retorna DataFrame de 1 coluna)
             if isinstance(raw, pd.DataFrame):
                 raw = raw.iloc[:, 0]
             s = raw.astype(float)
             s.name = ticker
-            series[ticker] = s
 
             self.cache.set(cache_key, {
                 "ticker":  ticker,
-                "source":  source,
+                "source":  "yfinance",
                 "dates":   [str(d.date()) for d in s.index],
                 "close":   [round(float(v), 4) for v in s.to_numpy()],
             })
-            logger.debug("Histórico %s: %d dias (%s)", ticker, len(s), source)
-            time.sleep(BRAPI_RATE_LIMIT)
+            return s
+
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            futures = {pool.submit(_fetch_one, t): t for t in tickers}
+            for fut in as_completed(futures):
+                ticker = futures[fut]
+                try:
+                    s = fut.result()
+                    if s is not None:
+                        series[ticker] = s
+                except Exception as exc:
+                    logger.warning("Histórico %s falhou: %s", ticker, exc)
 
         if not series:
             raise DataCollectionError("Nenhum histórico de preços coletado.")
@@ -705,6 +906,10 @@ class DataCollector:
             "dividend_yield", "beta", "avg_volume_30d",
             "current_price", "market_cap", "liquidez_minima_MM",
             "week52_high", "week52_low", "ev_ebitda",
+            # Fundamentos avançados (yfinance financials)
+            "net_margin_3y_avg", "revenue_growth_3y", "earnings_growth_3y",
+            "asset_growth_yoy", "free_cash_flow_ttm", "fcf_payout_ratio",
+            "analyst_rec_score", "analyst_rec_trend",
         ]
         for col in float_cols:
             if col in df.columns:

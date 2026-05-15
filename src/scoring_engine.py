@@ -34,6 +34,15 @@ import pandas as pd
 from scipy import stats
 
 from src.config import (
+    ANALYST_REVISIONS_WEIGHT,
+    ENABLE_ANALYST_REVISIONS,
+    ENABLE_FCF_PAYOUT_CHECK,
+    ENABLE_GROWTH_FACTOR,
+    ENABLE_INVESTMENT_FACTOR,
+    ENABLE_SIZE_FACTOR,
+    FCF_PAYOUT_UNSUSTAINABLE,
+    GROWTH_WEIGHT,
+    INVESTMENT_WEIGHT,
     MACRO_THEME_MAP,
     MAX_DIVIDA_EBITDA,
     MAX_PER_MACRO_THEME,
@@ -45,6 +54,7 @@ from src.config import (
     MIN_SECTOR_PERCENTILE,
     MIN_SECTOR_ZSCORE,
     MOMENTUM_WINDOWS,
+    SIZE_WEIGHT,
     VOLATILITY_WINDOW,
     WEIGHTS,
 )
@@ -64,7 +74,16 @@ _REGIME_WEIGHTS: dict[str, dict[str, float]] = {
     "bear":     {"fundamental": 0.30, "momentum": 0.10, "quality": 0.60},
 }
 
-# Configuração dos fatores fundamentalistas com pesos base e direção
+# Configuração dos fatores fundamentalistas com pesos base e direção.
+#
+# Base 1.0 pré-normalização:
+#   Valor/qualidade clássica:  EY+P/VP+ROE+ROIC+D/EBITDA+DY = 1.00
+# Sub-fatores QMJ + Fama-French (opt-in via flags em config):
+#   + log_market_cap     (Size/SMB, lower_is_better)         = 0.05
+#   + revenue_growth_3y  (Growth)                             = 0.04
+#   + earnings_growth_3y (Growth)                             = 0.04
+#   + asset_growth_yoy   (Investment/CMA, lower_is_better)   = 0.05
+# Pesos são renormalizados em _fundamental_weights conforme dados disponíveis.
 _FUNDAMENTAL_CFG: dict[str, dict] = {
     "earnings_yield": {"base_weight": 0.20, "direction": "higher_is_better", "label": "Earnings Yield"},
     "pvp":            {"base_weight": 0.15, "direction": "lower_is_better",  "label": "P/VP"},
@@ -73,12 +92,39 @@ _FUNDAMENTAL_CFG: dict[str, dict] = {
     "divida_ebitda":  {"base_weight": 0.10, "direction": "lower_is_better",  "label": "Dívida/EBITDA"},
     "dividend_yield": {"base_weight": 0.10, "direction": "higher_is_better", "label": "Dividend Yield"},
 }
+if ENABLE_SIZE_FACTOR:
+    _FUNDAMENTAL_CFG["log_market_cap"] = {
+        "base_weight": SIZE_WEIGHT, "direction": "lower_is_better",
+        "label": "Size (log Mkt Cap)",
+    }
+if ENABLE_GROWTH_FACTOR:
+    # GROWTH_WEIGHT é dividido entre revenue e earnings growth
+    _FUNDAMENTAL_CFG["revenue_growth_3y"] = {
+        "base_weight": GROWTH_WEIGHT / 2, "direction": "higher_is_better",
+        "label": "Crescimento Receita 3y",
+    }
+    _FUNDAMENTAL_CFG["earnings_growth_3y"] = {
+        "base_weight": GROWTH_WEIGHT / 2, "direction": "higher_is_better",
+        "label": "Crescimento Lucro 3y",
+    }
+if ENABLE_INVESTMENT_FACTOR:
+    _FUNDAMENTAL_CFG["asset_growth_yoy"] = {
+        "base_weight": INVESTMENT_WEIGHT, "direction": "lower_is_better",
+        "label": "Investment (Asset Growth)",
+    }
 
 _MOMENTUM_CFG: dict[str, dict] = {
     "alpha_3m":      {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 3m"},
     "idio_alpha_6m": {"base_weight": 0.40, "direction": "higher_is_better", "label": "Momentum Idiossincr. 6m"},
     "alpha_12m":     {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 12m"},
 }
+if ENABLE_ANALYST_REVISIONS:
+    # Sub-fator de momentum: tendência de revisão analista (1-5, higher = better).
+    # Peso baixo dentro do pilar — proxy ruidoso de dados de consenso pago.
+    _MOMENTUM_CFG["analyst_rec_score"] = {
+        "base_weight": ANALYST_REVISIONS_WEIGHT, "direction": "higher_is_better",
+        "label": "Recomendação Analistas",
+    }
 
 _QUALITY_CFG: dict[str, dict] = {
     "volatility_180d": {"base_weight": 0.40, "direction": "lower_is_better",  "label": "Volatilidade 180d"},
@@ -230,6 +276,13 @@ class ScoringEngine:
             "alpha_3m", "alpha_6m", "idio_alpha_6m", "alpha_12m",
             "volatility_180d", "beta", "avg_volume_30d",
             "current_price", "market_cap",
+            # novos fatores fundamentalistas (Size, Growth, Investment)
+            "log_market_cap", "revenue_growth_3y", "earnings_growth_3y",
+            "asset_growth_yoy", "net_margin_3y_avg",
+            # FCF / Payout sustainability
+            "free_cash_flow_ttm", "fcf_payout_ratio",
+            # Earnings revisions (momentum sub-factor)
+            "analyst_rec_score", "analyst_rec_trend",
             # pilares e total
             "fundamental_score", "momentum_score", "quality_score", "total_score",
             "market_regime",
@@ -260,12 +313,13 @@ class ScoringEngine:
     @staticmethod
     def _derive_metrics(df: pd.DataFrame) -> pd.DataFrame:
         """
-        Earnings Yield = 1 / P·L
+        Métricas derivadas dos dados brutos:
 
-        Vantagem vs P/L direto:
-          P/L tem distribuição fortemente assimétrica (outliers em >30).
-          EY tem distribuição mais próxima da normal → Z-Score mais estável.
-          EY = 0.20 (P/L=5, barato) vs EY = 0.01 (P/L=100, caro) é intuitivo.
+          - Earnings Yield = 1 / P·L
+            (mais próximo da normal que P/L → Z-Score mais estável)
+          - log_market_cap = log10(market_cap)
+            (escala log para que mid-caps não fiquem espremidos pelos gigantes;
+             usado como fator Size/SMB — direção lower_is_better)
         """
         mask_valid = df["pl"].notna() & (df["pl"] > 0)
         df["earnings_yield"] = np.where(mask_valid, 1.0 / df["pl"], np.nan)
@@ -273,6 +327,13 @@ class ScoringEngine:
             "Earnings Yield: %d/%d tickers com dado válido",
             mask_valid.sum(), len(df),
         )
+
+        # log_market_cap: usar log10 (mesma escala estável; market_cap em BRL).
+        if "market_cap" in df.columns:
+            mc = df["market_cap"]
+            valid_mc = mc.notna() & (mc > 0)
+            df["log_market_cap"] = np.where(valid_mc, np.log10(mc.where(valid_mc, 1)), np.nan)
+
         return df
 
     def _add_momentum_metrics(
@@ -603,26 +664,46 @@ class ScoringEngine:
                 for f in remaining:
                     weights[f] += roic_weight * (remaining[f] / total_remaining)
 
-        # Regra 2 — DY sustentabilidade: zerar DY quando payout > 150% do lucro
+        # Regra 2a — DY sustentabilidade via FCF (mais preciso que EY/DY)
+        # Se fcf_payout_ratio disponível (yfinance cashflow) e > limite,
+        # significa que dividendos pagos excedem o FCF gerado — insustentável.
+        # FCF é menos manipulável que earnings reportados.
+        fcf_check_applied = False
+        if ENABLE_FCF_PAYOUT_CHECK:
+            try:
+                fcf_payout = row.get("fcf_payout_ratio")
+                if fcf_payout is not None and not pd.isna(fcf_payout):
+                    fcf_payout_f = float(fcf_payout)
+                    if fcf_payout_f > FCF_PAYOUT_UNSUSTAINABLE:
+                        weights.pop("dividend_yield", None)
+                        fcf_check_applied = True
+                        logger.debug(
+                            "DY insustentável via FCF (%s): payout=%.1fx — DY excluído",
+                            ticker, fcf_payout_f,
+                        )
+            except (TypeError, ValueError):
+                pass
+
+        # Regra 2b — DY sustentabilidade via EY/DY (fallback se FCF indisponível)
         # payout ≈ DY / EY. Se a empresa está pagando mais do que ganha,
-        # o dividendo não é recorrente (pode ser extraordinário, amortização
-        # de capital ou simplesmente insustentável). Não deve ser premiado.
-        try:
-            ey_raw = row.get("earnings_yield")
-            dy_raw = row.get("dividend_yield")
-            ey_f = float(ey_raw) if ey_raw is not None else None
-            dy_f = float(dy_raw) if dy_raw is not None else None
-            if (ey_f and not pd.isna(ey_f) and ey_f > 0
-                    and dy_f and not pd.isna(dy_f) and dy_f > 0):
-                payout = dy_f / ey_f
-                if payout > 1.5:
-                    weights.pop("dividend_yield", None)
-                    logger.debug(
-                        "DY insustentável (%s): payout≈%.1fx — DY excluído do scoring",
-                        ticker, payout,
-                    )
-        except (TypeError, ValueError):
-            pass
+        # o dividendo não é recorrente. Aplica só se FCF check não rodou.
+        if not fcf_check_applied:
+            try:
+                ey_raw = row.get("earnings_yield")
+                dy_raw = row.get("dividend_yield")
+                ey_f = float(ey_raw) if ey_raw is not None else None
+                dy_f = float(dy_raw) if dy_raw is not None else None
+                if (ey_f and not pd.isna(ey_f) and ey_f > 0
+                        and dy_f and not pd.isna(dy_f) and dy_f > 0):
+                    payout = dy_f / ey_f
+                    if payout > 1.5:
+                        weights.pop("dividend_yield", None)
+                        logger.debug(
+                            "DY insustentável via EY (%s): payout≈%.1fx — DY excluído",
+                            ticker, payout,
+                        )
+            except (TypeError, ValueError):
+                pass
 
         # Regra 3 — NaN em demais fatores: redistribuição proporcional entre ativos
         nan_factors = {
@@ -1067,6 +1148,17 @@ class ScoringEngine:
             rv_str = f"{rv * 100:+.1f}% vs IBOV"
         elif factor == "volatility_180d":
             rv_str = f"{rv * 100:.1f}%a.a."
+        elif factor == "log_market_cap":
+            # rv é log10(market_cap em BRL) — converter de volta para B/T
+            mkt = 10 ** rv
+            if mkt >= 1e9:
+                rv_str = f"Mkt Cap R$ {mkt/1e9:.1f} B"
+            else:
+                rv_str = f"Mkt Cap R$ {mkt/1e6:.0f} M"
+        elif factor in ("revenue_growth_3y", "earnings_growth_3y", "asset_growth_yoy"):
+            rv_str = f"{rv * 100:+.1f}%a.a."
+        elif factor == "analyst_rec_score":
+            rv_str = f"{rv:.1f}/5"
         else:
             rv_str = f"{rv:.2f}"
 
@@ -1276,6 +1368,56 @@ def select_diverse_portfolio(
             )
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Turnover band — anti-churn
+# ---------------------------------------------------------------------------
+
+def apply_turnover_band(
+    df_scored: pd.DataFrame,
+    incumbents: list[str],
+    band_pts: float,
+) -> pd.DataFrame:
+    """
+    Aplica bônus de TURNOVER_BAND_PTS no score dos incumbentes para reduzir
+    rotação por flutuações pequenas (e estatisticamente não significativas).
+
+    Lógica: incumbente só é deslocado se um candidato novo tem score > pontos
+    suficientes acima. Isso reduz fricção real (corretagem, slippage, IR sobre
+    ganho) e ruído de medição (delta de score < band_pts não é sinal).
+
+    Não dá bônus a incumbentes com score raw abaixo de 50 (não rebalance para
+    manter posição medíocre).
+
+    Args:
+        df_scored:  Output do scoring (DataFrame com coluna total_score).
+        incumbents: Tickers atualmente na carteira (top 5 anterior).
+        band_pts:   Bônus em pontos aplicado aos incumbentes.
+
+    Returns:
+        Novo DataFrame reordenado por adjusted_score.
+    """
+    if not incumbents or band_pts <= 0:
+        return df_scored
+
+    df = df_scored.copy()
+    df["_adjusted_score"] = df["total_score"].astype(float)
+
+    # Bônus só para incumbentes com score raw >= 50
+    is_incumbent = df["ticker"].isin(incumbents) & (df["total_score"] >= 50.0)
+    df.loc[is_incumbent, "_adjusted_score"] += band_pts
+
+    n_boosted = int(is_incumbent.sum())
+    logger.info(
+        "Turnover band aplicada: +%.1f pts para %d incumbentes (%s)",
+        band_pts, n_boosted,
+        df.loc[is_incumbent, "ticker"].tolist(),
+    )
+
+    # Reordenar por adjusted_score
+    df = df.sort_values("_adjusted_score", ascending=False).reset_index(drop=True)
+    return df
 
 
 # ---------------------------------------------------------------------------

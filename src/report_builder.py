@@ -30,6 +30,8 @@ from typing import Any, Optional
 
 import pandas as pd
 
+from src.config import DIVIDEND_TAX_RATE_PF
+
 logger = logging.getLogger(__name__)
 
 # Telegram MarkdownV2: todos os caracteres especiais que precisam de escape
@@ -303,7 +305,15 @@ class ReportBuilder:
         if roe is not None and not pd.isna(roe):
             metrics_parts.append(f"ROE\\={fmt_pct(roe, 1, sign=False)}")
         if dy is not None and not pd.isna(dy):
-            metrics_parts.append(f"DY\\={fmt_pct(dy, 1, sign=False)}")
+            # Para DY relevante (>4%), mostrar líquido pós-Lei 15.270/2025
+            # (IRRF 10% para PF residente em proventos > R$50k/mês).
+            if dy >= 0.04:
+                dy_net = dy * (1 - DIVIDEND_TAX_RATE_PF)
+                dy_str = fmt_pct(dy, 1, sign=False)
+                dy_net_str = fmt_pct(dy_net, 1, sign=False)
+                metrics_parts.append(f"DY\\={dy_str} \\(líq {dy_net_str}\\)")
+            else:
+                metrics_parts.append(f"DY\\={fmt_pct(dy, 1, sign=False)}")
 
         line3 = ""
         if metrics_parts:

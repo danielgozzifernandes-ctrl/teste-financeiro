@@ -26,21 +26,21 @@
       "included": true
     },
     {
-      "ticker": "UGPA3",
-      "entry_price": 29.13,
-      "current_price": 29.13,
-      "return": -0.002597,
-      "return_pct": -0.2597,
-      "weight": 0.188704,
-      "included": true
-    },
-    {
       "ticker": "POMO4",
       "entry_price": 6.05,
       "current_price": 6.05,
       "return": -0.002597,
       "return_pct": -0.2597,
       "weight": 0.168886,
+      "included": true
+    },
+    {
+      "ticker": "UGPA3",
+      "entry_price": 29.13,
+      "current_price": 29.13,
+      "return": -0.002597,
+      "return_pct": -0.2597,
+      "weight": 0.188704,
       "included": true
     },
     {
@@ -64,10 +64,10 @@
   ],
   "previous_top5": [
     "PETR4",
-    "UGPA3",
     "POMO4",
+    "UGPA3",
     "WEGE3",
     "PSSA3"
   ],
-  "generated_at": "2026-05-15T18:54:49.885687"
+  "generated_at": "2026-05-15T20:20:53.340337"
 }

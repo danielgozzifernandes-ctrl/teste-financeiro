@@ -45,9 +45,10 @@ from src.config import (
     CACHE_DIR,
     LOG_LEVEL,
     CHART_OUTPUT_PATH,
+    TURNOVER_BAND_PTS,
 )
 from src.data_collector import load_data
-from src.scoring_engine import compute_scores, select_diverse_portfolio
+from src.scoring_engine import apply_turnover_band, compute_scores, select_diverse_portfolio
 from src.backtester import run_backtest
 from src.benchmark import BenchmarkManager, get_ibov_prices as _get_ibov_prices
 from src.report_builder import build_report
@@ -265,6 +266,18 @@ def run(args: argparse.Namespace) -> int:
         logger.error("Nenhum ticker sobreviveu ao scoring — abortando.")
         return 1
 
+    # Turnover band: reduz rotação ruidosa dando bônus de TURNOVER_BAND_PTS
+    # aos tickers que já estavam na carteira anterior. Aplicado ANTES do
+    # diversificador para que ele veja o ordenamento ajustado.
+    try:
+        prev_snap = SnapshotManager()
+        prev_rec = prev_snap.load_latest_recommendation(mode=mode)
+        incumbents = [r["ticker"] for r in (prev_rec or {}).get("top5", [])] if prev_rec else []
+        if incumbents:
+            df_scored = apply_turnover_band(df_scored, incumbents, TURNOVER_BAND_PTS)
+    except Exception as exc:
+        logger.debug("Turnover band não aplicada (%s)", exc)
+
     # Aplicar filtros de diversificação: 1 por empresa, máx 2 por setor
     df_scored = select_diverse_portfolio(df_scored, n=5, max_per_sector=2)
 
@@ -390,6 +403,17 @@ def run(args: argparse.Namespace) -> int:
             print(f"Gráfico gerado: {chart_path}")
         _print_summary(df_scored, backtest_result)
         return 0
+
+    # ── 8. Factor IC update ───────────────────────────────────────────────
+    # Atualiza data/factor_ic.json com a análise IC retroativa. Acumula
+    # poder estatístico ao longo do tempo — após ~3 meses de execuções,
+    # permite recalibrar os pesos dos pilares com base em dados, não chute.
+    try:
+        from src.factor_analysis import analyze_factors
+        analyze_factors(verbose=False)
+        logger.info("Factor IC atualizado em data/factor_ic.json")
+    except Exception as exc:
+        logger.debug("Factor IC update falhou (%s)", exc)
 
     # ── Sem --send: encerrar sem enviar ───────────────────────────────────
     if not do_send:

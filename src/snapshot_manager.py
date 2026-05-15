@@ -35,7 +35,7 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
-from src.config import HISTORY_DIR, UNIVERSE_FILE, WEIGHTS
+from src.config import HISTORY_DIR, HRP_LOOKBACK_DAYS, USE_HRP_WEIGHTS, UNIVERSE_FILE, WEIGHTS
 
 logger = logging.getLogger(__name__)
 
@@ -228,8 +228,12 @@ class SnapshotManager:
         # Capturar preços de entrada dos top-N tickers
         entry_prices = _extract_entry_prices(df_scored, df_prices, top_n)
 
-        # Inverse-volatility weights para o top-5 (usados pelo backtester)
-        portfolio_weights = _compute_inv_vol_weights(df_scored, n=5)
+        # Pesos do top 5: HRP (Hierarchical Risk Parity) é robusto a correlações
+        # em portfólios pequenos; fallback automático para inverse-vol se a lib
+        # não estiver disponível ou se o cálculo falhar (matriz mal-condicionada).
+        portfolio_weights, weights_method = _compute_portfolio_weights(
+            df_scored, df_prices, n=5,
+        )
 
         # Validar cobertura: backtester depende de entry_prices para todo o top-N
         top_n_tickers = df_scored.head(top_n)["ticker"].tolist()
@@ -266,7 +270,7 @@ class SnapshotManager:
                 "universe_size":      len(df_scored),
                 "tickers_scored":     int(df_scored["total_score"].notna().sum()),
                 "generated_at":       datetime.now().isoformat(),
-                "portfolio_weights_method": "inverse_volatility",
+                "portfolio_weights_method": weights_method,
                 "score_range": {
                     "max": _safe_float(df_scored["total_score"].max()),
                     "min": _safe_float(df_scored["total_score"].min()),
@@ -435,6 +439,102 @@ def _extract_entry_prices(
             if not series.empty:
                 prices[ticker] = round(float(series.iloc[-1]), 2)
     return prices
+
+
+def _compute_portfolio_weights(
+    df_scored: pd.DataFrame,
+    df_prices: pd.DataFrame,
+    n: int = 5,
+) -> tuple[dict[str, float], str]:
+    """
+    Calcula pesos do top-N usando HRP (Hierarchical Risk Parity) com fallback.
+
+    HRP (López de Prado 2016) tem três vantagens sobre inverse-volatility
+    para portfólios pequenos (5-10 ativos):
+      1. Respeita estrutura de correlação via clustering hierárquico
+      2. Robusto a matriz de covariância mal-condicionada (comum em N pequeno)
+      3. Out-of-sample bate Markowitz e iguala-ou-bate inverse-vol
+
+    Fluxo:
+      1. Se USE_HRP_WEIGHTS=False → inverse-vol direto
+      2. Se Riskfolio-Lib ou retornos insuficientes → fallback inverse-vol
+      3. Caso contrário → HRP com clustering single linkage, correlação Pearson
+
+    Returns:
+        (weights_dict, method_used) — método: "hrp" | "inverse_volatility" | "equal"
+    """
+    top_n = df_scored.head(n)
+    tickers = [str(row.get("ticker", "")) for _, row in top_n.iterrows()]
+
+    if not USE_HRP_WEIGHTS:
+        return _compute_inv_vol_weights(df_scored, n), "inverse_volatility"
+
+    # Tentar HRP
+    try:
+        import riskfolio as rp
+    except ImportError:
+        logger.info("riskfolio-lib não instalado — usando inverse-vol")
+        return _compute_inv_vol_weights(df_scored, n), "inverse_volatility"
+
+    if df_prices is None or df_prices.empty:
+        logger.debug("df_prices vazio — fallback inverse-vol")
+        return _compute_inv_vol_weights(df_scored, n), "inverse_volatility"
+
+    # Selecionar apenas tickers presentes em df_prices
+    avail = [t for t in tickers if t in df_prices.columns]
+    if len(avail) < 2:
+        logger.debug("HRP precisa >=2 tickers — fallback")
+        return _compute_inv_vol_weights(df_scored, n), "inverse_volatility"
+
+    # Retornos diários dos últimos HRP_LOOKBACK_DAYS
+    prices_sub = df_prices[avail].dropna(how="all").tail(HRP_LOOKBACK_DAYS + 1)
+    returns = prices_sub.pct_change().dropna(how="any")
+    if len(returns) < 30:  # pelo menos ~6 semanas de dados
+        logger.debug("HRP: poucos retornos (%d) — fallback", len(returns))
+        return _compute_inv_vol_weights(df_scored, n), "inverse_volatility"
+
+    try:
+        port = rp.HCPortfolio(returns=returns)
+        # Riskfolio-Lib 5+: parâmetro é method_cov (não 'covariance').
+        # method_cov="hist" = covariância histórica empírica (mais robusto que
+        # shrinkage para janelas curtas).
+        w = port.optimization(
+            model="HRP",
+            codependence="pearson",
+            method_cov="hist",
+            rm="MV",          # mean-variance risk measure
+            rf=0,
+            linkage="single", # single linkage é mais estável que average em N pequeno
+            max_k=10,
+            leaf_order=True,
+        )
+        if w is None or w.empty:
+            raise ValueError("HRP retornou DataFrame vazio")
+
+        # w é DataFrame com index=tickers, coluna 'weights'
+        weights_col = w.columns[0]
+        weights = {t: float(w.loc[t, weights_col]) for t in avail if t in w.index}
+
+        # Tickers do top-N que não tiveram preço → distribuir resto igualmente
+        missing = [t for t in tickers if t not in weights]
+        if missing:
+            remaining = 1.0 - sum(weights.values())
+            if remaining > 0:
+                share = remaining / len(missing)
+                for t in missing:
+                    weights[t] = share
+
+        # Normalizar para somar 1.0
+        total = sum(weights.values())
+        if total > 0:
+            weights = {t: round(w / total, 6) for t, w in weights.items()}
+
+        logger.info("Pesos HRP: %s", weights)
+        return weights, "hrp"
+
+    except Exception as exc:
+        logger.warning("HRP falhou (%s) — fallback inverse-vol", exc)
+        return _compute_inv_vol_weights(df_scored, n), "inverse_volatility"
 
 
 def _compute_inv_vol_weights(df_scored: pd.DataFrame, n: int = 5) -> dict[str, float]:

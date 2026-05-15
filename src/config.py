@@ -175,6 +175,76 @@ VOLATILITY_WINDOW = 180  # dias para cálculo de volatilidade histórica
 VOLUME_WINDOW     = 30   # dias para média de volume
 
 # ---------------------------------------------------------------------------
+# Tributação (Lei 15.270/2025 — em vigor a partir de 2026)
+# ---------------------------------------------------------------------------
+# IRRF 10% sobre dividendos para PF residente quando soma de proventos no mês
+# ultrapassa R$ 50k (única empresa) ou em pagamento intra-grupo. Para PF típico
+# de carteira diversificada, aplica-se em DY mensal expressivo.
+# JCP segue com 15% como sempre.
+DIVIDEND_TAX_RATE_PF = 0.10
+JCP_TAX_RATE_PF      = 0.15
+
+# ---------------------------------------------------------------------------
+# Portfólio: alocação e rotação
+# ---------------------------------------------------------------------------
+# HRP (Hierarchical Risk Parity, López de Prado 2016) é mais robusto que
+# inverse-vol em portfólios pequenos: respeita correlações via clustering.
+# Quando False, mantém inverse-vol legado.
+USE_HRP_WEIGHTS  = True
+HRP_LOOKBACK_DAYS = 126   # 6 meses de retornos diários para estimar covariância
+
+# Turnover band: só rotaciona uma posição existente se o ticker candidato tem
+# score MIN_SCORE_GAP_FOR_ROTATION pontos acima do incumbente. Reduz fricção
+# real (e ruído de medição) — diferenças <5 pontos não são estatisticamente
+# significativas em score multi-fator.
+TURNOVER_BAND_PTS = 5.0
+
+# ---------------------------------------------------------------------------
+# Novos fatores fundamentalistas (QMJ-style: Growth, Investment, Size)
+# ---------------------------------------------------------------------------
+# Size (SMB): log(market_cap) — small caps brasileiras têm prêmio documentado
+# (NEFIN-USP). Direção: lower_is_better (menor cap = maior score).
+# Peso baixo (~5%) para não dominar o pilar.
+ENABLE_SIZE_FACTOR = True
+SIZE_WEIGHT       = 0.05
+
+# Growth: ROE/margem média 3y e tendência. Peso modesto para evitar
+# survivorship bias (empresas em queda têm growth ruim → score baixo →
+# pode penalizar value plays legítimos em recuperação).
+ENABLE_GROWTH_FACTOR = True
+GROWTH_WEIGHT     = 0.08
+
+# Investment / CMA: asset growth YoY. Direção lower_is_better
+# (empresas que investem muito under-perform — literatura Fama-French).
+ENABLE_INVESTMENT_FACTOR = True
+INVESTMENT_WEIGHT = 0.05
+
+# FCF Payout: dividendos pagos / FCF. Direção lower_is_better
+# (acima de 1.0 = pagando mais que gera de caixa = insustentável).
+# Substitui parcialmente o filtro EY/DY heurístico atual.
+ENABLE_FCF_PAYOUT_CHECK = True
+FCF_PAYOUT_UNSUSTAINABLE = 1.2  # >120% do FCF → DY zerado no score
+
+# ---------------------------------------------------------------------------
+# Earnings revisions (proxy via yfinance analyst recommendations)
+# ---------------------------------------------------------------------------
+# Tendência recente de revisões de analistas como sub-fator de momentum.
+# Direção: higher_is_better (mais upgrades nas últimas semanas = bom sinal).
+ENABLE_ANALYST_REVISIONS = True
+ANALYST_REVISIONS_WEIGHT = 0.10  # dentro do pilar momentum
+
+# ---------------------------------------------------------------------------
+# Análise de Factor IC (Information Coefficient)
+# ---------------------------------------------------------------------------
+# Janelas de retorno forward para medir poder preditivo dos fatores.
+IC_FORWARD_WINDOWS = {
+    "1w":  5,
+    "4w":  20,
+    "12w": 60,
+}
+IC_OUTPUT_PATH = DATA_DIR / "factor_ic.json"
+
+# ---------------------------------------------------------------------------
 # Data Sources
 # ---------------------------------------------------------------------------
 BRAPI_BASE_URL    = "https://brapi.dev/api"
