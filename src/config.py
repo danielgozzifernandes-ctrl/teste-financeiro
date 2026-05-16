@@ -245,6 +245,28 @@ ANALYST_REVISIONS_WEIGHT = 0.10  # dentro do pilar momentum
 # pouco vs sample; mas "oas" tem boa propriedade Gaussian-assintótica.
 HRP_COVARIANCE_METHOD = "ledoit"
 
+# ---------------------------------------------------------------------------
+# Volatility targeting (Moreira-Muir JF 2017)
+# ---------------------------------------------------------------------------
+# Escalar gross exposure da carteira para uma vol target fixa anualizada.
+# Para B3 (vol histórica ~22% a.a.), target=12-15% reduz drawdown ~30%
+# e melhora Sharpe ~20% in-sample.
+# EWMA λ=0.94 (RiskMetrics) — half-life ~10 dias úteis: responsivo mas
+# não ruidoso. Cap leverage para evitar over-leveraging em low-vol regime.
+ENABLE_VOLATILITY_TARGETING = True
+VOL_TARGET_ANNUAL  = 0.14         # 14% a.a.
+EWMA_LAMBDA        = 0.94         # RiskMetrics standard
+VOL_TARGET_LEVERAGE_MIN = 0.50    # piso de exposure (50% — não zera em vol alta)
+VOL_TARGET_LEVERAGE_MAX = 1.50    # teto de exposure (150% — sem alavancagem real para PF)
+
+# Liquidity penalty no score
+# Tickers com ADV abaixo do threshold sofrem penalty multiplicativo
+# proporcional a sqrt(ADV / ADV_THRESHOLD). Mata "alpha de papel" em small
+# caps zumbi que parecem boas mas não dá pra executar.
+ENABLE_LIQUIDITY_PENALTY = True
+LIQUIDITY_PENALTY_THRESHOLD_BRL = 10_000_000   # 10M R$/dia = baseline
+LIQUIDITY_PENALTY_MIN_FACTOR    = 0.50         # piso da penalty (50% do score)
+
 # EWMA de fundamentais trimestrais
 # Half-life em trimestres. 6Q = 1.5 anos: smoothing significativo mas ainda
 # responsivo a mudanças estruturais. Aplica-se SÓ a métricas de qualidade

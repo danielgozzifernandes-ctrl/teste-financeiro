@@ -161,10 +161,25 @@ def _extract_factor_scores(
     """
     Extrai {ticker: factor_score} de uma recomendação.
 
-    O score é o valor normalizado [0,100] guardado em norm_details.
-    Considera todos os tickers do top10 (rec só guarda top10 — não o universo
-    completo, então IC é estimado sobre o universo recomendado, não global).
+    Preferência: `full_universe_scores` (sem selection bias, todo o universo
+    pontuado). Fallback: top10 com norm_details (formato antigo — viesado).
+
+    Selection bias do top10: ao medir IC apenas sobre tickers que já passaram
+    pelo filtro do scoring, estamos correlacionando fator com retorno entre
+    ações que o próprio fator já selecionou. IC honesto requer o universo
+    inteiro como amostra cross-sectional.
     """
+    # Caminho 1: full_universe_scores (formato novo, sem bias)
+    full = rec.get("full_universe_scores") or {}
+    if full:
+        out: dict[str, float] = {}
+        for ticker, scores in full.items():
+            if factor in scores and scores[factor] is not None:
+                out[ticker] = float(scores[factor])
+        if out:
+            return out
+
+    # Caminho 2 (fallback legacy): só top10
     out: dict[str, float] = {}
     for r in rec.get("top10", []):
         ticker = r.get("ticker")
@@ -228,11 +243,17 @@ def analyze_factors(
         return result
 
     # Descobrir todos os fatores presentes
+    # Prefere full_universe_scores (formato novo); fallback top10
     all_factors: set[str] = set()
     for rec in recs:
-        for r in rec.get("top10", []):
-            for f in (r.get("norm_details") or {}).keys():
-                all_factors.add(f)
+        full = rec.get("full_universe_scores") or {}
+        if full:
+            for ticker_scores in full.values():
+                all_factors.update(ticker_scores.keys())
+        else:
+            for r in rec.get("top10", []):
+                for f in (r.get("norm_details") or {}).keys():
+                    all_factors.add(f)
 
     # Para cada (rec, factor, window): coletar IC
     # Estrutura intermediária: ic_buckets[factor][window] = [(ic, n, date), ...]

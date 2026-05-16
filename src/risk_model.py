@@ -118,6 +118,17 @@ def build_risk_model(
     if len(factor_returns) < 30:
         return None
 
+    # ── Ortogonalização Gram-Schmidt: MKT → SMB → HML → UMD → setores
+    # Cada fator subsequente é projetado no resíduo dos anteriores. Remove
+    # multicolinearidade que vinha do mesmo universo nas construções
+    # long-short (tickers aparecem em múltiplas legs).
+    # Ordem: market é "raiz" (CAPM); style factors ortogonalizam vs market;
+    # setores ortogonalizam vs tudo (capturam só o spread idiossincrático).
+    factor_returns = _gram_schmidt_orthogonalize(
+        factor_returns,
+        order=["MKT", "SMB", "HML", "UMD"],
+    )
+
     # ── 4. Estimar exposições por ticker via OLS individual
     exposures, specific_risk, r_squared = _estimate_exposures(
         stock_log_ret, factor_returns,
@@ -140,6 +151,53 @@ def build_risk_model(
         r_squared=r_squared,
         n_obs=len(factor_returns),
     )
+
+
+def _gram_schmidt_orthogonalize(
+    df: pd.DataFrame,
+    order: list[str],
+) -> pd.DataFrame:
+    """
+    Ortogonalização Gram-Schmidt sobre time series de fatores.
+
+    Cada fator é regredido nos anteriores (na ordem dada) e substituído pelo
+    resíduo. Após o processo, todos os fatores são ortogonais entre si —
+    correlação cross-time = 0.
+
+    Por que essa ordem? CAPM diz que MKT é o fator principal; SMB/HML/UMD
+    são style premiums INCREMENTAIS além do mercado. Fazer MKT primeiro
+    isola style alphas puros (sem confundir com beta). Setores são
+    ortogonalizados depois — capturam só o spread setorial idiossincrático.
+
+    Fatores não listados em `order` (ex.: setores) são ortogonalizados por
+    último contra todos os anteriores.
+    """
+    out = df.copy()
+    processed: list[str] = []
+
+    # Processa primeiro a ordem especificada, depois os demais (setores)
+    all_factors = list(order) + [c for c in out.columns if c not in order]
+
+    for factor in all_factors:
+        if factor not in out.columns:
+            continue
+        if not processed:
+            processed.append(factor)
+            continue
+        # Regredir factor nos já processados
+        y = out[factor].values
+        X = out[processed].values
+        # Adicionar intercepto
+        X_with_int = np.column_stack([np.ones(len(X)), X])
+        try:
+            beta, _, _, _ = np.linalg.lstsq(X_with_int, y, rcond=None)
+            residuals = y - X_with_int @ beta
+            out[factor] = residuals
+        except np.linalg.LinAlgError:
+            pass  # se falhar, manter original
+        processed.append(factor)
+
+    return out
 
 
 def _build_style_factors(

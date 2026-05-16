@@ -563,6 +563,75 @@ class YFinanceClient:
 # ---------------------------------------------------------------------------
 # Helpers de parsing e normalização de dados brapi
 # ---------------------------------------------------------------------------
+def _compute_yz_vol(df_ohlc: pd.DataFrame) -> Optional[float]:
+    """
+    Yang-Zhang volatility anualizada estimada de OHLC.
+
+    σ²_YZ = σ²_overnight + k·σ²_open-to-close + (1-k)·σ²_RS
+
+    Onde:
+      σ²_overnight    = Var(log(O_t / C_{t-1}))   — gap noturno
+      σ²_open-to-close = Var(log(C_t / O_t))      — movimento intraday
+      σ²_RS (Rogers-Satchell) = mean(log(H/C)·log(H/O) + log(L/C)·log(L/O))
+      k = 0.34 / (1.34 + (n+1)/(n-1))
+
+    YZ é não-tendencioso (unbiased), eficiente sob drift não-nulo, e ~5×
+    menor RMSE que close-to-close (Yang & Zhang 2000).
+
+    Retorna vol anualizada (×√252). None se cálculo falhar.
+    """
+    if df_ohlc is None or df_ohlc.empty or len(df_ohlc) < 20:
+        return None
+
+    needed = {"Open", "High", "Low", "Close"}
+    cols = set(df_ohlc.columns)
+    if not needed.issubset(cols):
+        return None
+
+    try:
+        o = df_ohlc["Open"].astype(float)
+        h = df_ohlc["High"].astype(float)
+        l = df_ohlc["Low"].astype(float)
+        c = df_ohlc["Close"].astype(float)
+
+        # Filtrar zeros/inválidos
+        valid = (o > 0) & (h > 0) & (l > 0) & (c > 0)
+        o, h, l, c = o[valid], h[valid], l[valid], c[valid]
+        if len(c) < 20:
+            return None
+
+        # Log price relationships
+        log_ho = np.log(h / o)
+        log_lo = np.log(l / o)
+        log_co = np.log(c / o)
+        log_oc_prev = np.log(o / c.shift(1)).dropna()  # overnight
+        log_cc = np.log(c / c.shift(1)).dropna()       # close-to-close (não usado direto)
+
+        # Rogers-Satchell por dia
+        rs = log_ho * (log_ho - log_co) + log_lo * (log_lo - log_co)
+        rs = rs.dropna()
+
+        # Overnight
+        overnight_var = log_oc_prev.var(ddof=1) if len(log_oc_prev) > 1 else 0.0
+        # Open-to-close
+        oc_var = log_co.var(ddof=1) if len(log_co) > 1 else 0.0
+        # Rogers-Satchell média
+        rs_mean = float(rs.mean()) if len(rs) > 0 else 0.0
+
+        n = len(rs)
+        if n < 2:
+            return None
+        k = 0.34 / (1.34 + (n + 1) / (n - 1))
+
+        yz_var_daily = float(overnight_var + k * oc_var + (1 - k) * rs_mean)
+        if yz_var_daily <= 0 or np.isnan(yz_var_daily):
+            return None
+        yz_vol_annual = float(np.sqrt(yz_var_daily * 252))
+        return yz_vol_annual
+    except Exception:
+        return None
+
+
 def _find_row(df: pd.DataFrame, candidates: list[str]):
     """Procura nas linhas do DataFrame o primeiro nome em `candidates` (case-insensitive)."""
     if df is None or df.empty:
@@ -757,6 +826,8 @@ class DataCollector:
             df_prices = pd.DataFrame.from_dict(cached_prices)
             df_prices.index = pd.to_datetime(df_prices.index)
             logger.info("Preços: cache hit (%d dias × %d tickers)", *df_prices.shape)
+            # Carregar YZ vols do cache per-ticker
+            self._yz_vols = self._load_yz_from_cache(df_prices.columns.tolist(), today)
         else:
             valid_tickers = df_fund.loc[
                 df_fund["data_source"] != "failed", "ticker"
@@ -767,7 +838,24 @@ class DataCollector:
             self.cache.set(price_key, df_cache.to_dict())
             logger.info("Preços coletados e cacheados (%d dias × %d tickers)", *df_prices.shape)
 
+        # Merge YZ vol em df_fund (campo volatility_yz_180d)
+        yz_map = getattr(self, "_yz_vols", {})
+        if yz_map:
+            df_fund["volatility_yz_180d"] = df_fund["ticker"].map(yz_map)
+            n_yz = df_fund["volatility_yz_180d"].notna().sum()
+            logger.info("Yang-Zhang vol: %d/%d tickers", n_yz, len(df_fund))
+
         return df_fund, df_prices
+
+    def _load_yz_from_cache(self, tickers: list[str], today: str) -> dict[str, float]:
+        """Carrega YZ vol já computada no cache de cada ticker."""
+        out: dict[str, float] = {}
+        for t in tickers:
+            cache_key = f"prices_{t}_{today}"
+            cached = self.cache.get(cache_key)
+            if cached and cached.get("yz_vol_180d") is not None:
+                out[t] = float(cached["yz_vol_180d"])
+        return out
 
     # ------------------------------------------------------------------
     # Coleta de Fundamentais
@@ -908,28 +996,33 @@ class DataCollector:
         Retorna DataFrame wide: index=date (DatetimeIndex), columns=tickers.
 
         Estratégia: yfinance history (1y) por ticker em paralelo (6 workers).
-        Cache de 24h por ticker.
+        Cache de 24h por ticker — inclui OHLC para cálculo de Yang-Zhang vol.
 
-        Forward-fill de até 3 dias úteis para cobrir feriados/pregões sem negócio.
+        Yang-Zhang vol é ~5x mais eficiente que close-to-close (Yang-Zhang
+        2000), captura overnight gap + intraday range. Armazenada como
+        atributo `yz_vols` na instância para merge posterior em df_fund.
         """
         logger.info("Coletando preços históricos (1y) para %d tickers", len(tickers))
         series: dict[str, pd.Series] = {}
+        yz_vols: dict[str, float] = {}
         today = datetime.now().strftime("%Y-%m-%d")
 
-        def _fetch_one(ticker: str) -> Optional[pd.Series]:
+        def _fetch_one(ticker: str) -> tuple[Optional[pd.Series], Optional[float]]:
             cache_key = f"prices_{ticker}_{today}"
             cached = self.cache.get(cache_key)
             if cached:
-                return pd.Series(
+                s = pd.Series(
                     data=cached["close"],
                     index=pd.to_datetime(cached["dates"]),
                     name=ticker,
                 )
+                yz = cached.get("yz_vol_180d")
+                return s, yz
 
             df_hist = self.yf.fetch_history(ticker)
             if df_hist is None or df_hist.empty:
                 logger.warning("Sem histórico de preços para %s", ticker)
-                return None
+                return None, None
 
             if isinstance(df_hist.columns, pd.MultiIndex):
                 df_hist.columns = df_hist.columns.get_level_values(0)
@@ -941,24 +1034,32 @@ class DataCollector:
             s = raw.astype(float)
             s.name = ticker
 
+            # Yang-Zhang vol nos últimos 180 dias (com OHLC do mesmo df_hist)
+            yz = _compute_yz_vol(df_hist.tail(180))
+
             self.cache.set(cache_key, {
-                "ticker":  ticker,
-                "source":  "yfinance",
-                "dates":   [str(d.date()) for d in s.index],
-                "close":   [round(float(v), 4) for v in s.to_numpy()],
+                "ticker":     ticker,
+                "source":     "yfinance",
+                "dates":      [str(d.date()) for d in s.index],
+                "close":      [round(float(v), 4) for v in s.to_numpy()],
+                "yz_vol_180d": yz,
             })
-            return s
+            return s, yz
 
         with ThreadPoolExecutor(max_workers=6) as pool:
             futures = {pool.submit(_fetch_one, t): t for t in tickers}
             for fut in as_completed(futures):
                 ticker = futures[fut]
                 try:
-                    s = fut.result()
+                    s, yz = fut.result()
                     if s is not None:
                         series[ticker] = s
+                    if yz is not None:
+                        yz_vols[ticker] = yz
                 except Exception as exc:
                     logger.warning("Histórico %s falhou: %s", ticker, exc)
+        # Disponibilizar para merge em df_fundamentals
+        self._yz_vols = yz_vols
 
         if not series:
             raise DataCollectionError("Nenhum histórico de preços coletado.")

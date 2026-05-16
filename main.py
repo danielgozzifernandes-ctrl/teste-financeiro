@@ -173,6 +173,57 @@ def _fetch_vix_prices(start_date: str):
         return pd.Series(dtype=float)
 
 
+def _fetch_usdbrl_returns(n_days: int):
+    """
+    Busca série de log-returns diários do USDBRL para overlay macro no HMM.
+
+    Fonte primária: BCB SGS série 1 (PTAX venda) via python-bcb — oficial.
+    Fallback: yfinance "BRL=X" — disponível sempre, mesmo timezone.
+
+    Retorna pd.Series indexada por data, ou None se ambas falharem.
+    """
+    import pandas as pd
+    import numpy as np
+
+    # Primary: BCB PTAX
+    try:
+        from bcb import sgs
+        start = (date.today() - timedelta(days=max(n_days + 30, 400))).strftime("%Y-%m-%d")
+        df = sgs.get({"USDBRL": 1}, start=start)
+        if df is not None and not df.empty:
+            s = df["USDBRL"].dropna().astype(float)
+            if len(s) > 1:
+                log_ret = pd.Series(
+                    data=np.log(s.values[1:] / s.values[:-1]),
+                    index=s.index[1:],
+                )
+                if hasattr(log_ret.index, "tz") and log_ret.index.tz is not None:
+                    log_ret.index = log_ret.index.tz_localize(None)
+                return log_ret
+    except Exception as exc:
+        logger.debug("BCB USDBRL falhou (%s) — tentando yfinance", exc)
+
+    # Fallback: yfinance
+    try:
+        import yfinance as yf
+        df = yf.download("BRL=X", period=f"{max(n_days, 252) + 30}d",
+                         auto_adjust=True, progress=False)
+        if df is None or df.empty:
+            return None
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        close = df["Close"].dropna()
+        if isinstance(close, pd.DataFrame):
+            close = close.iloc[:, 0]
+        if hasattr(close.index, "tz") and close.index.tz is not None:
+            close.index = close.index.tz_localize(None)
+        log_ret = np.log(close / close.shift(1)).dropna()
+        return log_ret
+    except Exception as exc:
+        logger.debug("USDBRL fallback falhou (%s)", exc)
+        return None
+
+
 def _detect_regime_binary(ibov_prices, vix_prices) -> str:
     """
     Detector binário legado (fallback). Regras:
@@ -202,22 +253,24 @@ def _detect_regime_binary(ibov_prices, vix_prices) -> str:
 
 def _detect_regime_hmm(ibov_prices, vix_prices) -> Optional[str]:
     """
-    HMM 2-state (low-vol/high-vol ≈ bull/bear) sobre retornos do IBOV.
+    HMM 2-state (bull/bear) com features multi-fonte.
 
-    Caveats (pesquisa Pacote profissional):
-      - GaussianHMM assume emissão Gaussiana — retornos têm fat tails;
-        mitigamos winsorizando em ±3σ.
-      - Label switching: re-rotular pelos means_ ordenados (estado de
-        menor μ = "bear", maior μ = "bull"). Nunca usar índice do HMM.
-      - Validação mínima: log-likelihood positiva sobre os últimos 252d.
+    Features:
+      1. log_return IBOV — price direction
+      2. vol_21d clipped — risk regime
+      3. log_return USDBRL — Brazil-specific FX stress (NEW)
 
-    Mapeamento para os 3 regimes do sistema:
-      P(bull) > 0.7              → risk_on
-      P(bull) < 0.3 ou bear ativo → bear
-      caso contrário             → mean_rev
+    Caveats:
+      - GaussianHMM assume emissão Gaussiana — winsorizamos retornos
+      - Label switching: re-rotular pelos means_ ordenados de μ_ibov
+      - covariance_type="diag" + min_covar=1e-5 evita colapso bear→outliers
 
-    Returns None se hmmlearn indisponível ou histórico insuficiente; main()
-    cai para o detector binário nesse caso.
+    Mapeamento:
+      P(bull) > 0.6 → risk_on
+      P(bear) > 0.6 → bear
+      caso contrário → mean_rev
+
+    Returns None se hmmlearn indisponível ou histórico insuficiente.
     """
     try:
         from hmmlearn.hmm import GaussianHMM
@@ -232,22 +285,41 @@ def _detect_regime_hmm(ibov_prices, vix_prices) -> Optional[str]:
         logger.debug("HMM: histórico curto (%d < %d)", len(ibov_clean), HMM_MIN_HISTORY_DAYS)
         return None
 
-    # Log returns, winsorizados a ±3σ (mitiga fat tails)
+    # Log returns IBOV, winsorizados a ±3σ
     log_ret = np.log(ibov_clean / ibov_clean.shift(1)).dropna()
     if len(log_ret) < HMM_MIN_HISTORY_DAYS:
         return None
     sigma = log_ret.std()
     log_ret_w = log_ret.clip(lower=-3 * sigma, upper=3 * sigma)
 
-    # Feature: [log_return, volatilidade realizada 21d]
+    # Vol 21d clipada em P95
     vol_21 = log_ret_w.rolling(21).std().fillna(sigma)
-    X = np.column_stack([log_ret_w.values, vol_21.values])
+    vol_clip = float(vol_21.quantile(0.95))
+    vol_21 = vol_21.clip(upper=vol_clip)
+
+    # Feature USDBRL (overlay macro BR): captura stress cambial
+    # (fiscal, política, sudden stop) que IBOV demora a precificar.
+    usdbrl_log_ret = _fetch_usdbrl_returns(len(ibov_clean))
+    if usdbrl_log_ret is not None and len(usdbrl_log_ret) >= len(log_ret_w):
+        # Alinhar pelo índice do IBOV
+        usdbrl_aligned = usdbrl_log_ret.reindex(log_ret_w.index).fillna(0.0)
+        usdbrl_aligned = usdbrl_aligned.clip(lower=-0.05, upper=0.05)  # ±5% diário cap
+        X = np.column_stack([log_ret_w.values, vol_21.values, usdbrl_aligned.values])
+        logger.debug("HMM: 3 features (ibov_ret, vol, usdbrl_ret)")
+    else:
+        X = np.column_stack([log_ret_w.values, vol_21.values])
+        logger.debug("HMM: 2 features (USDBRL indisponível)")
 
     try:
+        # covariance_type="diag" é mais estável com N pequeno + 2 features.
+        # "full" tem 4 parâmetros por estado (matriz 2×2); "diag" tem 2.
+        # min_covar=1e-5 regulariza variâncias mínimas — impede colapso a 0
+        # ou inflação numérica para 1000+ que tínhamos antes.
         model = GaussianHMM(
             n_components=HMM_N_STATES,
-            covariance_type="full",
+            covariance_type="diag",
             n_iter=200,
+            min_covar=1e-5,
             random_state=HMM_RANDOM_STATE,
         )
         model.fit(X)
@@ -255,22 +327,36 @@ def _detect_regime_hmm(ibov_prices, vix_prices) -> Optional[str]:
         logger.debug("HMM fit falhou (%s)", exc)
         return None
 
-    # Re-rotulação: ordenar estados por média do retorno (col 0 das means_)
+    # Re-rotulação: ordenar estados por σ (volatilidade do log_return IBOV).
+    # Convenção quant (Ang-Bekaert 2002, Nystrup 2018): regime de mercado é
+    # determinado primariamente por VOL, não por mean. Bull = baixa vol;
+    # bear = alta vol (independente do sinal de μ). Mais estável que sort
+    # por μ quando μ está próximo de zero ou muda de sinal.
+    if model.covars_.ndim == 2:
+        vols_state = np.sqrt(model.covars_[:, 0])
+    else:
+        vols_state = np.sqrt(np.array([model.covars_[i][0, 0] for i in range(HMM_N_STATES)]))
     means_ret = model.means_[:, 0]
-    sort_idx = np.argsort(means_ret)  # estado 0 = bear, último = bull
+    # Estado de MENOR σ = bull (low-vol regime); MAIOR σ = bear (high-vol)
+    sort_idx = np.argsort(vols_state)  # ascendente: 0 = lowest_vol = bull
+    bull_idx = sort_idx[0]
+    bear_idx = sort_idx[-1]
+
     # Probabilidades correntes (último timestep)
     probs = model.predict_proba(X)[-1]
-    p_bear = probs[sort_idx[0]]
-    p_bull = probs[sort_idx[-1]]
+    p_bull = float(probs[bull_idx])
+    p_bear = float(probs[bear_idx])
 
-    # Volatilidade do estado bull vs bear (validação: bull deve ter vol menor
-    # geralmente — se ambos têm vol parecida, HMM colapsou). Não bloqueia,
-    # só loga aviso.
-    vols_state = np.sqrt(np.array([model.covars_[i][0, 0] for i in range(HMM_N_STATES)]))
+    # Sanity check: se o estado low-vol tem retorno médio fortemente negativo,
+    # é um "grind down" regime — não é bull genuíno. Inverter rótulos.
+    if means_ret[bull_idx] < -0.001:  # < -0.1% diário = -25% a.a.
+        bull_idx, bear_idx = bear_idx, bull_idx
+        p_bull, p_bear = p_bear, p_bull
+
     logger.info(
         "HMM regime: P(bull)=%.2f P(bear)=%.2f | μ_bull=%.4f μ_bear=%.4f | σ_bull=%.4f σ_bear=%.4f",
-        p_bull, p_bear, means_ret[sort_idx[-1]], means_ret[sort_idx[0]],
-        vols_state[sort_idx[-1]], vols_state[sort_idx[0]],
+        p_bull, p_bear, means_ret[bull_idx], means_ret[bear_idx],
+        vols_state[bull_idx], vols_state[bear_idx],
     )
 
     # Mapeamento para os 3 regimes da arquitetura

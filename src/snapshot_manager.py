@@ -36,11 +36,16 @@ import numpy as np
 import pandas as pd
 
 from src.config import (
+    ENABLE_VOLATILITY_TARGETING,
+    EWMA_LAMBDA,
     HISTORY_DIR,
     HRP_COVARIANCE_METHOD,
     HRP_LOOKBACK_DAYS,
     UNIVERSE_FILE,
     USE_HRP_WEIGHTS,
+    VOL_TARGET_ANNUAL,
+    VOL_TARGET_LEVERAGE_MAX,
+    VOL_TARGET_LEVERAGE_MIN,
     WEIGHTS,
 )
 
@@ -247,6 +252,14 @@ class SnapshotManager:
             portfolio_weights, df_prices,
         )
 
+        # Volatility targeting: escalar gross exposure para vol target fixo.
+        # Não muda os pesos RELATIVOS (HRP continua), apenas a quantidade
+        # total investida (gross_exposure). Em ambiente de PF, usuário
+        # interpreta como "% do capital alocado em ações vs caixa".
+        vol_target_info = _apply_volatility_targeting(
+            portfolio_weights, df_prices, risk_metrics,
+        )
+
         # Validar cobertura: backtester depende de entry_prices para todo o top-N
         top_n_tickers = df_scored.head(top_n)["ticker"].tolist()
         missing_prices = [t for t in top_n_tickers if t not in entry_prices or entry_prices[t] is None]
@@ -269,6 +282,13 @@ class SnapshotManager:
         top5  = top_recs[:5]
         top10 = top_recs[:top_n]
 
+        # Full universe factor scores — crítico para Factor IC honesto.
+        # Sem isso, IC é medido apenas sobre top10 → selection bias enorme
+        # (correlaciona fator com retorno SÓ entre ações que o fator já
+        # selecionou). Salvar TODOS os tickers com seus scores normalizados
+        # permite IC real cross-sectional sobre o universo completo.
+        full_universe_scores = _extract_full_universe_scores(df_scored)
+
         payload = {
             "date":                   run_date_str,
             "mode":                   mode,
@@ -278,12 +298,14 @@ class SnapshotManager:
             "weights":                WEIGHTS,
             "entry_prices":           entry_prices,
             "portfolio_weights":      portfolio_weights,
+            "full_universe_scores":   full_universe_scores,
             "execution_metadata": {
                 "universe_size":      len(df_scored),
                 "tickers_scored":     int(df_scored["total_score"].notna().sum()),
                 "generated_at":       datetime.now().isoformat(),
                 "portfolio_weights_method": weights_method,
                 "risk_metrics":             risk_metrics,
+                "vol_targeting":            vol_target_info,
                 "score_range": {
                     "max": _safe_float(df_scored["total_score"].max()),
                     "min": _safe_float(df_scored["total_score"].min()),
@@ -452,6 +474,120 @@ def _extract_entry_prices(
             if not series.empty:
                 prices[ticker] = round(float(series.iloc[-1]), 2)
     return prices
+
+
+def _extract_full_universe_scores(df_scored: pd.DataFrame) -> dict[str, dict]:
+    """
+    Extrai factor scores normalizados de TODOS os tickers do df_scored,
+    não só top10. Cada ticker → {fator: score [0-100]}.
+
+    Lê norm_details que o ScoringEngine popula em build_norm_details_col.
+    Filtra apenas scores válidos (não-None).
+    """
+    out: dict[str, dict] = {}
+    if "ticker" not in df_scored.columns or "norm_details" not in df_scored.columns:
+        return out
+
+    for _, row in df_scored.iterrows():
+        ticker = str(row.get("ticker", ""))
+        if not ticker:
+            continue
+        nd = row.get("norm_details") or {}
+        if isinstance(nd, str):
+            try:
+                import ast
+                nd = ast.literal_eval(nd)
+            except Exception:
+                nd = {}
+        if not isinstance(nd, dict):
+            continue
+        factor_scores: dict[str, float] = {}
+        for factor, detail in nd.items():
+            if isinstance(detail, dict):
+                score = detail.get("score")
+                if score is not None:
+                    factor_scores[factor] = round(float(score), 2)
+        if factor_scores:
+            out[ticker] = factor_scores
+    return out
+
+
+def _apply_volatility_targeting(
+    weights: dict[str, float],
+    df_prices: pd.DataFrame,
+    risk_metrics: dict,
+) -> dict:
+    """
+    Calcula o gross exposure ideal para atingir VOL_TARGET_ANNUAL.
+
+    Vol da carteira estimada via EWMA (RiskMetrics λ=0.94) sobre retornos
+    da carteira simulada com os HRP weights. Half-life da EWMA = ln(2)/(1-λ)
+    ≈ 11 dias — responsivo a mudanças de regime sem ser ruidoso.
+
+    gross_exposure = clip(vol_target / vol_ewma, MIN, MAX)
+
+    Em low-vol regime (vol_ewma < vol_target), exposure > 100% (mas capamos
+    em 150% — PF não usa margin). Em high-vol regime, < 100%, sugerindo
+    manter capital em caixa/CDI.
+
+    Importante: NÃO altera weights relativos (HRP continua governando a
+    composição). Só sinaliza quanto do capital deve estar em risco.
+    """
+    out = {
+        "enabled":          ENABLE_VOLATILITY_TARGETING,
+        "vol_target":       VOL_TARGET_ANNUAL,
+        "vol_estimated":    None,
+        "gross_exposure":   1.0,
+        "scaled_weights":   dict(weights),
+    }
+    if not ENABLE_VOLATILITY_TARGETING or not weights or df_prices is None or df_prices.empty:
+        return out
+
+    avail = [t for t in weights.keys() if t in df_prices.columns]
+    if not avail:
+        return out
+
+    # Renormalizar pesos sobre tickers disponíveis
+    w_sum = sum(weights[t] for t in avail)
+    if w_sum == 0:
+        return out
+    w_arr = np.array([weights[t] / w_sum for t in avail])
+
+    # Retornos diários da carteira simulada (último ano)
+    returns = df_prices[avail].tail(252).pct_change().dropna()
+    if len(returns) < 30:
+        return out
+
+    portfolio_daily = returns.to_numpy() @ w_arr
+
+    # EWMA RiskMetrics — variância recursiva com decay λ=0.94
+    # σ²_t = λ · σ²_{t-1} + (1-λ) · r²_{t-1}
+    lam = EWMA_LAMBDA
+    ewma_var = float(portfolio_daily[0] ** 2)
+    for r in portfolio_daily[1:]:
+        ewma_var = lam * ewma_var + (1 - lam) * (r ** 2)
+
+    vol_ewma_annual = float(np.sqrt(ewma_var * 252))
+    if vol_ewma_annual <= 0:
+        return out
+
+    raw_lev = VOL_TARGET_ANNUAL / vol_ewma_annual
+    gross_exposure = float(np.clip(raw_lev, VOL_TARGET_LEVERAGE_MIN, VOL_TARGET_LEVERAGE_MAX))
+
+    scaled = {t: round(weights[t] * gross_exposure, 6) for t in weights}
+
+    out.update({
+        "vol_estimated":  round(vol_ewma_annual, 4),
+        "gross_exposure": round(gross_exposure, 4),
+        "raw_leverage":   round(raw_lev, 4),
+        "scaled_weights": scaled,
+        "ewma_lambda":    lam,
+    })
+    logger.info(
+        "Vol targeting: vol_est=%.1f%% a.a. → exposure=%.0f%% (target %.0f%%)",
+        vol_ewma_annual * 100, gross_exposure * 100, VOL_TARGET_ANNUAL * 100,
+    )
+    return out
 
 
 def _compute_portfolio_risk_metrics(

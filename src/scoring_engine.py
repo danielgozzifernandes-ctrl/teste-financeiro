@@ -38,6 +38,9 @@ from src.config import (
     ANALYST_TARGET_MAX_UPSIDE,
     ANALYST_TARGET_WEIGHT,
     BRL_CORRELATION_WINDOW,
+    ENABLE_LIQUIDITY_PENALTY,
+    LIQUIDITY_PENALTY_MIN_FACTOR,
+    LIQUIDITY_PENALTY_THRESHOLD_BRL,
     ENABLE_ANALYST_REVISIONS,
     ENABLE_ANALYST_TARGET,
     ENABLE_BRL_FACTOR,
@@ -261,11 +264,32 @@ class ScoringEngine:
         df["momentum_score"]    = mom_scores.round(2)
         df["quality_score"]     = qual_scores.round(2)
         df["market_regime"]     = regime
-        df["total_score"] = (
+        total_score = (
             active_weights["fundamental"] * fund_scores
             + active_weights["momentum"]  * mom_scores
             + active_weights["quality"]   * qual_scores
-        ).round(2)
+        )
+
+        # Liquidity penalty: multiplica score por sqrt(ADV / threshold).
+        # Tickers acima do threshold ficam intactos (penalty=1); abaixo
+        # ganham penalty < 1, com floor em LIQUIDITY_PENALTY_MIN_FACTOR.
+        # Mata "alpha de papel" em small caps onde slippage > alpha esperado.
+        if ENABLE_LIQUIDITY_PENALTY and "avg_volume_30d" in df.columns:
+            adv = df["avg_volume_30d"].astype(float)
+            penalty = np.minimum(1.0, np.sqrt(adv / LIQUIDITY_PENALTY_THRESHOLD_BRL))
+            penalty = penalty.clip(lower=LIQUIDITY_PENALTY_MIN_FACTOR, upper=1.0)
+            # NaN → assumir penalty 1 (não penalizar quando dado ausente)
+            penalty = penalty.fillna(1.0)
+            df["liquidity_penalty"] = penalty.round(3)
+            total_score = total_score * penalty
+            n_penalized = int((penalty < 1.0).sum())
+            if n_penalized > 0:
+                logger.info(
+                    "Liquidity penalty aplicada em %d/%d tickers (threshold=R$%.0fM)",
+                    n_penalized, len(df), LIQUIDITY_PENALTY_THRESHOLD_BRL / 1e6,
+                )
+
+        df["total_score"] = total_score.round(2)
 
         # ── Campos de rastreabilidade ─────────────────────────────────────
         df["norm_details"] = self._build_norm_details_col(
@@ -407,12 +431,25 @@ class ScoringEngine:
     ) -> pd.DataFrame:
         """
         Volatilidade e Beta calculados dos preços históricos.
-        Sobrescreve beta do DataCollector apenas quando o campo está ausente.
+
+        Volatilidade: Yang-Zhang (via OHLC) é preferida sobre close-to-close
+        — ~5× mais eficiente. Se YZ não disponível para um ticker, fallback
+        para close-to-close calculado de df_prices.
+        Beta: usa do DataCollector quando disponível; senão calcula.
         """
-        vol_series  = self._volatility(df_prices, VOLATILITY_WINDOW)
+        vol_cc = self._volatility(df_prices, VOLATILITY_WINDOW)
         beta_series = self._betas(df_prices, ibov_prices)
 
-        df["volatility_180d"] = df.index.map(vol_series)
+        # Preferir Yang-Zhang vol se disponível; senão usar close-to-close
+        if "volatility_yz_180d" in df.columns:
+            # vol_cc é Series indexada por ticker; alinhar via reindex (vira Series)
+            vol_cc_aligned = pd.Series(df.index.map(vol_cc), index=df.index)
+            df["volatility_180d"] = df["volatility_yz_180d"].fillna(vol_cc_aligned)
+            n_yz = df["volatility_yz_180d"].notna().sum()
+            logger.debug("Vol: %d Yang-Zhang + %d close-to-close fallback",
+                         n_yz, len(df) - n_yz)
+        else:
+            df["volatility_180d"] = df.index.map(vol_cc)
 
         # Beta: usar da série de preços se o DataCollector não retornou
         if "beta" not in df.columns:
