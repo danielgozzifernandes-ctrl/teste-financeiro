@@ -35,10 +35,16 @@ from scipy import stats
 
 from src.config import (
     ANALYST_REVISIONS_WEIGHT,
+    ANALYST_TARGET_MAX_UPSIDE,
+    ANALYST_TARGET_WEIGHT,
+    BRL_CORRELATION_WINDOW,
     ENABLE_ANALYST_REVISIONS,
+    ENABLE_ANALYST_TARGET,
+    ENABLE_BRL_FACTOR,
     ENABLE_FCF_PAYOUT_CHECK,
     ENABLE_GROWTH_FACTOR,
     ENABLE_INVESTMENT_FACTOR,
+    ENABLE_PEAD_FACTOR,
     ENABLE_SIZE_FACTOR,
     FCF_PAYOUT_UNSUSTAINABLE,
     GROWTH_WEIGHT,
@@ -54,6 +60,10 @@ from src.config import (
     MIN_SECTOR_PERCENTILE,
     MIN_SECTOR_ZSCORE,
     MOMENTUM_WINDOWS,
+    PEAD_DRIFT_ENTRY_DAYS,
+    PEAD_DRIFT_HOLDING_DAYS,
+    PEAD_SURPRISE_WINDOW_DAYS,
+    PEAD_WEIGHT,
     SIZE_WEIGHT,
     VOLATILITY_WINDOW,
     WEIGHTS,
@@ -124,6 +134,23 @@ if ENABLE_ANALYST_REVISIONS:
     _MOMENTUM_CFG["analyst_rec_score"] = {
         "base_weight": ANALYST_REVISIONS_WEIGHT, "direction": "higher_is_better",
         "label": "Recomendação Analistas",
+    }
+if ENABLE_ANALYST_TARGET:
+    # Sub-fator forward-looking: upside implícito vs preço atual.
+    # Brav-Lehavy (2003): IC do nível absoluto é fraco (0.02-0.04) com viés
+    # otimista EM crônico. O rank cross-sectional (que o Z-Score faz) extrai
+    # o sinal. Peso baixo para não dominar pilares mais robustos.
+    _MOMENTUM_CFG["analyst_target_upside"] = {
+        "base_weight": ANALYST_TARGET_WEIGHT, "direction": "higher_is_better",
+        "label": "Upside Implícito Analistas",
+    }
+if ENABLE_PEAD_FACTOR:
+    # Post-Earnings Announcement Drift: surprise positiva nos últimos
+    # PEAD_DRIFT_HOLDING_DAYS = 60 dias úteis → bônus de momentum.
+    # Score [0, 100] computado em _compute_pead_score.
+    _MOMENTUM_CFG["pead_signal"] = {
+        "base_weight": PEAD_WEIGHT, "direction": "higher_is_better",
+        "label": "PEAD (drift pós-resultado)",
     }
 
 _QUALITY_CFG: dict[str, dict] = {
@@ -219,6 +246,8 @@ class ScoringEngine:
         df = self._add_momentum_metrics(df, df_prices, ibov_prices)
         df = self._add_idiosyncratic_momentum(df, df_prices, ibov_prices, sector_map)
         df = self._add_quality_metrics(df, df_prices, ibov_prices)
+        df = self._add_pead_signal(df, df_prices, ibov_prices)
+        df = self._add_brl_exposure(df, df_prices)
         df = self._apply_hard_filters(df)
         sector_map = sector_map.reindex(df.index)  # re-alinhar após filtros
 
@@ -281,8 +310,14 @@ class ScoringEngine:
             "asset_growth_yoy", "net_margin_3y_avg",
             # FCF / Payout sustainability
             "free_cash_flow_ttm", "fcf_payout_ratio",
-            # Earnings revisions (momentum sub-factor)
+            # Earnings revisions + analyst target (momentum sub-factors)
             "analyst_rec_score", "analyst_rec_trend",
+            "analyst_target_upside", "analyst_target_mean", "analyst_target_dispersion",
+            # PEAD (Post-Earnings Announcement Drift)
+            "pead_signal", "last_earnings_date", "days_since_earnings",
+            "earnings_surprise_pct",
+            # BRL exposure (risk dimension, not direct score)
+            "brl_corr_90d",
             # pilares e total
             "fundamental_score", "momentum_score", "quality_score", "total_score",
             "market_regime",
@@ -480,6 +515,194 @@ class ScoringEngine:
             "Idiosyncratic momentum: %d/%d tickers com dado válido",
             idio_col.notna().sum(), len(df),
         )
+        return df
+
+    def _add_pead_signal(
+        self,
+        df: pd.DataFrame,
+        df_prices: pd.DataFrame,
+        ibov_prices: pd.Series,
+    ) -> pd.DataFrame:
+        """
+        Post-Earnings Announcement Drift (PEAD) signal.
+
+        Para cada ticker com `last_earnings_date` no DataFrame, calcula:
+          1. EAR = CAR(-PEAD_SURPRISE_WINDOW, +PEAD_SURPRISE_WINDOW) vs IBOV
+             (proxy de surprise sem precisar de consenso de analistas)
+          2. Se EAR > 0 E ticker está em janela [PEAD_DRIFT_ENTRY_DAYS,
+             PEAD_DRIFT_HOLDING_DAYS] após o anúncio → signal positivo
+
+        O valor exportado é EAR escalado pela porção de "vida útil" restante
+        do drift — sinal decai linearmente após o pico.
+
+        Tickers fora da janela ou sem earnings_date → NaN (vai para
+        redistribuição de peso no scoring).
+
+        IMPORTANTE: filtragem look-ahead já foi feita no data_collector
+        (só datas < today entram). Aqui só transformamos em signal.
+        """
+        df["pead_signal"] = np.nan
+        if not ENABLE_PEAD_FACTOR:
+            return df
+
+        if df_prices is None or df_prices.empty or ibov_prices is None or ibov_prices.empty:
+            return df
+
+        ibov_clean = ibov_prices.dropna()
+        ibov_idx_naive = ibov_clean.index.tz_localize(None) if getattr(ibov_clean.index, "tz", None) is not None else ibov_clean.index
+
+        n_signals = 0
+        for ticker in df.index:
+            last_date = df.at[ticker, "last_earnings_date"] if "last_earnings_date" in df.columns else None
+            if last_date is None or (isinstance(last_date, float) and pd.isna(last_date)):
+                continue
+            try:
+                event_date = pd.Timestamp(last_date)
+                if event_date.tz is not None:
+                    event_date = event_date.tz_localize(None)
+            except Exception:
+                continue
+
+            # Janela de validade do drift (em dias úteis aproximados)
+            today_ts = pd.Timestamp.now().normalize()
+            days_since = (today_ts - event_date).days
+            # Convertendo para úteis aproximados: × 5/7
+            business_days_since = days_since * 5 / 7
+            if business_days_since < PEAD_DRIFT_ENTRY_DAYS:
+                continue  # ainda em janela de reversão imediata
+            if business_days_since > PEAD_DRIFT_HOLDING_DAYS:
+                continue  # drift já decaiu
+
+            if ticker not in df_prices.columns:
+                continue
+            price_series = df_prices[ticker].dropna()
+            if price_series.empty:
+                continue
+            price_idx_naive = price_series.index.tz_localize(None) if getattr(price_series.index, "tz", None) is not None else price_series.index
+
+            # Encontrar a posição da data do evento no índice de preços
+            # Tolerância: ±3 dias corridos (em caso de feriado)
+            try:
+                # idxmax/idxmin requer fechamento exato; usar searchsorted
+                pos = price_idx_naive.searchsorted(event_date)
+                if pos < 1 or pos >= len(price_idx_naive) - PEAD_SURPRISE_WINDOW_DAYS:
+                    continue
+                # Verificar tolerância
+                actual_date = price_idx_naive[pos]
+                if abs((actual_date - event_date).days) > 3:
+                    continue
+                # CAR(-w, +w) = ret_ticker - ret_ibov no período do evento
+                t0_price = price_series.iloc[max(0, pos - PEAD_SURPRISE_WINDOW_DAYS)]
+                t1_price = price_series.iloc[min(len(price_series) - 1, pos + PEAD_SURPRISE_WINDOW_DAYS)]
+                if t0_price <= 0 or t1_price <= 0:
+                    continue
+                stock_ret = (t1_price / t0_price) - 1.0
+
+                # Mesmo período para IBOV
+                ibov_pos = ibov_idx_naive.searchsorted(event_date)
+                if ibov_pos < 1 or ibov_pos >= len(ibov_idx_naive) - PEAD_SURPRISE_WINDOW_DAYS:
+                    continue
+                ibov_t0 = float(ibov_clean.iloc[max(0, ibov_pos - PEAD_SURPRISE_WINDOW_DAYS)])
+                ibov_t1 = float(ibov_clean.iloc[min(len(ibov_clean) - 1, ibov_pos + PEAD_SURPRISE_WINDOW_DAYS)])
+                if ibov_t0 <= 0 or ibov_t1 <= 0:
+                    continue
+                ibov_ret = (ibov_t1 / ibov_t0) - 1.0
+
+                ear = stock_ret - ibov_ret
+
+                # Decay linear: sinal cheio em DRIFT_ENTRY, zera em DRIFT_HOLDING.
+                # life_remaining ∈ [0, 1]
+                life_remaining = max(0.0, min(1.0,
+                    (PEAD_DRIFT_HOLDING_DAYS - business_days_since)
+                    / (PEAD_DRIFT_HOLDING_DAYS - PEAD_DRIFT_ENTRY_DAYS)
+                ))
+                # Sinal: EAR × life_remaining. Captura tanto magnitude quanto
+                # quanto tempo de drift ainda resta para extrair.
+                df.at[ticker, "pead_signal"] = float(ear * life_remaining)
+                n_signals += 1
+            except Exception:
+                continue
+
+        logger.info("PEAD signal computado para %d/%d tickers", n_signals, len(df))
+        return df
+
+    def _add_brl_exposure(
+        self,
+        df: pd.DataFrame,
+        df_prices: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """
+        Exposição cambial: correlação rolling 90d de log-returns do ticker
+        com USDBRL.
+
+        Padrão B3:
+          β > +0.3 → exportador (VALE, PETR, SUZB) — ganha com BRL fraco
+          β ≈ 0   → neutro (bancos)
+          β < -0.3 → doméstico (LREN, MGLU) — perde com BRL fraco
+
+        Não é fator de scoring direto — é dimensão de risco para evitar
+        concentração cambial no top 5 (todas as posições do mesmo lado da
+        moeda = bet cambial implícita).
+
+        Fonte: yfinance "BRL=X" (PTAX equivalente). Aceita ausência de dado.
+        """
+        df["brl_corr_90d"] = np.nan
+        if not ENABLE_BRL_FACTOR or df_prices is None or df_prices.empty:
+            return df
+
+        try:
+            import yfinance as yf
+            # 1 ano de USDBRL para garantir janela de 90d com folga
+            usdbrl = yf.download(
+                "BRL=X",
+                period="1y",
+                progress=False,
+                auto_adjust=True,
+            )
+            if usdbrl is None or usdbrl.empty:
+                return df
+            # Achatar MultiIndex se necessário
+            if isinstance(usdbrl.columns, pd.MultiIndex):
+                usdbrl.columns = usdbrl.columns.get_level_values(0)
+            close_col = "Adj Close" if "Adj Close" in usdbrl.columns else "Close"
+            usdbrl_close = usdbrl[close_col].dropna()
+            if isinstance(usdbrl_close, pd.DataFrame):
+                usdbrl_close = usdbrl_close.iloc[:, 0]
+            usdbrl_ret = np.log(usdbrl_close / usdbrl_close.shift(1)).dropna()
+            # Alinhar timezone
+            if getattr(usdbrl_ret.index, "tz", None) is not None:
+                usdbrl_ret.index = usdbrl_ret.index.tz_localize(None)
+
+            # Pegar últimos BRL_CORRELATION_WINDOW dias
+            window = BRL_CORRELATION_WINDOW
+            usdbrl_window = usdbrl_ret.tail(window)
+            if len(usdbrl_window) < window // 2:
+                return df
+
+            # Log returns dos tickers
+            stock_log_ret = np.log(df_prices / df_prices.shift(1)).dropna(how="all")
+            stock_window = stock_log_ret.tail(window)
+
+            common_idx = stock_window.index.intersection(usdbrl_window.index)
+            if len(common_idx) < 30:
+                return df
+
+            x = usdbrl_window.loc[common_idx]
+            for ticker in df.index:
+                if ticker not in stock_window.columns:
+                    continue
+                y = stock_window.loc[common_idx, ticker].dropna()
+                aligned = y.index.intersection(x.index)
+                if len(aligned) < 30:
+                    continue
+                rho = float(np.corrcoef(y.loc[aligned], x.loc[aligned])[0, 1])
+                if not np.isnan(rho):
+                    df.at[ticker, "brl_corr_90d"] = rho
+
+            valid = df["brl_corr_90d"].notna().sum()
+            logger.info("BRL correlation 90d: %d/%d tickers", valid, len(df))
+        except Exception as exc:
+            logger.debug("BRL exposure falhou (%s) — fator vai ficar NaN", exc)
         return df
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -1159,6 +1382,10 @@ class ScoringEngine:
             rv_str = f"{rv * 100:+.1f}%a.a."
         elif factor == "analyst_rec_score":
             rv_str = f"{rv:.1f}/5"
+        elif factor == "analyst_target_upside":
+            rv_str = f"upside {rv * 100:+.0f}%"
+        elif factor == "pead_signal":
+            rv_str = f"PEAD {rv * 100:+.1f}%"
         else:
             rv_str = f"{rv:.2f}"
 
@@ -1349,9 +1576,24 @@ def select_diverse_portfolio(
     top_n = result.head(n)
     themes_in_top = [_theme(str(s)) for s in top_n.get("setor", []).tolist()]
     sectors_in_top = top_n.get("setor", []).tolist() if "setor" in top_n.columns else []
+    # BRL exposure concentration: contar tickers com correlação positiva
+    # (exportadores) e negativa (domésticos) significativas (|ρ| > 0.2)
+    brl_signs: list[str] = []
+    if "brl_corr_90d" in top_n.columns:
+        for v in top_n["brl_corr_90d"]:
+            if v is None or pd.isna(v):
+                brl_signs.append("neutral")
+            elif v > 0.2:
+                brl_signs.append("exporter")    # ganha com BRL fraco
+            elif v < -0.2:
+                brl_signs.append("domestic")    # perde com BRL fraco
+            else:
+                brl_signs.append("neutral")
+
     result.attrs["portfolio_diagnostics"] = {
         "themes":          themes_in_top,
         "sectors":         sectors_in_top,
+        "brl_signs":       brl_signs,
         "min_score":       float(top_n["total_score"].min()) if "total_score" in top_n.columns and not top_n.empty else None,
         "below_threshold": int(sum(1 for s in top_n.get("total_score", []) if s is not None and s < min_score)),
         "dominant_theme":  max(set(themes_in_top), key=themes_in_top.count) if themes_in_top else None,

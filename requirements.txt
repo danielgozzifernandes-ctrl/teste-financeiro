@@ -15,6 +15,10 @@ scipy>=1.11.0
 # Fallback automático para inverse-vol se import falhar.
 riskfolio-lib>=5.0.0
 
+# Hidden Markov Model para detecção de regime de mercado.
+# Fallback automático para detector binário (IBOV/VIX) se import falhar.
+hmmlearn>=0.3.0
+
 # Visualização
 matplotlib>=3.8.0
 

@@ -495,6 +495,65 @@ class YFinanceClient:
             except Exception as exc:
                 logger.debug("Analyst rec fetch %s: %s", ticker, exc)
 
+            # ── Analyst price targets (forward-looking sinal) ────────────
+            # IMPORTANTE: literatura (Brav-Lehavy 2003, Da-Schaumburg 2011)
+            # mostra que upside ABSOLUTO tem IC fraco (~0.02-0.04) e viés
+            # otimista crônico em EM (média ~+25%). O sinal investível é o
+            # RANK cross-sectional do upside — feito no scoring_engine.
+            # Aqui só capturamos o nível bruto + qualidade do dado.
+            try:
+                apt = getattr(yticker, "analyst_price_targets", None)
+                if isinstance(apt, dict) and apt:
+                    mean_t = _to_float(apt.get("mean"))
+                    median_t = _to_float(apt.get("median"))
+                    current = _to_float(apt.get("current"))
+                    high_t = _to_float(apt.get("high"))
+                    low_t = _to_float(apt.get("low"))
+                    # Usar median (mais robusto a outliers) com fallback para mean
+                    target = median_t if median_t is not None else mean_t
+                    if target is not None and current is not None and current > 0:
+                        upside = (target / current) - 1.0
+                        result["analyst_target_upside"] = float(upside)
+                        if mean_t is not None:
+                            result["analyst_target_mean"] = mean_t
+                        # Dispersão como qualidade do sinal (alta dispersão = ruído)
+                        if high_t is not None and low_t is not None and target > 0:
+                            result["analyst_target_dispersion"] = float((high_t - low_t) / target)
+            except Exception as exc:
+                logger.debug("Analyst price target %s: %s", ticker, exc)
+
+            # ── PEAD: Earnings dates + EAR proxy ──────────────────────────
+            # Sinal: tickers em janela 5-60 dias úteis APÓS resultado com
+            # surpresa positiva (CAR -1/+1 vs IBOV) tendem a continuar subindo.
+            # Filtramos earnings_dates com cuidado para evitar look-ahead
+            # (yfinance retorna datas FUTURAS misturadas com passadas).
+            try:
+                ed = getattr(yticker, "earnings_dates", None)
+                if ed is not None and not ed.empty:
+                    today_ts = pd.Timestamp.now().normalize()
+                    # Filtrar SÓ datas passadas (eventos já reportados)
+                    ed_idx = pd.to_datetime(ed.index).tz_localize(None) if getattr(ed.index, "tz", None) is not None else pd.to_datetime(ed.index)
+                    past_mask = ed_idx < today_ts
+                    past_events = ed[past_mask] if past_mask.any() else None
+                    if past_events is not None and not past_events.empty:
+                        # Pegar o mais recente
+                        last_event_date = pd.to_datetime(past_events.index[0])
+                        if last_event_date.tz is not None:
+                            last_event_date = last_event_date.tz_localize(None)
+                        days_since = (today_ts - last_event_date).days
+                        result["last_earnings_date"] = str(last_event_date.date())
+                        result["days_since_earnings"] = int(days_since)
+                        # Surprise se yfinance fornecer (colunas variam: 'Surprise(%)', 'Reported EPS', etc.)
+                        for col in past_events.columns:
+                            cl = str(col).lower()
+                            if "surprise" in cl and "%" in cl:
+                                surprise_val = _to_float(past_events.iloc[0][col])
+                                if surprise_val is not None:
+                                    result["earnings_surprise_pct"] = surprise_val / 100.0 if abs(surprise_val) > 1 else surprise_val
+                                break
+            except Exception as exc:
+                logger.debug("Earnings dates %s: %s", ticker, exc)
+
         except Exception as exc:
             logger.debug("yfinance advanced %s: %s", ticker, exc)
 

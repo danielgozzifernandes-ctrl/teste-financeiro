@@ -234,6 +234,56 @@ ENABLE_ANALYST_REVISIONS = True
 ANALYST_REVISIONS_WEIGHT = 0.10  # dentro do pilar momentum
 
 # ---------------------------------------------------------------------------
+# Análise quantitativa avançada (Pacote profissional)
+# ---------------------------------------------------------------------------
+
+# Covariance estimation method no HRP. Opções (Riskfolio-Lib):
+#   "hist"   — covariância amostral (default antigo)
+#   "ledoit" — Ledoit-Wolf shrinkage para identidade (Ledoit-Wolf 2004b)
+#   "oas"    — Oracle Approximating Shrinkage (Chen 2010) — melhor p/ N pequeno
+# Para portfólios de 5 ativos com 126d de dados (p/N=0.04), shrinkage ganha
+# pouco vs sample; mas "oas" tem boa propriedade Gaussian-assintótica.
+HRP_COVARIANCE_METHOD = "ledoit"
+
+# EWMA de fundamentais trimestrais
+# Half-life em trimestres. 6Q = 1.5 anos: smoothing significativo mas ainda
+# responsivo a mudanças estruturais. Aplica-se SÓ a métricas de qualidade
+# (ROE, ROIC, margens) — NÃO a múltiplos (P/L, P/VP) ou growth.
+ENABLE_EWMA_FUNDAMENTALS = True
+EWMA_HALFLIFE_QUARTERS = 6
+
+# PEAD (Post-Earnings Announcement Drift)
+# Janela de surpresa: ±1 dia úteis ao redor do anúncio (CAR vs IBOV).
+# Holding window: 5-60 dias úteis pós-anúncio. Tickers com EAR positivo
+# nesse intervalo ganham bônus em momentum.
+ENABLE_PEAD_FACTOR = True
+PEAD_SURPRISE_WINDOW_DAYS = 1     # CAR(-1, +1) ao redor da data
+PEAD_DRIFT_HOLDING_DAYS = 60      # quantos dias úteis após o anúncio o sinal vale
+PEAD_DRIFT_ENTRY_DAYS = 5         # ignorar primeiros N dias para evitar reversão imediata
+PEAD_WEIGHT = 0.10                # peso dentro do pilar momentum
+
+# Analyst price targets (yfinance)
+ENABLE_ANALYST_TARGET = True
+ANALYST_TARGET_WEIGHT = 0.05      # peso baixo: sinal tem viés EM otimista crônico
+ANALYST_TARGET_MAX_UPSIDE = 1.50  # cap em +150% (data error guard)
+
+# BRL exposure factor (correlação log-returns com USDBRL)
+# Janela 90d é compromisso entre tactical (60d) e strategic (252d).
+ENABLE_BRL_FACTOR = True
+BRL_CORRELATION_WINDOW = 90       # dias úteis para correlação rolling
+BCB_USDBRL_SERIES = 1             # série BCB SGS — PTAX venda diária
+
+# HMM regime detection
+# 2-state é o padrão profissional (bull/bear ≈ low-vol/high-vol). 3-state
+# é popular em research mas frequentemente tem um estado quase vazio fora
+# de períodos extremos. Mantemos fallback ao detector binário se hmmlearn
+# falhar ou histórico insuficiente.
+USE_HMM_REGIME = True
+HMM_N_STATES = 2
+HMM_MIN_HISTORY_DAYS = 200        # ~10 meses de dados mínimo para ajustar HMM
+HMM_RANDOM_STATE = 42
+
+# ---------------------------------------------------------------------------
 # Análise de Factor IC (Information Coefficient)
 # ---------------------------------------------------------------------------
 # Janelas de retorno forward para medir poder preditivo dos fatores.

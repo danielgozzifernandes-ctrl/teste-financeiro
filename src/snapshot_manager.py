@@ -35,7 +35,14 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
-from src.config import HISTORY_DIR, HRP_LOOKBACK_DAYS, USE_HRP_WEIGHTS, UNIVERSE_FILE, WEIGHTS
+from src.config import (
+    HISTORY_DIR,
+    HRP_COVARIANCE_METHOD,
+    HRP_LOOKBACK_DAYS,
+    UNIVERSE_FILE,
+    USE_HRP_WEIGHTS,
+    WEIGHTS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -495,16 +502,23 @@ def _compute_portfolio_weights(
 
     try:
         port = rp.HCPortfolio(returns=returns)
-        # Riskfolio-Lib 5+: parâmetro é method_cov (não 'covariance').
-        # method_cov="hist" = covariância histórica empírica (mais robusto que
-        # shrinkage para janelas curtas).
+        # method_cov:
+        #   "ledoit" — Ledoit-Wolf shrinkage para identidade. Vantagem:
+        #              reduz erro out-of-sample 15-30% quando p/N > 0.1
+        #              (Ledoit-Wolf 2003). Caveat: target é identidade,
+        #              não constant-correlation — perde alguma estrutura
+        #              setorial. Para top-5, esse caveat é menor que o ganho.
+        #   "oas"    — Oracle Approximating Shrinkage; melhor sob hipótese
+        #              Gaussiana e N pequeno.
+        #   "hist"   — covariância amostral (sem shrinkage).
+        # δ é derivado analiticamente — NÃO setar shrinkage_constant manual.
         w = port.optimization(
             model="HRP",
             codependence="pearson",
-            method_cov="hist",
-            rm="MV",          # mean-variance risk measure
+            method_cov=HRP_COVARIANCE_METHOD,
+            rm="MV",
             rf=0,
-            linkage="single", # single linkage é mais estável que average em N pequeno
+            linkage="single",
             max_k=10,
             leaf_order=True,
         )

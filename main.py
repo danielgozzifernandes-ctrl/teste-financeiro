@@ -45,7 +45,11 @@ from src.config import (
     CACHE_DIR,
     LOG_LEVEL,
     CHART_OUTPUT_PATH,
+    HMM_MIN_HISTORY_DAYS,
+    HMM_N_STATES,
+    HMM_RANDOM_STATE,
     TURNOVER_BAND_PTS,
+    USE_HMM_REGIME,
 )
 from src.data_collector import load_data
 from src.scoring_engine import apply_turnover_band, compute_scores, select_diverse_portfolio
@@ -169,12 +173,12 @@ def _fetch_vix_prices(start_date: str):
         return pd.Series(dtype=float)
 
 
-def _detect_regime(ibov_prices, vix_prices) -> str:
+def _detect_regime_binary(ibov_prices, vix_prices) -> str:
     """
-    3-state market regime:
+    Detector binário legado (fallback). Regras:
       risk_on:  IBOV > MA200 AND VIX < 18
       bear:     VIX > 25
-      mean_rev: everything else
+      mean_rev: caso contrário
     """
     import pandas as pd
     ibov_clean = ibov_prices.dropna() if not ibov_prices.empty else pd.Series(dtype=float)
@@ -194,6 +198,99 @@ def _detect_regime(ibov_prices, vix_prices) -> str:
     if ibov_above_ma200 and (latest_vix is None or latest_vix < 18):
         return "risk_on"
     return "mean_rev"
+
+
+def _detect_regime_hmm(ibov_prices, vix_prices) -> Optional[str]:
+    """
+    HMM 2-state (low-vol/high-vol ≈ bull/bear) sobre retornos do IBOV.
+
+    Caveats (pesquisa Pacote profissional):
+      - GaussianHMM assume emissão Gaussiana — retornos têm fat tails;
+        mitigamos winsorizando em ±3σ.
+      - Label switching: re-rotular pelos means_ ordenados (estado de
+        menor μ = "bear", maior μ = "bull"). Nunca usar índice do HMM.
+      - Validação mínima: log-likelihood positiva sobre os últimos 252d.
+
+    Mapeamento para os 3 regimes do sistema:
+      P(bull) > 0.7              → risk_on
+      P(bull) < 0.3 ou bear ativo → bear
+      caso contrário             → mean_rev
+
+    Returns None se hmmlearn indisponível ou histórico insuficiente; main()
+    cai para o detector binário nesse caso.
+    """
+    try:
+        from hmmlearn.hmm import GaussianHMM
+    except ImportError:
+        return None
+
+    import numpy as np
+    import pandas as pd
+
+    ibov_clean = ibov_prices.dropna() if not ibov_prices.empty else pd.Series(dtype=float)
+    if len(ibov_clean) < HMM_MIN_HISTORY_DAYS:
+        logger.debug("HMM: histórico curto (%d < %d)", len(ibov_clean), HMM_MIN_HISTORY_DAYS)
+        return None
+
+    # Log returns, winsorizados a ±3σ (mitiga fat tails)
+    log_ret = np.log(ibov_clean / ibov_clean.shift(1)).dropna()
+    if len(log_ret) < HMM_MIN_HISTORY_DAYS:
+        return None
+    sigma = log_ret.std()
+    log_ret_w = log_ret.clip(lower=-3 * sigma, upper=3 * sigma)
+
+    # Feature: [log_return, volatilidade realizada 21d]
+    vol_21 = log_ret_w.rolling(21).std().fillna(sigma)
+    X = np.column_stack([log_ret_w.values, vol_21.values])
+
+    try:
+        model = GaussianHMM(
+            n_components=HMM_N_STATES,
+            covariance_type="full",
+            n_iter=200,
+            random_state=HMM_RANDOM_STATE,
+        )
+        model.fit(X)
+    except Exception as exc:
+        logger.debug("HMM fit falhou (%s)", exc)
+        return None
+
+    # Re-rotulação: ordenar estados por média do retorno (col 0 das means_)
+    means_ret = model.means_[:, 0]
+    sort_idx = np.argsort(means_ret)  # estado 0 = bear, último = bull
+    # Probabilidades correntes (último timestep)
+    probs = model.predict_proba(X)[-1]
+    p_bear = probs[sort_idx[0]]
+    p_bull = probs[sort_idx[-1]]
+
+    # Volatilidade do estado bull vs bear (validação: bull deve ter vol menor
+    # geralmente — se ambos têm vol parecida, HMM colapsou). Não bloqueia,
+    # só loga aviso.
+    vols_state = np.sqrt(np.array([model.covars_[i][0, 0] for i in range(HMM_N_STATES)]))
+    logger.info(
+        "HMM regime: P(bull)=%.2f P(bear)=%.2f | μ_bull=%.4f μ_bear=%.4f | σ_bull=%.4f σ_bear=%.4f",
+        p_bull, p_bear, means_ret[sort_idx[-1]], means_ret[sort_idx[0]],
+        vols_state[sort_idx[-1]], vols_state[sort_idx[0]],
+    )
+
+    # Mapeamento para os 3 regimes da arquitetura
+    if p_bear > 0.6:
+        return "bear"
+    if p_bull > 0.6:
+        return "risk_on"
+    return "mean_rev"
+
+
+def _detect_regime(ibov_prices, vix_prices) -> str:
+    """
+    Orchestrador: tenta HMM primeiro (se USE_HMM_REGIME), fallback binário.
+    """
+    if USE_HMM_REGIME:
+        hmm_regime = _detect_regime_hmm(ibov_prices, vix_prices)
+        if hmm_regime is not None:
+            return hmm_regime
+        logger.debug("HMM indisponível ou inconclusivo — usando detector binário")
+    return _detect_regime_binary(ibov_prices, vix_prices)
 
 
 # ─── Pipeline principal ───────────────────────────────────────────────────────
