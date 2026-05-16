@@ -242,6 +242,11 @@ class SnapshotManager:
             df_scored, df_prices, n=5,
         )
 
+        # Métricas de risco do portfólio para auditoria/relatório
+        risk_metrics = _compute_portfolio_risk_metrics(
+            portfolio_weights, df_prices,
+        )
+
         # Validar cobertura: backtester depende de entry_prices para todo o top-N
         top_n_tickers = df_scored.head(top_n)["ticker"].tolist()
         missing_prices = [t for t in top_n_tickers if t not in entry_prices or entry_prices[t] is None]
@@ -278,6 +283,7 @@ class SnapshotManager:
                 "tickers_scored":     int(df_scored["total_score"].notna().sum()),
                 "generated_at":       datetime.now().isoformat(),
                 "portfolio_weights_method": weights_method,
+                "risk_metrics":             risk_metrics,
                 "score_range": {
                     "max": _safe_float(df_scored["total_score"].max()),
                     "min": _safe_float(df_scored["total_score"].min()),
@@ -446,6 +452,88 @@ def _extract_entry_prices(
             if not series.empty:
                 prices[ticker] = round(float(series.iloc[-1]), 2)
     return prices
+
+
+def _compute_portfolio_risk_metrics(
+    weights: dict[str, float],
+    df_prices: pd.DataFrame,
+    lookback_days: int = 252,
+    confidence: float = 0.95,
+) -> dict:
+    """
+    Métricas de risco do portfólio (top 5) baseadas em simulação histórica.
+
+    VaR (Value-at-Risk) 95%: percentil 5% da distribuição de retornos diários.
+      "Há 5% de chance de perder mais que VaR% num dia típico."
+    CVaR (Expected Shortfall) 95%: média dos retornos abaixo do VaR.
+      "Quando o cenário ruim acontece, perda média esperada."
+    HHI (Herfindahl-Hirschman): Σ wᵢ². 0.20 = perfect equal-weight em 5,
+      1.0 = 100% em 1 ticker.
+    Effective N: 1 / HHI. Número equivalente de posições.
+    Annualized vol: std × √252.
+    Sharpe simplificado: ret_mean / std × √252 (sem risk-free).
+
+    Returns dict — todos os valores são None se simulação não puder rodar.
+    """
+    out: dict = {
+        "var_95":        None,
+        "cvar_95":       None,
+        "hhi":           None,
+        "effective_n":   None,
+        "ann_vol":       None,
+        "sharpe_naive":  None,
+        "n_obs":         0,
+    }
+    if not weights or df_prices is None or df_prices.empty:
+        return out
+
+    tickers = list(weights.keys())
+    avail = [t for t in tickers if t in df_prices.columns]
+    if not avail:
+        return out
+
+    # Renormalizar para os tickers disponíveis
+    w_sum = sum(weights[t] for t in avail)
+    if w_sum == 0:
+        return out
+    w = np.array([weights[t] / w_sum for t in avail])
+
+    # Retornos diários simulados (carteira rebalanceada diariamente — proxy)
+    prices_sub = df_prices[avail].tail(lookback_days)
+    returns = prices_sub.pct_change().dropna(how="all").to_numpy()
+    if len(returns) < 30:
+        out["hhi"] = float(np.sum(w ** 2))
+        out["effective_n"] = round(1 / out["hhi"], 2) if out["hhi"] > 0 else None
+        return out
+
+    # Replace NaN with column means for simulation purposes
+    col_means = np.nanmean(returns, axis=0)
+    nan_mask = np.isnan(returns)
+    returns_clean = np.where(nan_mask, col_means, returns)
+
+    # Retorno da carteira em cada dia
+    portfolio_daily = returns_clean @ w
+
+    var_pct = (1 - confidence) * 100  # 5%
+    var_val = float(np.percentile(portfolio_daily, var_pct))
+    cvar_val = float(portfolio_daily[portfolio_daily <= var_val].mean()) if (portfolio_daily <= var_val).any() else var_val
+
+    hhi = float(np.sum(w ** 2))
+    eff_n = float(1.0 / hhi) if hhi > 0 else None
+    ann_vol = float(portfolio_daily.std(ddof=1) * np.sqrt(252))
+    ann_ret = float(portfolio_daily.mean() * 252)
+    sharpe = float(ann_ret / ann_vol) if ann_vol > 0 else None
+
+    out.update({
+        "var_95":        round(var_val, 5),
+        "cvar_95":       round(cvar_val, 5),
+        "hhi":           round(hhi, 4),
+        "effective_n":   round(eff_n, 2) if eff_n is not None else None,
+        "ann_vol":       round(ann_vol, 4),
+        "sharpe_naive":  round(sharpe, 3) if sharpe is not None else None,
+        "n_obs":         len(portfolio_daily),
+    })
+    return out
 
 
 def _compute_portfolio_weights(

@@ -1,98 +1,98 @@
-ticker,nome,setor,subsetor,liquidez_minima_MM,norm_method
-PETR4,Petróleo Brasileiro PN,Petróleo Gás e Biocombustíveis,Exploração e Produção,200.0,percentile
-PETR3,Petróleo Brasileiro ON,Petróleo Gás e Biocombustíveis,Exploração e Produção,80.0,percentile
-PRIO3,PetroRio ON,Petróleo Gás e Biocombustíveis,Exploração e Produção,40.0,percentile
-RECV3,Petrorecôncavo ON,Petróleo Gás e Biocombustíveis,Exploração e Produção,15.0,percentile
-VBBR3,Vibra Energia ON,Petróleo Gás e Biocombustíveis,Distribuição de Combustíveis,25.0,percentile
-EGIE3,Engie Brasil ON,Energia Elétrica,Geração de Energia,30.0,zscore
-EQTL3,Equatorial Energia ON,Energia Elétrica,Distribuição de Energia,50.0,zscore
-CPFE3,CPFL Energia ON,Energia Elétrica,Geração e Distribuição,20.0,zscore
-ENGI11,Energisa Unit,Energia Elétrica,Distribuição de Energia,25.0,zscore
-TAEE11,Transmissão Paulista Unit,Energia Elétrica,Transmissão de Energia,15.0,zscore
-ISAE4,ISA CTEEP PN,Energia Elétrica,Transmissão de Energia,10.0,zscore
-AURE3,Auren Energia ON,Energia Elétrica,Geração de Energia,15.0,zscore
-CPLE3,Copel ON,Energia Elétrica,Geração e Distribuição,20.0,zscore
-CMIG4,Cemig PN,Energia Elétrica,Geração e Distribuição,30.0,zscore
-VALE3,Vale ON,Materiais Básicos,Mineração,400.0,zscore
-GGBR4,Gerdau PN,Materiais Básicos,Siderurgia e Metalurgia,60.0,zscore
-CSNA3,CSN ON,Materiais Básicos,Siderurgia e Metalurgia,25.0,zscore
-USIM5,Usiminas PNA,Materiais Básicos,Siderurgia e Metalurgia,20.0,zscore
-SUZB3,Suzano ON,Materiais Básicos,Papel e Celulose,80.0,zscore
-KLBN11,Klabin Unit,Materiais Básicos,Papel e Celulose,20.0,zscore
-CMIN3,CSN Mineração ON,Materiais Básicos,Mineração,20.0,zscore
-BRAP4,Bradespar PN,Materiais Básicos,Mineração,15.0,zscore
-GOAU4,Metalúrgica Gerdau PN,Materiais Básicos,Siderurgia e Metalurgia,10.0,zscore
-LREN3,Lojas Renner ON,Consumo Cíclico,Comércio de Tecidos e Vestuário,25.0,zscore
-MGLU3,Magazine Luiza ON,Consumo Cíclico,Eletrodomésticos e Eletrônicos,40.0,zscore
-RENT3,Localiza ON,Consumo Cíclico,Locação de Veículos,40.0,zscore
-MOVI3,Movida ON,Consumo Cíclico,Locação de Veículos,15.0,zscore
-CYRE3,Cyrela ON,Consumo Cíclico,Construção Civil,15.0,zscore
-EZTC3,EZTEC ON,Consumo Cíclico,Construção Civil,10.0,zscore
-MRVE3,MRV ON,Consumo Cíclico,Construção Civil,20.0,zscore
-AZZA3,Azzas 2154 ON,Consumo Cíclico,Tecidos e Calçados,15.0,zscore
-ALPA4,Alpargatas PN,Consumo Cíclico,Tecidos e Calçados,10.0,zscore
-SMFT3,Smart Fit ON,Consumo Cíclico,Academias e Fitness,10.0,zscore
-GRND3,Grendene ON,Consumo Cíclico,Tecidos e Calçados,8.0,zscore
-CEAB3,C&A Modas ON,Consumo Cíclico,Comércio de Tecidos e Vestuário,8.0,zscore
-ABEV3,Ambev ON,Consumo Não Cíclico,Bebidas,100.0,zscore
-JBSS3,JBS ON,Consumo Não Cíclico,Carnes e Derivados,50.0,zscore
-BEEF3,Minerva ON,Consumo Não Cíclico,Carnes e Derivados,15.0,zscore
-BRFS3,BRF ON,Consumo Não Cíclico,Carnes e Derivados,30.0,zscore
-MRFG3,Marfrig ON,Consumo Não Cíclico,Carnes e Derivados,15.0,zscore
-UGPA3,Ultrapar ON,Consumo Não Cíclico,Distribuição de Combustíveis,15.0,zscore
-RAIZ4,Raízen PN,Consumo Não Cíclico,Açúcar e Álcool,10.0,zscore
-CAML3,Camil Alimentos ON,Consumo Não Cíclico,Alimentos Processados,8.0,zscore
-RDOR3,Rede D'Or ON,Saúde,Hospitais,40.0,percentile
-HAPV3,Hapvida ON,Saúde,Planos de Saúde,25.0,percentile
-RADL3,Raia Drogasil ON,Saúde,Farmácias,40.0,percentile
-FLRY3,Fleury ON,Saúde,Diagnósticos,10.0,percentile
-DASA3,Diagnósticos da América ON,Saúde,Diagnósticos,8.0,percentile
-QUAL3,Qualicorp ON,Saúde,Planos de Saúde,8.0,percentile
-TOTS3,Totvs ON,Tecnologia da Informação,Programas e Serviços,20.0,global
-LWSA3,Locaweb ON,Tecnologia da Informação,Programas e Serviços,8.0,global
-POSI3,Positivo Tecnologia ON,Tecnologia da Informação,Hardware,5.0,global
-VIVT3,Telefônica Brasil ON,Comunicações,Telecomunicações,30.0,global
-TIMS3,TIM ON,Comunicações,Telecomunicações,25.0,global
-SBSP3,Sabesp ON,Utilidade Pública,Água e Saneamento,30.0,percentile
-CSMG3,Copasa ON,Utilidade Pública,Água e Saneamento,8.0,percentile
-SAPR11,Sanepar Unit,Utilidade Pública,Água e Saneamento,10.0,percentile
-CGAS5,Comgas PNA,Utilidade Pública,Gás,8.0,percentile
-WEGE3,WEG ON,Bens Industriais,Motores e Automação,80.0,percentile
-EMBR3,Embraer ON,Bens Industriais,Aeronaves,40.0,percentile
-RAIL3,Rumo ON,Bens Industriais,Transporte Ferroviário,30.0,percentile
-POMO4,Marcopolo PN,Bens Industriais,Veículos e Implementos,8.0,percentile
-ROMI3,Romi ON,Bens Industriais,Máquinas e Equipamentos,5.0,percentile
-TUPY3,Tupy ON,Bens Industriais,Autopeças,8.0,percentile
-FRAS3,Fras-le ON,Bens Industriais,Autopeças,5.0,percentile
-ITUB4,Itaú Unibanco PN,Financeiro e Outros,Bancos,300.0,zscore
-BBDC4,Bradesco PN,Financeiro e Outros,Bancos,150.0,zscore
-BBAS3,Banco do Brasil ON,Financeiro e Outros,Bancos,100.0,zscore
-BPAC11,BTG Pactual Unit,Financeiro e Outros,Bancos,80.0,zscore
-SANB11,Santander Brasil Unit,Financeiro e Outros,Bancos,40.0,zscore
-B3SA3,B3 ON,Financeiro e Outros,Serviços Financeiros,80.0,zscore
-CIEL3,Cielo ON,Financeiro e Outros,Meios de Pagamento,20.0,zscore
-IRBR3,IRB Brasil RE ON,Financeiro e Outros,Seguros,10.0,zscore
-PSSA3,Porto Seguro ON,Financeiro e Outros,Seguros,10.0,zscore
-SULA11,SulAmérica Unit,Financeiro e Outros,Seguros,8.0,zscore
-ABCB4,ABC Brasil PN,Financeiro e Outros,Bancos,8.0,zscore
-BRSR6,Banrisul PNB,Financeiro e Outros,Bancos,8.0,zscore
-ELET3,Eletrobras ON,Energia Elétrica,Geração e Transmissão,80.0,zscore
-ELET6,Eletrobras PNB,Energia Elétrica,Geração e Transmissão,30.0,zscore
-NEOE3,Neoenergia ON,Energia Elétrica,Distribuição de Energia,25.0,zscore
-CSAN3,Cosan ON,Petróleo Gás e Biocombustíveis,Distribuição de Combustíveis,30.0,zscore
-DXCO3,Dexco ON,Materiais Básicos,Madeira e Papel,10.0,zscore
-MULT3,Multiplan ON,Consumo Cíclico,Shoppings,20.0,zscore
-IGTI11,Iguatemi Unit,Consumo Cíclico,Shoppings,10.0,zscore
-VIVA3,Vivara ON,Consumo Cíclico,Joalheria,10.0,zscore
-SBFG3,SBF Group ON,Consumo Cíclico,Artigos Esportivos,10.0,zscore
-GMAT3,Grupo Mateus ON,Consumo Não Cíclico,Supermercados,20.0,zscore
-NTCO3,Natura e Co ON,Consumo Não Cíclico,Higiene e Beleza,25.0,zscore
-SLCE3,SLC Agrícola ON,Consumo Não Cíclico,Agricultura,10.0,zscore
-SMTO3,São Martinho ON,Consumo Não Cíclico,Açúcar e Álcool,10.0,zscore
-MDIA3,M.Dias Branco ON,Consumo Não Cíclico,Alimentos Processados,10.0,zscore
-ODPV3,Odontoprev ON,Saúde,Planos de Saúde,10.0,zscore
-HYPE3,Hypera Pharma ON,Saúde,Farmacêuticos,20.0,zscore
-INTB3,Intelbras ON,Tecnologia da Informação,Hardware,8.0,zscore
-ITSA4,Itaúsa PN,Financeiro e Outros,Holding Financeira,50.0,zscore
-BBSE3,BB Seguridade ON,Financeiro e Outros,Seguros,25.0,zscore
-CXSE3,Caixa Seguridade ON,Financeiro e Outros,Seguros,10.0,zscore
+ticker,nome,setor,subsetor,liquidez_minima_MM,norm_method,inclusion_date,exclusion_date
+PETR4,Petróleo Brasileiro PN,Petróleo Gás e Biocombustíveis,Exploração e Produção,200.0,percentile,2010-01-01,
+PETR3,Petróleo Brasileiro ON,Petróleo Gás e Biocombustíveis,Exploração e Produção,80.0,percentile,2010-01-01,
+PRIO3,PetroRio ON,Petróleo Gás e Biocombustíveis,Exploração e Produção,40.0,percentile,2010-01-01,
+RECV3,Petrorecôncavo ON,Petróleo Gás e Biocombustíveis,Exploração e Produção,15.0,percentile,2010-01-01,
+VBBR3,Vibra Energia ON,Petróleo Gás e Biocombustíveis,Distribuição de Combustíveis,25.0,percentile,2010-01-01,
+EGIE3,Engie Brasil ON,Energia Elétrica,Geração de Energia,30.0,zscore,2010-01-01,
+EQTL3,Equatorial Energia ON,Energia Elétrica,Distribuição de Energia,50.0,zscore,2010-01-01,
+CPFE3,CPFL Energia ON,Energia Elétrica,Geração e Distribuição,20.0,zscore,2010-01-01,
+ENGI11,Energisa Unit,Energia Elétrica,Distribuição de Energia,25.0,zscore,2010-01-01,
+TAEE11,Transmissão Paulista Unit,Energia Elétrica,Transmissão de Energia,15.0,zscore,2010-01-01,
+ISAE4,ISA CTEEP PN,Energia Elétrica,Transmissão de Energia,10.0,zscore,2010-01-01,
+AURE3,Auren Energia ON,Energia Elétrica,Geração de Energia,15.0,zscore,2010-01-01,
+CPLE3,Copel ON,Energia Elétrica,Geração e Distribuição,20.0,zscore,2010-01-01,
+CMIG4,Cemig PN,Energia Elétrica,Geração e Distribuição,30.0,zscore,2010-01-01,
+VALE3,Vale ON,Materiais Básicos,Mineração,400.0,zscore,2010-01-01,
+GGBR4,Gerdau PN,Materiais Básicos,Siderurgia e Metalurgia,60.0,zscore,2010-01-01,
+CSNA3,CSN ON,Materiais Básicos,Siderurgia e Metalurgia,25.0,zscore,2010-01-01,
+USIM5,Usiminas PNA,Materiais Básicos,Siderurgia e Metalurgia,20.0,zscore,2010-01-01,
+SUZB3,Suzano ON,Materiais Básicos,Papel e Celulose,80.0,zscore,2010-01-01,
+KLBN11,Klabin Unit,Materiais Básicos,Papel e Celulose,20.0,zscore,2010-01-01,
+CMIN3,CSN Mineração ON,Materiais Básicos,Mineração,20.0,zscore,2010-01-01,
+BRAP4,Bradespar PN,Materiais Básicos,Mineração,15.0,zscore,2010-01-01,
+GOAU4,Metalúrgica Gerdau PN,Materiais Básicos,Siderurgia e Metalurgia,10.0,zscore,2010-01-01,
+LREN3,Lojas Renner ON,Consumo Cíclico,Comércio de Tecidos e Vestuário,25.0,zscore,2010-01-01,
+MGLU3,Magazine Luiza ON,Consumo Cíclico,Eletrodomésticos e Eletrônicos,40.0,zscore,2010-01-01,
+RENT3,Localiza ON,Consumo Cíclico,Locação de Veículos,40.0,zscore,2010-01-01,
+MOVI3,Movida ON,Consumo Cíclico,Locação de Veículos,15.0,zscore,2010-01-01,
+CYRE3,Cyrela ON,Consumo Cíclico,Construção Civil,15.0,zscore,2010-01-01,
+EZTC3,EZTEC ON,Consumo Cíclico,Construção Civil,10.0,zscore,2010-01-01,
+MRVE3,MRV ON,Consumo Cíclico,Construção Civil,20.0,zscore,2010-01-01,
+AZZA3,Azzas 2154 ON,Consumo Cíclico,Tecidos e Calçados,15.0,zscore,2010-01-01,
+ALPA4,Alpargatas PN,Consumo Cíclico,Tecidos e Calçados,10.0,zscore,2010-01-01,
+SMFT3,Smart Fit ON,Consumo Cíclico,Academias e Fitness,10.0,zscore,2010-01-01,
+GRND3,Grendene ON,Consumo Cíclico,Tecidos e Calçados,8.0,zscore,2010-01-01,
+CEAB3,C&A Modas ON,Consumo Cíclico,Comércio de Tecidos e Vestuário,8.0,zscore,2010-01-01,
+ABEV3,Ambev ON,Consumo Não Cíclico,Bebidas,100.0,zscore,2010-01-01,
+JBSS3,JBS ON,Consumo Não Cíclico,Carnes e Derivados,50.0,zscore,2010-01-01,
+BEEF3,Minerva ON,Consumo Não Cíclico,Carnes e Derivados,15.0,zscore,2010-01-01,
+BRFS3,BRF ON,Consumo Não Cíclico,Carnes e Derivados,30.0,zscore,2010-01-01,
+MRFG3,Marfrig ON,Consumo Não Cíclico,Carnes e Derivados,15.0,zscore,2010-01-01,
+UGPA3,Ultrapar ON,Consumo Não Cíclico,Distribuição de Combustíveis,15.0,zscore,2010-01-01,
+RAIZ4,Raízen PN,Consumo Não Cíclico,Açúcar e Álcool,10.0,zscore,2010-01-01,
+CAML3,Camil Alimentos ON,Consumo Não Cíclico,Alimentos Processados,8.0,zscore,2010-01-01,
+RDOR3,Rede D'Or ON,Saúde,Hospitais,40.0,percentile,2010-01-01,
+HAPV3,Hapvida ON,Saúde,Planos de Saúde,25.0,percentile,2010-01-01,
+RADL3,Raia Drogasil ON,Saúde,Farmácias,40.0,percentile,2010-01-01,
+FLRY3,Fleury ON,Saúde,Diagnósticos,10.0,percentile,2010-01-01,
+DASA3,Diagnósticos da América ON,Saúde,Diagnósticos,8.0,percentile,2010-01-01,
+QUAL3,Qualicorp ON,Saúde,Planos de Saúde,8.0,percentile,2010-01-01,
+TOTS3,Totvs ON,Tecnologia da Informação,Programas e Serviços,20.0,global,2010-01-01,
+LWSA3,Locaweb ON,Tecnologia da Informação,Programas e Serviços,8.0,global,2010-01-01,
+POSI3,Positivo Tecnologia ON,Tecnologia da Informação,Hardware,5.0,global,2010-01-01,
+VIVT3,Telefônica Brasil ON,Comunicações,Telecomunicações,30.0,global,2010-01-01,
+TIMS3,TIM ON,Comunicações,Telecomunicações,25.0,global,2010-01-01,
+SBSP3,Sabesp ON,Utilidade Pública,Água e Saneamento,30.0,percentile,2010-01-01,
+CSMG3,Copasa ON,Utilidade Pública,Água e Saneamento,8.0,percentile,2010-01-01,
+SAPR11,Sanepar Unit,Utilidade Pública,Água e Saneamento,10.0,percentile,2010-01-01,
+CGAS5,Comgas PNA,Utilidade Pública,Gás,8.0,percentile,2010-01-01,
+WEGE3,WEG ON,Bens Industriais,Motores e Automação,80.0,percentile,2010-01-01,
+EMBR3,Embraer ON,Bens Industriais,Aeronaves,40.0,percentile,2010-01-01,
+RAIL3,Rumo ON,Bens Industriais,Transporte Ferroviário,30.0,percentile,2010-01-01,
+POMO4,Marcopolo PN,Bens Industriais,Veículos e Implementos,8.0,percentile,2010-01-01,
+ROMI3,Romi ON,Bens Industriais,Máquinas e Equipamentos,5.0,percentile,2010-01-01,
+TUPY3,Tupy ON,Bens Industriais,Autopeças,8.0,percentile,2010-01-01,
+FRAS3,Fras-le ON,Bens Industriais,Autopeças,5.0,percentile,2010-01-01,
+ITUB4,Itaú Unibanco PN,Financeiro e Outros,Bancos,300.0,zscore,2010-01-01,
+BBDC4,Bradesco PN,Financeiro e Outros,Bancos,150.0,zscore,2010-01-01,
+BBAS3,Banco do Brasil ON,Financeiro e Outros,Bancos,100.0,zscore,2010-01-01,
+BPAC11,BTG Pactual Unit,Financeiro e Outros,Bancos,80.0,zscore,2010-01-01,
+SANB11,Santander Brasil Unit,Financeiro e Outros,Bancos,40.0,zscore,2010-01-01,
+B3SA3,B3 ON,Financeiro e Outros,Serviços Financeiros,80.0,zscore,2010-01-01,
+CIEL3,Cielo ON,Financeiro e Outros,Meios de Pagamento,20.0,zscore,2010-01-01,
+IRBR3,IRB Brasil RE ON,Financeiro e Outros,Seguros,10.0,zscore,2010-01-01,
+PSSA3,Porto Seguro ON,Financeiro e Outros,Seguros,10.0,zscore,2010-01-01,
+SULA11,SulAmérica Unit,Financeiro e Outros,Seguros,8.0,zscore,2010-01-01,
+ABCB4,ABC Brasil PN,Financeiro e Outros,Bancos,8.0,zscore,2010-01-01,
+BRSR6,Banrisul PNB,Financeiro e Outros,Bancos,8.0,zscore,2010-01-01,
+ELET3,Eletrobras ON,Energia Elétrica,Geração e Transmissão,80.0,zscore,2010-01-01,
+ELET6,Eletrobras PNB,Energia Elétrica,Geração e Transmissão,30.0,zscore,2010-01-01,
+NEOE3,Neoenergia ON,Energia Elétrica,Distribuição de Energia,25.0,zscore,2010-01-01,
+CSAN3,Cosan ON,Petróleo Gás e Biocombustíveis,Distribuição de Combustíveis,30.0,zscore,2010-01-01,
+DXCO3,Dexco ON,Materiais Básicos,Madeira e Papel,10.0,zscore,2010-01-01,
+MULT3,Multiplan ON,Consumo Cíclico,Shoppings,20.0,zscore,2010-01-01,
+IGTI11,Iguatemi Unit,Consumo Cíclico,Shoppings,10.0,zscore,2010-01-01,
+VIVA3,Vivara ON,Consumo Cíclico,Joalheria,10.0,zscore,2010-01-01,
+SBFG3,SBF Group ON,Consumo Cíclico,Artigos Esportivos,10.0,zscore,2010-01-01,
+GMAT3,Grupo Mateus ON,Consumo Não Cíclico,Supermercados,20.0,zscore,2010-01-01,
+NTCO3,Natura e Co ON,Consumo Não Cíclico,Higiene e Beleza,25.0,zscore,2010-01-01,
+SLCE3,SLC Agrícola ON,Consumo Não Cíclico,Agricultura,10.0,zscore,2010-01-01,
+SMTO3,São Martinho ON,Consumo Não Cíclico,Açúcar e Álcool,10.0,zscore,2010-01-01,
+MDIA3,M.Dias Branco ON,Consumo Não Cíclico,Alimentos Processados,10.0,zscore,2010-01-01,
+ODPV3,Odontoprev ON,Saúde,Planos de Saúde,10.0,zscore,2010-01-01,
+HYPE3,Hypera Pharma ON,Saúde,Farmacêuticos,20.0,zscore,2010-01-01,
+INTB3,Intelbras ON,Tecnologia da Informação,Hardware,8.0,zscore,2010-01-01,
+ITSA4,Itaúsa PN,Financeiro e Outros,Holding Financeira,50.0,zscore,2010-01-01,
+BBSE3,BB Seguridade ON,Financeiro e Outros,Seguros,25.0,zscore,2010-01-01,
+CXSE3,Caixa Seguridade ON,Financeiro e Outros,Seguros,10.0,zscore,2010-01-01,

@@ -288,17 +288,24 @@ def analyze_factors(
                 "n_obs":    len(observations),
             }
 
+    # ── Decay analysis: ajustar curva exponencial IC(τ) = IC₀ × exp(-λτ)
+    # Half-life = ln(2) / λ — em dias úteis. Fatores com half-life longa
+    # (>40d) são duráveis; <10d são noise-driven.
+    decay_summary = _compute_decay(factors_summary, IC_FORWARD_WINDOWS)
+
     result = {
         "analysis_date":      datetime.now().isoformat(),
         "n_snapshots":        len(snaps),
         "n_recommendations":  len(recs),
         "forward_windows_days": IC_FORWARD_WINDOWS,
         "factors":            factors_summary,
+        "decay":              decay_summary,
         "interpretation": {
             "mean_ic":  "Correlação de Spearman média entre score do fator e retorno forward. "
                         "IC > 0.05 é bom; > 0.10 excelente. IC < 0 é vermelho — fator prevê ao contrário.",
             "ir":       "Information Ratio = mean(IC)/std(IC). > 0.5 sugere fator robusto.",
             "hit_rate": "% de períodos com IC > 0. > 0.55 é desejável.",
+            "half_life": "Dias úteis para IC cair pela metade. > 40d = durável; < 10d = ruidoso.",
         },
     }
 
@@ -306,6 +313,61 @@ def analyze_factors(
     if verbose:
         _print_table(result)
     return result
+
+
+def _compute_decay(
+    factors_summary: dict,
+    forward_windows: dict,
+) -> dict:
+    """
+    Ajusta IC(τ) = IC₀ × exp(-λτ) e calcula half-life.
+
+    Usa pelo menos 2 pontos (janelas com n_obs > 0 e mean_ic > 0). Se < 2
+    pontos válidos, retorna half_life=None.
+
+    OLS em log-space: log|IC| = log|IC₀| - λτ
+    λ = -slope, half_life = ln(2) / λ.
+
+    Aceita só IC positivo (interpretação de decay só faz sentido se fator
+    está predizendo). Fatores com IC negativo recebem half_life=None.
+    """
+    out: dict[str, dict] = {}
+    for factor, by_window in factors_summary.items():
+        points: list[tuple[float, float]] = []  # (τ, IC)
+        for window_name, days in forward_windows.items():
+            entry = by_window.get(window_name, {})
+            ic = entry.get("mean_ic")
+            n = entry.get("n_obs", 0)
+            if ic is None or n == 0 or ic <= 0:
+                continue
+            points.append((float(days), float(ic)))
+
+        if len(points) < 2:
+            out[factor] = {"half_life_days": None, "n_points": len(points)}
+            continue
+
+        # OLS em log-space
+        tau = np.array([p[0] for p in points])
+        log_ic = np.log(np.array([p[1] for p in points]))
+        try:
+            slope, intercept = np.polyfit(tau, log_ic, 1)
+            if slope >= 0:  # sem decaimento — IC constante ou crescendo
+                out[factor] = {"half_life_days": None, "n_points": len(points), "trend": "stable_or_growing"}
+                continue
+            lambda_ = -slope
+            half_life = float(np.log(2) / lambda_)
+            # IC inicial extrapolado
+            ic_zero = float(np.exp(intercept))
+            out[factor] = {
+                "half_life_days":   round(half_life, 1),
+                "ic_zero":          round(ic_zero, 4),
+                "decay_rate":       round(lambda_, 5),
+                "n_points":         len(points),
+            }
+        except (np.linalg.LinAlgError, ValueError):
+            out[factor] = {"half_life_days": None, "n_points": len(points)}
+
+    return out
 
 
 def _save_result(result: dict, output_path: Path) -> None:

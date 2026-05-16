@@ -473,6 +473,50 @@ def run(args: argparse.Namespace) -> int:
         df_scored = df_scored.copy()
         df_scored["current_price"] = df_scored["ticker"].map(last_prices)
 
+    # ── 6b. Análises retroativas (rodam SEMPRE, inclusive em dry-run) ────
+    # Factor IC, walk-forward e risk model decomposition. Estes ficam ANTES
+    # do dry-run return para acumular histórico estatístico em toda execução.
+    try:
+        from src.factor_analysis import analyze_factors
+        analyze_factors(verbose=False)
+        logger.info("Factor IC atualizado em data/factor_ic.json")
+    except Exception as exc:
+        logger.debug("Factor IC update falhou (%s)", exc)
+
+    try:
+        from src.walk_forward import walk_forward_backtest
+        walk_forward_backtest(verbose=False)
+        logger.info("Walk-forward atualizado em data/walk_forward.json")
+    except Exception as exc:
+        logger.debug("Walk-forward falhou (%s)", exc)
+
+    try:
+        from src.risk_model import build_risk_model, portfolio_risk_decomposition
+        df_fund_idx = df_fundamentals.set_index("ticker") if "ticker" in df_fundamentals.columns else df_fundamentals
+        rm = build_risk_model(
+            df_prices=df_prices,
+            ibov_prices=ibov_prices,
+            df_fundamentals=df_fund_idx,
+        )
+        if rm is not None:
+            latest = SnapshotManager().load_latest_recommendation(mode=mode)
+            if latest and latest.get("portfolio_weights"):
+                decomp = portfolio_risk_decomposition(latest["portfolio_weights"], rm)
+                if decomp:
+                    logger.info(
+                        "Risk decomposition: vol_total=%.1f%% (fatorial=%.0f%% / específico=%.0f%%)",
+                        decomp.get("total_vol", 0) * 100,
+                        decomp.get("factor_pct", 0) * 100,
+                        decomp.get("specific_pct", 0) * 100,
+                    )
+                    import json
+                    decomp_path = Path("data") / "portfolio_risk_decomposition.json"
+                    decomp_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(decomp_path, "w", encoding="utf-8") as f:
+                        json.dump(decomp, f, ensure_ascii=False, indent=2, default=str)
+    except Exception as exc:
+        logger.debug("Risk model falhou (%s)", exc)
+
     # ── 7. Relatório de texto ─────────────────────────────────────────────
     logger.info("Etapa 7/7 — Construindo relatório de texto...")
     try:
@@ -500,17 +544,6 @@ def run(args: argparse.Namespace) -> int:
             print(f"Gráfico gerado: {chart_path}")
         _print_summary(df_scored, backtest_result)
         return 0
-
-    # ── 8. Factor IC update ───────────────────────────────────────────────
-    # Atualiza data/factor_ic.json com a análise IC retroativa. Acumula
-    # poder estatístico ao longo do tempo — após ~3 meses de execuções,
-    # permite recalibrar os pesos dos pilares com base em dados, não chute.
-    try:
-        from src.factor_analysis import analyze_factors
-        analyze_factors(verbose=False)
-        logger.info("Factor IC atualizado em data/factor_ic.json")
-    except Exception as exc:
-        logger.debug("Factor IC update falhou (%s)", exc)
 
     # ── Sem --send: encerrar sem enviar ───────────────────────────────────
     if not do_send:

@@ -334,6 +334,171 @@
       }
     },
     {
+      "ticker": "USIM5",
+      "nome": "Usiminas PNA",
+      "score": 57.7,
+      "score_breakdown": {
+        "fundamental": 23.0,
+        "momentum": 21.68,
+        "quality": 7.8
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Materiais Básicos",
+      "sector_peers_count": 6,
+      "why": "P/VP 0.55 — top 0% do setor (N=6); Size (log Mkt Cap) Mkt Cap R$ 11.2 B — top 0% do setor (N=6); Investment (Asset Growth) -10.5%a.a. — top 0% do setor (N=6)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.087315,
+        "pvp": 0.546632,
+        "roe": -0.09325,
+        "roic": 0.00894,
+        "divida_ebitda": 4.010332,
+        "dy": null,
+        "alpha_6m": 0.510487,
+        "volatility": 0.422423,
+        "beta": 1.041
+      },
+      "entry_price": 9.12,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 100.0,
+          "z_score": 3.0,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 60.01,
+          "z_score": 0.6,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 73.19,
+          "z_score": 1.391,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 35.13,
+          "z_score": -0.892,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 22.64,
+          "z_score": -1.642,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 23.79,
+          "z_score": -1.573,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 55.21,
+          "z_score": 0.313,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
       "ticker": "POMO4",
       "nome": "Marcopolo PN",
       "score": 57.45,
@@ -658,171 +823,6 @@
           "n_peers": 39,
           "score": 36.57,
           "z_score": -0.806,
-          "percentile": null,
-          "direction": "higher_is_better"
-        }
-      }
-    },
-    {
-      "ticker": "USIM5",
-      "nome": "Usiminas PNA",
-      "score": 57.7,
-      "score_breakdown": {
-        "fundamental": 23.0,
-        "momentum": 21.68,
-        "quality": 7.8
-      },
-      "normalization_method": "percentile_sectoral",
-      "sector": "Materiais Básicos",
-      "sector_peers_count": 6,
-      "why": "P/VP 0.55 — top 0% do setor (N=6); Size (log Mkt Cap) Mkt Cap R$ 11.2 B — top 0% do setor (N=6); Investment (Asset Growth) -10.5%a.a. — top 0% do setor (N=6)",
-      "metrics": {
-        "pl": null,
-        "earnings_yield": 0.087315,
-        "pvp": 0.546632,
-        "roe": -0.09325,
-        "roic": 0.00894,
-        "divida_ebitda": 4.010332,
-        "dy": null,
-        "alpha_6m": 0.510487,
-        "volatility": 0.422423,
-        "beta": 1.041
-      },
-      "entry_price": 9.12,
-      "norm_details": {
-        "earnings_yield": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 83.33,
-          "z_score": null,
-          "percentile": 83.3,
-          "direction": "higher_is_better"
-        },
-        "pvp": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 100.0,
-          "z_score": null,
-          "percentile": 100.0,
-          "direction": "lower_is_better"
-        },
-        "roe": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 16.67,
-          "z_score": null,
-          "percentile": 16.7,
-          "direction": "higher_is_better"
-        },
-        "roic": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 16.67,
-          "z_score": null,
-          "percentile": 16.7,
-          "direction": "higher_is_better"
-        },
-        "divida_ebitda": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 33.33,
-          "z_score": null,
-          "percentile": 33.3,
-          "direction": "lower_is_better"
-        },
-        "dividend_yield": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 5,
-          "score": null,
-          "z_score": null,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "log_market_cap": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 100.0,
-          "z_score": null,
-          "percentile": 100.0,
-          "direction": "lower_is_better"
-        },
-        "revenue_growth_3y": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 16.67,
-          "z_score": null,
-          "percentile": 16.7,
-          "direction": "higher_is_better"
-        },
-        "earnings_growth_3y": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 5,
-          "score": null,
-          "z_score": null,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "asset_growth_yoy": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 100.0,
-          "z_score": null,
-          "percentile": 100.0,
-          "direction": "lower_is_better"
-        },
-        "alpha_3m": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 100.0,
-          "z_score": 3.0,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "idio_alpha_6m": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 60.01,
-          "z_score": 0.6,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "alpha_12m": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 73.19,
-          "z_score": 1.391,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "analyst_rec_score": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 35.13,
-          "z_score": -0.892,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "volatility_180d": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 22.64,
-          "z_score": -1.642,
-          "percentile": null,
-          "direction": "lower_is_better"
-        },
-        "beta": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 23.79,
-          "z_score": -1.573,
-          "percentile": null,
-          "direction": "lower_is_better"
-        },
-        "avg_volume_30d": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 55.21,
-          "z_score": 0.313,
           "percentile": null,
           "direction": "higher_is_better"
         }
@@ -1161,6 +1161,171 @@
       }
     },
     {
+      "ticker": "USIM5",
+      "nome": "Usiminas PNA",
+      "score": 57.7,
+      "score_breakdown": {
+        "fundamental": 23.0,
+        "momentum": 21.68,
+        "quality": 7.8
+      },
+      "normalization_method": "percentile_sectoral",
+      "sector": "Materiais Básicos",
+      "sector_peers_count": 6,
+      "why": "P/VP 0.55 — top 0% do setor (N=6); Size (log Mkt Cap) Mkt Cap R$ 11.2 B — top 0% do setor (N=6); Investment (Asset Growth) -10.5%a.a. — top 0% do setor (N=6)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.087315,
+        "pvp": 0.546632,
+        "roe": -0.09325,
+        "roic": 0.00894,
+        "divida_ebitda": 4.010332,
+        "dy": null,
+        "alpha_6m": 0.510487,
+        "volatility": 0.422423,
+        "beta": 1.041
+      },
+      "entry_price": 9.12,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 100.0,
+          "z_score": 3.0,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 60.01,
+          "z_score": 0.6,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 73.19,
+          "z_score": 1.391,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 35.13,
+          "z_score": -0.892,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 22.64,
+          "z_score": -1.642,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 23.79,
+          "z_score": -1.573,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 39,
+          "score": 55.21,
+          "z_score": 0.313,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
       "ticker": "POMO4",
       "nome": "Marcopolo PN",
       "score": 57.45,
@@ -1485,171 +1650,6 @@
           "n_peers": 39,
           "score": 36.57,
           "z_score": -0.806,
-          "percentile": null,
-          "direction": "higher_is_better"
-        }
-      }
-    },
-    {
-      "ticker": "USIM5",
-      "nome": "Usiminas PNA",
-      "score": 57.7,
-      "score_breakdown": {
-        "fundamental": 23.0,
-        "momentum": 21.68,
-        "quality": 7.8
-      },
-      "normalization_method": "percentile_sectoral",
-      "sector": "Materiais Básicos",
-      "sector_peers_count": 6,
-      "why": "P/VP 0.55 — top 0% do setor (N=6); Size (log Mkt Cap) Mkt Cap R$ 11.2 B — top 0% do setor (N=6); Investment (Asset Growth) -10.5%a.a. — top 0% do setor (N=6)",
-      "metrics": {
-        "pl": null,
-        "earnings_yield": 0.087315,
-        "pvp": 0.546632,
-        "roe": -0.09325,
-        "roic": 0.00894,
-        "divida_ebitda": 4.010332,
-        "dy": null,
-        "alpha_6m": 0.510487,
-        "volatility": 0.422423,
-        "beta": 1.041
-      },
-      "entry_price": 9.12,
-      "norm_details": {
-        "earnings_yield": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 83.33,
-          "z_score": null,
-          "percentile": 83.3,
-          "direction": "higher_is_better"
-        },
-        "pvp": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 100.0,
-          "z_score": null,
-          "percentile": 100.0,
-          "direction": "lower_is_better"
-        },
-        "roe": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 16.67,
-          "z_score": null,
-          "percentile": 16.7,
-          "direction": "higher_is_better"
-        },
-        "roic": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 16.67,
-          "z_score": null,
-          "percentile": 16.7,
-          "direction": "higher_is_better"
-        },
-        "divida_ebitda": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 33.33,
-          "z_score": null,
-          "percentile": 33.3,
-          "direction": "lower_is_better"
-        },
-        "dividend_yield": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 5,
-          "score": null,
-          "z_score": null,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "log_market_cap": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 100.0,
-          "z_score": null,
-          "percentile": 100.0,
-          "direction": "lower_is_better"
-        },
-        "revenue_growth_3y": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 16.67,
-          "z_score": null,
-          "percentile": 16.7,
-          "direction": "higher_is_better"
-        },
-        "earnings_growth_3y": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 5,
-          "score": null,
-          "z_score": null,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "asset_growth_yoy": {
-          "normalization_method": "percentile_sectoral",
-          "n_peers": 6,
-          "score": 100.0,
-          "z_score": null,
-          "percentile": 100.0,
-          "direction": "lower_is_better"
-        },
-        "alpha_3m": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 100.0,
-          "z_score": 3.0,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "idio_alpha_6m": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 60.01,
-          "z_score": 0.6,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "alpha_12m": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 73.19,
-          "z_score": 1.391,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "analyst_rec_score": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 35.13,
-          "z_score": -0.892,
-          "percentile": null,
-          "direction": "higher_is_better"
-        },
-        "volatility_180d": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 22.64,
-          "z_score": -1.642,
-          "percentile": null,
-          "direction": "lower_is_better"
-        },
-        "beta": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 23.79,
-          "z_score": -1.573,
-          "percentile": null,
-          "direction": "lower_is_better"
-        },
-        "avg_volume_30d": {
-          "normalization_method": "zscore_global",
-          "n_peers": 39,
-          "score": 55.21,
-          "z_score": 0.313,
           "percentile": null,
           "direction": "higher_is_better"
         }
@@ -2489,9 +2489,9 @@
   "entry_prices": {
     "PETR4": 45.47,
     "UGPA3": 29.13,
+    "USIM5": 9.12,
     "POMO4": 6.05,
     "WEGE3": 43.13,
-    "USIM5": 9.12,
     "PETR3": 50.45,
     "VBBR3": 33.12,
     "INTB3": 14.65,
@@ -2501,15 +2501,24 @@
   "portfolio_weights": {
     "PETR4": 0.205205,
     "UGPA3": 0.19615,
+    "USIM5": 0.136851,
     "POMO4": 0.209437,
-    "WEGE3": 0.252357,
-    "USIM5": 0.136851
+    "WEGE3": 0.252357
   },
   "execution_metadata": {
     "universe_size": 39,
     "tickers_scored": 39,
-    "generated_at": "2026-05-15T21:22:00.923922",
+    "generated_at": "2026-05-15T23:05:23.533607",
     "portfolio_weights_method": "hrp",
+    "risk_metrics": {
+      "var_95": -0.0165,
+      "cvar_95": -0.02317,
+      "hhi": 0.2069,
+      "effective_n": 4.83,
+      "ann_vol": 0.1797,
+      "sharpe_naive": 1.929,
+      "n_obs": 249
+    },
     "score_range": {
       "max": 71.39,
       "min": 40.38,

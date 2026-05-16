@@ -685,9 +685,46 @@ class DataCollector:
 
     @property
     def universe(self) -> pd.DataFrame:
+        """
+        Universe filtrado para a data atual (PIT-aware).
+
+        Aplica:
+          - inclusion_date ≤ today: ticker já era investável na data
+          - exclusion_date > today (ou vazia): ticker ainda não foi excluído
+
+        Para backtests históricos, use universe_at(date) em vez desta property.
+        """
         if self._universe is None:
-            self._universe = pd.read_csv(self.universe_file)
+            self._universe = self._load_universe_at(datetime.now())
         return self._universe
+
+    def universe_at(self, as_of_date) -> pd.DataFrame:
+        """
+        Retorna universo investível em uma data específica (sem cache).
+
+        Crítico para walk-forward backtest evitar survivorship bias:
+        tickers delistados/trocados de mercado entre datas devem reaparecer
+        nas datas anteriores ao seu exclusion_date.
+        """
+        return self._load_universe_at(as_of_date)
+
+    def _load_universe_at(self, as_of):
+        """Lê universe.csv e filtra por inclusion/exclusion dates."""
+        df = pd.read_csv(self.universe_file)
+        as_of_ts = pd.Timestamp(as_of)
+
+        # Parse datas; default permissivo se ausentes
+        if "inclusion_date" in df.columns:
+            inc = pd.to_datetime(df["inclusion_date"], errors="coerce")
+            inc = inc.fillna(pd.Timestamp("1900-01-01"))
+            df = df[inc <= as_of_ts]
+        if "exclusion_date" in df.columns:
+            exc = pd.to_datetime(df["exclusion_date"], errors="coerce")
+            # NaT (vazia) = ativo; senão, comparar
+            active_mask = exc.isna() | (exc > as_of_ts)
+            df = df[active_mask]
+
+        return df.reset_index(drop=True)
 
     # ------------------------------------------------------------------
     # Ponto de entrada público

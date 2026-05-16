@@ -40,10 +40,24 @@ from src.snapshot_manager import SnapshotManager, _write_atomic, _date_str
 
 logger = logging.getLogger(__name__)
 
-# 13 bps per leg (entry + exit) = 26 bps round-trip.
-# Covers: corretagem ~3 bps, emolumentos ~3 bps, slippage ~7 bps.
+# Friction base: 13 bps per leg (corretagem + emolumentos + slippage).
+# ADV-based scaling: square-root market impact (Almgren-Chriss style):
+#   friction_i = base × max(1, sqrt(ADV_REF / ADV_i))
+# Tickers ilíquidos (ADV < ADV_REF) pagam mais. ADV_REF=50M é proxy de
+# large-cap; PETR4 (~R$500M/dia) → friction base; small cap R$5M → ~3× base.
 _FRICTION_BPS = 13
 _FRICTION = _FRICTION_BPS / 10_000
+_ADV_REFERENCE_BRL = 50_000_000  # 50M R$/dia = baseline large-cap
+
+def _adv_adjusted_friction(adv_brl: Optional[float]) -> float:
+    """Friction com ajuste de liquidez via raiz quadrada do ADV."""
+    if adv_brl is None or adv_brl <= 0:
+        return _FRICTION
+    if adv_brl >= _ADV_REFERENCE_BRL:
+        return _FRICTION  # large cap: friction base
+    # Ilíquido: escala com sqrt(ref / adv), cap em 5× para extremos
+    scale = min(5.0, np.sqrt(_ADV_REFERENCE_BRL / adv_brl))
+    return _FRICTION * scale
 
 
 # ─── Tipos de resultado ───────────────────────────────────────────────────────
@@ -138,6 +152,14 @@ class Backtester:
             # Calcular dias do período
             period_days = self._calc_period_days(rec_date, run_date_str)
 
+            # Brinson-style attribution: decompõe retorno em allocation +
+            # selection vs IBOV (universo equal-weight como proxy).
+            attribution = self._compute_attribution(
+                previous=previous,
+                holdings=holdings,
+                ibov_return=ibov,
+            )
+
             result = self._build_result(
                 status=status_detail,
                 backtest_date=run_date_str,
@@ -150,6 +172,7 @@ class Backtester:
                 holdings=holdings,
                 period_days=period_days,
                 previous_top5=[r.get("ticker") for r in previous.get("top5", [])],
+                attribution=attribution,
             )
 
             self._save(result, run_date_str, mode)
@@ -274,9 +297,17 @@ class Backtester:
                 excluded.append(ticker)
                 continue
 
-            # Frictional cost: 13 bps per leg (buy + sell)
+            # Frictional cost: ADV-adjusted per leg (buy + sell).
+            # Pegamos ADV das metrics armazenadas na recomendação anterior.
+            adv = None
+            for r in top5:
+                if r.get("ticker") == ticker:
+                    m = r.get("metrics") or {}
+                    adv = m.get("avg_volume_30d") or m.get("avg_volume")
+                    break
+            friction = _adv_adjusted_friction(adv)
             stock_return = (
-                (current_price * (1 - _FRICTION)) / (entry_price * (1 + _FRICTION))
+                (current_price * (1 - friction)) / (entry_price * (1 + friction))
             ) - 1
 
             holdings.append({
@@ -455,6 +486,7 @@ class Backtester:
         holdings: list[dict],
         period_days: Optional[int],
         previous_top5: list[str],
+        attribution: Optional[dict] = None,
     ) -> dict:
         """Constrói o dict de resultado normalizado."""
         return {
@@ -475,7 +507,87 @@ class Backtester:
             "alpha_vs_cdi_pp":     round(float(alpha_vs_cdi or 0) * 100, 4),
             "holdings":            holdings,
             "previous_top5":       previous_top5,
+            "attribution":         attribution,
             "generated_at":        datetime.now().isoformat(),
+        }
+
+    @staticmethod
+    def _compute_attribution(
+        previous: dict,
+        holdings: list[dict],
+        ibov_return: Optional[float],
+    ) -> dict:
+        """
+        Brinson-style attribution simplificada — decompõe retorno em
+        contribuições por ticker e por setor.
+
+        Per-ticker contribution: w_i × R_i (já implícita em holdings)
+        Per-sector aggregation:  Σ_i∈sector w_i × R_i + total weight no setor
+        Vs IBOV: cada setor é comparado com retorno médio do IBOV (proxy).
+
+        Limitação honesta: Brinson completo requer composição setorial do
+        IBOV (free data parcial — i Ibovespa por setor está em CSV BVMF, mas
+        peso por setor varia mensalmente). Usamos IBOV total como proxy.
+
+        Returns dict com:
+          per_ticker:  [{ticker, sector, weight, return, contribution}]
+          per_sector:  [{sector, weight, return, contribution, alpha_vs_ibov}]
+          total_active_return:  contribuição total ativa vs IBOV
+        """
+        top5 = previous.get("top5", [])
+        sector_by_ticker: dict[str, str] = {
+            r.get("ticker", ""): r.get("sector", "") for r in top5
+        }
+
+        per_ticker: list[dict] = []
+        per_sector_data: dict[str, dict] = {}
+
+        for h in holdings:
+            if not h.get("included"):
+                continue
+            ticker = h.get("ticker", "")
+            sector = sector_by_ticker.get(ticker, "")
+            w = h.get("weight") or 0.0
+            r = h.get("return") or 0.0
+            contrib = w * r
+            per_ticker.append({
+                "ticker":       ticker,
+                "sector":       sector,
+                "weight":       round(float(w), 4),
+                "return":       round(float(r), 4),
+                "contribution": round(float(contrib), 5),
+            })
+            sd = per_sector_data.setdefault(sector, {"weight": 0.0, "weighted_return": 0.0, "n": 0})
+            sd["weight"]          += w
+            sd["weighted_return"] += contrib
+            sd["n"]               += 1
+
+        per_sector: list[dict] = []
+        for sector, sd in per_sector_data.items():
+            sec_ret = (sd["weighted_return"] / sd["weight"]) if sd["weight"] > 0 else 0.0
+            alpha_vs_ibov = (sec_ret - ibov_return) if ibov_return is not None else None
+            per_sector.append({
+                "sector":           sector,
+                "n_tickers":        sd["n"],
+                "weight":           round(sd["weight"], 4),
+                "weighted_return":  round(sd["weighted_return"], 5),
+                "sector_return":    round(sec_ret, 4),
+                "alpha_vs_ibov":    round(alpha_vs_ibov, 4) if alpha_vs_ibov is not None else None,
+            })
+
+        # Ordenar por contribuição desc
+        per_ticker.sort(key=lambda x: x["contribution"], reverse=True)
+        per_sector.sort(key=lambda x: x["weighted_return"], reverse=True)
+
+        total_active = (
+            sum(h["weighted_return"] for h in per_sector) - (ibov_return or 0.0)
+            if ibov_return is not None else None
+        )
+
+        return {
+            "per_ticker":          per_ticker,
+            "per_sector":          per_sector,
+            "total_active_return": round(total_active, 5) if total_active is not None else None,
         }
 
     @staticmethod
