@@ -49,7 +49,12 @@ def engine():
 # 1. Z-Score Setorial (N=10 → N>=8)
 # ---------------------------------------------------------------------------
 def test_normalize_adaptive_zscore_sectoral(engine):
-    """N=10 → deve usar zscore_sectoral; mediana→score≈50, extremo→≈100."""
+    """N=10 → zscore_sectoral; mediana→≈50, extremos diferenciados.
+
+    Mapeamento z∈[-3,+3]→[0,100]. Para uma distribuição uniforme 0..9
+    (σ≈3.03), os extremos ficam a ~±1.49σ → scores ~75 / ~25 (NÃO 100/0:
+    só valores além de 3σ saturam). Testamos método + direção + ordenação.
+    """
     tickers = [f"T{i}" for i in range(10)]
     sector_map = _make_sector_map({"Setor A": tickers})
     # Valores equidistantes: mediana em T4/T5
@@ -61,10 +66,11 @@ def test_normalize_adaptive_zscore_sectoral(engine):
     # Mediana do setor (i=4.5): scores de T4 e T5 devem estar próximos de 50
     assert 40 < scores["T4"] < 60
     assert 40 < scores["T5"] < 60
-    # Extremo superior (T9) deve ter score alto
-    assert scores["T9"] > 80
-    # Extremo inferior (T0) deve ter score baixo
-    assert scores["T0"] < 20
+    # Extremo superior (T9) claramente acima do neutro; inferior abaixo
+    assert scores["T9"] > 70
+    assert scores["T0"] < 30
+    # Monotonicidade: maior valor → maior score
+    assert scores["T9"] > scores["T5"] > scores["T4"] > scores["T0"]
     # Todos os scores no intervalo [0, 100]
     assert scores.between(0, 100).all()
 
@@ -161,12 +167,13 @@ def test_roic_weight_redirected_to_roe_for_financial(engine):
 
     weights = engine._fundamental_weights(row, factor_scores_map, "ITUB4")
 
-    # ROIC não deve ter peso
+    # ROIC não deve ter peso (setor financeiro → redistribuído)
     assert "roic" not in weights or weights.get("roic", 0) == pytest.approx(0.0, abs=1e-9)
-    # ROE deve ter peso de 0.45 (ou proporcional após redistribuição de divida_ebitda NaN)
-    # Com divida_ebitda NaN: base sem roic e sem div_ebitda = {ey:0.20, pvp:0.15, roe:0.45, dy:0.10}
-    # Total = 0.90 → renormalizado: roe = 0.45/0.90 = 0.50
-    assert weights.get("roe", 0) > 0.40, "ROE deve ter peso ≥ 0.40 para setor Financeiro"
+    # Invariante estável (robusto à config de sub-fatores Fama-French):
+    # ROE permanece o MAIOR peso fundamentalista e absorve parte do ROIC.
+    assert weights.get("roe", 0) == max(weights.values())
+    assert weights.get("roe", 0) > weights.get("pvp", 0)
+    assert weights.get("roe", 0) > weights.get("earnings_yield", 0)
     # Pesos devem somar 1.0
     assert sum(weights.values()) == pytest.approx(1.0, abs=1e-6)
 
@@ -189,7 +196,9 @@ def test_roic_weight_redirected_when_roic_is_nan(engine):
     weights = engine._fundamental_weights(row, factor_scores_map, "VALE3")
 
     assert "roic" not in weights or weights.get("roic", 0) == pytest.approx(0.0, abs=1e-9)
-    assert weights.get("roe", 0) == pytest.approx(0.45 / 1.0, abs=0.01)
+    # ROIC NaN → seu peso é redistribuído; ROE continua o maior peso.
+    assert weights.get("roe", 0) == max(weights.values())
+    assert weights.get("roe", 0) > weights.get("earnings_yield", 0)
     assert sum(weights.values()) == pytest.approx(1.0, abs=1e-6)
 
 
@@ -270,8 +279,14 @@ def test_momentum_alpha_relative(engine):
 # ---------------------------------------------------------------------------
 def test_hard_filter_removes_illiquid(engine):
     """Tickers com avg_volume_30d < R$5M devem ser excluídos."""
+    # Fundamentos suficientes (>=3 não-NaN) em todos para que APENAS o
+    # filtro de liquidez seja exercido — sem isso, o filtro de cobertura
+    # mínima de fundamentos removeria os 4 e mascararia o teste.
     df = pd.DataFrame({
         "avg_volume_30d": [1_000_000.0, 10_000_000.0, 3_000_000.0, 8_000_000.0],
+        "pvp":            [1.0, 1.2, 0.9, 1.5],
+        "roe":            [0.15, 0.20, 0.10, 0.18],
+        "roic":           [0.10, 0.12, 0.08, 0.11],
         "divida_ebitda":  [1.0, 2.0, 1.5, 3.0],
         "setor":          ["A", "A", "A", "A"],
         "data_source":    ["brapi+yfinance"] * 4,
@@ -356,17 +371,26 @@ def test_weighted_sum_all_nan_returns_nan(engine):
 # 13. Z-Score: clip [-3, +3] → score em [0, 100]
 # ---------------------------------------------------------------------------
 def test_zscore_clipping_bounds(engine):
-    """Outliers extremos devem ser clipados para [0, 100], não extrapolados."""
+    """Outliers extremos: scores SEMPRE em [0,100], saturados nos extremos.
+
+    Nota matemática: um único outlier gigante infla o próprio σ, então o
+    z dele não dispara a 100 (fica ~89). O invariante real e importante é:
+    nenhum score escapa de [0,100] e o outlier alto/baixo é o máximo/mínimo.
+    """
     tickers = [f"X{i}" for i in range(10)] + ["OUTLIER_HIGH", "OUTLIER_LOW"]
     sector_map = _make_sector_map({"Setor C": tickers})
     # Outliers absurdos
     vals = {f"X{i}": float(i) for i in range(10)}
-    vals["OUTLIER_HIGH"] = 10000.0  # z >> 3
-    vals["OUTLIER_LOW"]  = -10000.0  # z << -3
+    vals["OUTLIER_HIGH"] = 10000.0
+    vals["OUTLIER_LOW"]  = -10000.0
     values = _make_values(vals)
 
     scores, _ = engine._normalize_adaptive(values, sector_map)
 
-    assert scores["OUTLIER_HIGH"] == pytest.approx(100.0, abs=0.1)
-    assert scores["OUTLIER_LOW"]  == pytest.approx(0.0, abs=0.1)
+    # Invariante central: clipping mantém tudo em [0, 100]
     assert scores.between(0, 100).all()
+    # Outlier alto é o máximo e saturado para cima; baixo é o mínimo
+    assert scores["OUTLIER_HIGH"] == scores.max()
+    assert scores["OUTLIER_LOW"] == scores.min()
+    assert scores["OUTLIER_HIGH"] > 80
+    assert scores["OUTLIER_LOW"] < 20

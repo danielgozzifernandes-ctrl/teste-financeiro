@@ -35,7 +35,7 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
-from src.config import HISTORY_DIR, DATA_DIR
+from src.config import HISTORY_DIR, DATA_DIR, MIN_PERIODS_WALK_FORWARD
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +181,13 @@ def walk_forward_backtest(
             "analysis_date": datetime.now().isoformat(),
             "n_recommendations": len(recs),
             "n_snapshots": len(snaps),
+            "data_sufficiency": {
+                "min_periods_required":  MIN_PERIODS_WALK_FORWARD,
+                "max_periods_available": 0,
+                "is_significant":        False,
+                "warning": "Histórico insuficiente — precisa >= 1 recomendação "
+                           "e >= 2 snapshots para qualquer janela.",
+            },
             "per_window": {},
             "note": "Histórico insuficiente — precisa >= 1 recomendação e >= 2 snapshots",
         }
@@ -257,6 +264,8 @@ def walk_forward_backtest(
             "mean_alpha_ibov":      round(float(np.mean(alphas)), 4) if len(alphas) > 0 else None,
             "hit_rate":             round(float((alphas > 0).sum() / len(alphas)), 3) if len(alphas) > 0 else None,
             "cumulative_return":    round(float(cum[-1] - 1), 4),
+            # Sharpe/hit-rate sobre poucas janelas é ruído. Marcar.
+            "significant":          len(periods) >= MIN_PERIODS_WALK_FORWARD,
         }
         per_period_detail.extend(periods)
 
@@ -266,10 +275,28 @@ def walk_forward_backtest(
         if m.get("mean_alpha_ibov") is not None:
             decay[w] = m["mean_alpha_ibov"]
 
+    # Suficiência: maior nº de janelas entre todos os horizontes.
+    max_periods = max(
+        (m.get("n_periods", 0) for m in per_window_results.values()),
+        default=0,
+    )
+    is_significant = max_periods >= MIN_PERIODS_WALK_FORWARD
+    data_sufficiency = {
+        "min_periods_required": MIN_PERIODS_WALK_FORWARD,
+        "max_periods_available": max_periods,
+        "is_significant":       is_significant,
+        "warning": None if is_significant else (
+            f"AMOSTRA INSUFICIENTE: no máximo {max_periods} janela(s) "
+            f"(mínimo {MIN_PERIODS_WALK_FORWARD}). Sharpe/hit-rate/max-DD "
+            f"abaixo NÃO são confiáveis — acumule mais snapshots semanais."
+        ),
+    }
+
     result = {
         "analysis_date":        datetime.now().isoformat(),
         "n_recommendations":    len(recs),
         "n_snapshots":          len(snaps),
+        "data_sufficiency":     data_sufficiency,
         "per_window":           per_window_results,
         "per_period":           per_period_detail,
         "decay_alpha":          decay,
@@ -318,6 +345,11 @@ def _print_table(result: dict) -> None:
         f"  Snapshots: {result['n_snapshots']} | Recomendacoes: {result['n_recommendations']}"
     )
     print("=" * 78)
+
+    ds = result.get("data_sufficiency", {})
+    if ds and not ds.get("is_significant", True):
+        _safe_print(f"  [!] {ds.get('warning', 'Amostra insuficiente.')}")
+        print("=" * 78)
 
     per_window = result.get("per_window", {})
     if not per_window:

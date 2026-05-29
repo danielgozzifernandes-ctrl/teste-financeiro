@@ -37,6 +37,8 @@ from src.config import (
     ANALYST_REVISIONS_WEIGHT,
     ANALYST_TARGET_MAX_UPSIDE,
     ANALYST_TARGET_WEIGHT,
+    BETA_SANITY_MAX,
+    BETA_SANITY_MIN,
     BRL_CORRELATION_WINDOW,
     ENABLE_LIQUIDITY_PENALTY,
     LIQUIDITY_PENALTY_MIN_FACTOR,
@@ -451,12 +453,25 @@ class ScoringEngine:
         else:
             df["volatility_180d"] = df.index.map(vol_cc)
 
-        # Beta: usar da série de preços se o DataCollector não retornou
-        if "beta" not in df.columns:
-            df["beta"] = np.nan
-        missing_beta = df["beta"].isna()
-        if missing_beta.any():
-            df.loc[missing_beta, "beta"] = df.loc[missing_beta].index.map(beta_series).astype(float)
+        # Beta: PREFERIR o beta calculado dos preços (janela 252d vs IBOV,
+        # benchmark e janela transparentes e consistentes). O beta de fonte
+        # (brapi) é opaco quanto à janela/benchmark e ocasionalmente vem
+        # corrompido — ex.: PETR4 beta=-0.06, impossível para a maior
+        # petroleira do IBOV. Usar a fonte só como FALLBACK quando o cálculo
+        # dos preços é NaN, e ainda assim sob bounds de sanidade.
+        price_beta = pd.Series(df.index.map(beta_series), index=df.index).astype(float)
+        if "beta" in df.columns:
+            src_beta = pd.to_numeric(df["beta"], errors="coerce")
+            src_beta_sane = src_beta.where(src_beta.between(BETA_SANITY_MIN, BETA_SANITY_MAX))
+            n_rejected = int((src_beta.notna() & src_beta_sane.isna()).sum())
+            if n_rejected:
+                logger.info(
+                    "Beta de fonte rejeitado por sanidade [%g, %g] em %d ticker(s)",
+                    BETA_SANITY_MIN, BETA_SANITY_MAX, n_rejected,
+                )
+        else:
+            src_beta_sane = pd.Series(np.nan, index=df.index)
+        df["beta"] = price_beta.fillna(src_beta_sane)
 
         logger.debug(
             "Qualidade: vol OK=%d, beta OK=%d",

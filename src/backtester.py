@@ -122,8 +122,13 @@ class Backtester:
         run_date_str = _date_str(run_date)
 
         try:
-            # Carregar recomendação anterior
-            previous = self.snap.load_latest_recommendation(mode=mode)
+            # Carregar recomendação anterior ESTRITAMENTE anterior a hoje.
+            # before_date evita carregar a recomendação recém-salva do próprio
+            # run (que tem a mesma data) — sem isso o backtest compararia a
+            # carteira contra os preços do mesmo dia (period_days=0).
+            previous = self.snap.load_latest_recommendation(
+                mode=mode, before_date=run_date_str,
+            )
             if previous is None:
                 logger.info("Backtester: nenhuma recomendação anterior encontrada (%s).", mode)
                 result = self._first_run_result(run_date_str, mode)
@@ -131,6 +136,18 @@ class Backtester:
                 return result
 
             rec_date = previous.get("date", "")
+
+            # Guarda defensiva: nunca medir performance de uma recomendação
+            # contra os preços da própria data de geração.
+            if rec_date and rec_date >= run_date_str:
+                logger.warning(
+                    "Backtester: recomendação anterior (%s) não é estritamente "
+                    "anterior a %s — pulando para não poluir o track record.",
+                    rec_date, run_date_str,
+                )
+                result = self._first_run_result(run_date_str, mode)
+                self._save(result, run_date_str, mode)
+                return result
             logger.info(
                 "Backtester: comparando recomendação de %s com preços de %s",
                 rec_date, run_date_str,
@@ -218,8 +235,12 @@ class Backtester:
         # Preços atuais: prefer current_price do scored, fallback para df_prices
         current_prices = self._extract_current_prices(df_scored, df_prices)
 
-        # Período para benchmark: da recomendação anterior até hoje
-        previous = self.snap.load_latest_recommendation(mode=mode)
+        # Período para benchmark: da recomendação anterior até hoje.
+        # before_date alinhado ao run garante que o período de benchmark
+        # corresponde à mesma recomendação que run() vai backtestar.
+        previous = self.snap.load_latest_recommendation(
+            mode=mode, before_date=_date_str(run_date),
+        )
         bench_returns: dict[str, float] = {}
 
         if previous:
@@ -429,6 +450,11 @@ class Backtester:
         backtests = [
             b for b in self.load_all_backtests(mode)
             if b.get("status") == BacktestStatus.SUCCESS
+            # Excluir backtests degenerados (period_days<=0): comparam a
+            # recomendação contra os preços do mesmo dia → retorno é só
+            # fricção, não performance real. Mantê-los inflaria/poluiria
+            # o track record com observações sem significado.
+            and (b.get("period_days") or 0) > 0
         ]
 
         if not backtests:

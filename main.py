@@ -48,7 +48,9 @@ from src.config import (
     HMM_MIN_HISTORY_DAYS,
     HMM_N_STATES,
     HMM_RANDOM_STATE,
+    MIN_UNIVERSE_COVERAGE,
     TURNOVER_BAND_PTS,
+    UNIVERSE_FILE,
     USE_HMM_REGIME,
 )
 from src.data_collector import load_data
@@ -466,6 +468,39 @@ def run(args: argparse.Namespace) -> int:
 
     top_ticker = df_scored.iloc[0]["ticker"] if "ticker" in df_scored.columns else "?"
     logger.info("Scoring concluído: %d tickers pontuados. Top: %s", len(df_scored), top_ticker)
+
+    # ── 3b. Observabilidade de cobertura ──────────────────────────────────
+    # Universo declarado (universe.csv) vs coletado (df_fundamentals) vs
+    # efetivamente pontuado (sobreviventes dos hard filters). Tornar o gap
+    # VISÍVEL — antes ~60% do universo sumia silenciosamente.
+    try:
+        declared_universe = max(0, sum(1 for _ in open(UNIVERSE_FILE, encoding="utf-8")) - 1)
+    except Exception:
+        declared_universe = None
+    n_collected = len(df_fundamentals)
+    n_scored = (
+        int(df_scored["total_score"].notna().sum())
+        if "total_score" in df_scored.columns else len(df_scored)
+    )
+    coverage = (n_scored / declared_universe) if declared_universe else None
+    df_scored.attrs["data_quality"] = {
+        "declared_universe": declared_universe,
+        "collected":         n_collected,
+        "scored":            n_scored,
+        "coverage_pct":      round(coverage, 3) if coverage is not None else None,
+    }
+    if coverage is not None and coverage < MIN_UNIVERSE_COVERAGE:
+        logger.warning(
+            "COBERTURA BAIXA: %d/%d tickers pontuados (%.0f%% < %.0f%% mínimo). "
+            "Coletados=%d. Verifique falhas de brapi/yfinance e histórico de preços.",
+            n_scored, declared_universe, coverage * 100,
+            MIN_UNIVERSE_COVERAGE * 100, n_collected,
+        )
+    else:
+        logger.info(
+            "Cobertura do universo: %d declarados → %d coletados → %d pontuados.",
+            declared_universe or -1, n_collected, n_scored,
+        )
 
     # ── 4. Snapshot de preços + recomendação atual ────────────────────────
     logger.info("Etapa 4/7 — Salvando snapshots...")

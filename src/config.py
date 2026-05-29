@@ -317,6 +317,29 @@ IC_FORWARD_WINDOWS = {
 IC_OUTPUT_PATH = DATA_DIR / "factor_ic.json"
 
 # ---------------------------------------------------------------------------
+# Significância estatística e qualidade de dados
+# ---------------------------------------------------------------------------
+# Mínimo de observações por fator para tratar IC/IR/hit-rate como sinal e
+# não ruído. Abaixo disso as métricas são marcadas significant=false e o
+# relatório/JSON sinaliza amostra insuficiente. ~2 meses de snapshots
+# semanais. Referência quant comum: >= 8-12 períodos para IR confiável.
+MIN_OBS_FOR_SIGNIFICANCE = 8
+
+# Mínimo de janelas no walk-forward para um Sharpe/hit-rate confiável.
+MIN_PERIODS_WALK_FORWARD = 6
+
+# Guarda de cobertura: fração mínima do universo declarado (universe.csv)
+# que deve sobreviver à coleta + filtros e ser efetivamente pontuada.
+# Abaixo disso, emitir alerta de qualidade de dados no log e no relatório.
+MIN_UNIVERSE_COVERAGE = 0.60
+
+# Bounds de sanidade para beta vindo de fonte externa (brapi). Valores fora
+# desse intervalo são tratados como dado corrompido (ex.: PETR4 beta=-0.06)
+# e descartados em favor do beta calculado dos preços.
+BETA_SANITY_MIN = -0.5
+BETA_SANITY_MAX = 3.0
+
+# ---------------------------------------------------------------------------
 # Data Sources
 # ---------------------------------------------------------------------------
 BRAPI_BASE_URL    = "https://brapi.dev/api"

@@ -302,6 +302,8 @@ class SnapshotManager:
             "execution_metadata": {
                 "universe_size":      len(df_scored),
                 "tickers_scored":     int(df_scored["total_score"].notna().sum()),
+                # Cobertura declarado→coletado→pontuado (de main.py via attrs).
+                "data_quality":       getattr(df_scored, "attrs", {}).get("data_quality"),
                 "generated_at":       datetime.now().isoformat(),
                 "portfolio_weights_method": weights_method,
                 "risk_metrics":             risk_metrics,
@@ -341,22 +343,52 @@ class SnapshotManager:
         path = self.history_dir / f"recommendations_{run_date_str}_{mode}.json"
         return _read_json(path)
 
-    def load_latest_recommendation(self, mode: str = "weekly") -> Optional[dict]:
+    def load_latest_recommendation(
+        self,
+        mode: str = "weekly",
+        before_date: Optional[str | date] = None,
+    ) -> Optional[dict]:
         """
         Carrega o JSON de recomendação mais recente disponível.
 
         Itera em ordem reversa pelos arquivos recommendations_*_{mode}.json
         e retorna o primeiro encontrado.
 
+        Args:
+            mode:        "weekly" ou "monthly".
+            before_date: Se fornecido, retorna a recomendação mais recente com
+                         data ESTRITAMENTE anterior a `before_date`. Crítico
+                         para o backtester: sem isso, ele carregaria a
+                         recomendação recém-salva do próprio run (mesma data)
+                         e compararia a carteira contra os preços do mesmo dia
+                         (period_days=0, retorno = apenas fricção). Com o filtro,
+                         o backtest compara sempre contra a carteira anterior real.
+
         Returns:
-            dict com a recomendação mais recente, ou None se não houver nenhuma.
+            dict com a recomendação correspondente, ou None se não houver nenhuma.
         """
         pattern = f"recommendations_*_{mode}.json"
         files = sorted(self.history_dir.glob(pattern), reverse=True)
         if not files:
             logger.info("Nenhuma recomendação %s encontrada em %s", mode, self.history_dir)
             return None
-        return _read_json(files[0])
+
+        cutoff = _date_str(before_date) if before_date is not None else None
+        for f in files:
+            rec = _read_json(f)
+            if rec is None:
+                continue
+            if cutoff is not None and str(rec.get("date", "")) >= cutoff:
+                # Pular recomendações na mesma data (ou futuras) — evita
+                # backtest da recomendação contra si mesma.
+                continue
+            return rec
+
+        if cutoff is not None:
+            logger.info(
+                "Nenhuma recomendação %s anterior a %s encontrada.", mode, cutoff,
+            )
+        return None
 
     def load_price_snapshot(self, run_date: str | date) -> Optional[dict[str, float]]:
         """

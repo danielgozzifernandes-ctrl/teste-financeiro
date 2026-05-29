@@ -1,7 +1,13 @@
 {
-  "analysis_date": "2026-05-16T01:16:47.024525",
+  "analysis_date": "2026-05-29T20:47:25.684803",
   "n_recommendations": 4,
   "n_snapshots": 4,
+  "data_sufficiency": {
+    "min_periods_required": 6,
+    "max_periods_available": 1,
+    "is_significant": false,
+    "warning": "AMOSTRA INSUFICIENTE: no máximo 1 janela(s) (mínimo 6). Sharpe/hit-rate/max-DD abaixo NÃO são confiáveis — acumule mais snapshots semanais."
+  },
   "per_window": {
     "1w": {
       "n_periods": 1,
@@ -12,7 +18,8 @@
       "max_drawdown": 0.0,
       "mean_alpha_ibov": 0.0059,
       "hit_rate": 1.0,
-      "cumulative_return": -0.011
+      "cumulative_return": -0.011,
+      "significant": false
     },
     "4w": {
       "n_periods": 0

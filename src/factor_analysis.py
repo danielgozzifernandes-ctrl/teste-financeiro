@@ -41,7 +41,12 @@ try:
 except ImportError:
     spearmanr = None
 
-from src.config import HISTORY_DIR, IC_FORWARD_WINDOWS, IC_OUTPUT_PATH
+from src.config import (
+    HISTORY_DIR,
+    IC_FORWARD_WINDOWS,
+    IC_OUTPUT_PATH,
+    MIN_OBS_FOR_SIGNIFICANCE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -236,10 +241,19 @@ def analyze_factors(
             "analysis_date": datetime.now().isoformat(),
             "n_snapshots": len(snaps),
             "n_recommendations": len(recs),
+            "data_sufficiency": {
+                "min_obs_required":  MIN_OBS_FOR_SIGNIFICANCE,
+                "max_obs_available": 0,
+                "is_significant":    False,
+                "warning": "Histórico insuficiente — precisa >=2 snapshots e "
+                           ">=1 recomendação para qualquer cálculo de IC.",
+            },
             "factors": {},
             "note": "Histórico insuficiente — precisa >=2 snapshots e >=1 recomendação",
         }
         _save_result(result, output_path)
+        if verbose:
+            _print_table(result)
         return result
 
     # Descobrir todos os fatores presentes
@@ -294,7 +308,7 @@ def analyze_factors(
             if not observations:
                 factors_summary[factor][window_name] = {
                     "mean_ic": None, "ir": None, "hit_rate": None,
-                    "n_obs": 0,
+                    "n_obs": 0, "significant": False,
                 }
                 continue
             ics = np.array([o[0] for o in observations])
@@ -302,11 +316,15 @@ def analyze_factors(
             std_ic = float(np.std(ics, ddof=1)) if len(ics) > 1 else 0.0
             ir = float(mean_ic / std_ic) if std_ic > 0 else None
             hit_rate = float((ics > 0).sum() / len(ics))
+            n_obs = len(observations)
             factors_summary[factor][window_name] = {
                 "mean_ic":  round(mean_ic, 4),
                 "ir":       round(ir, 4) if ir is not None else None,
                 "hit_rate": round(hit_rate, 4),
-                "n_obs":    len(observations),
+                "n_obs":    n_obs,
+                # Sinal vs ruído: abaixo do mínimo, NÃO interpretar como
+                # poder preditivo. Um IC de 0.50 sobre n=2 é aleatório.
+                "significant": n_obs >= MIN_OBS_FOR_SIGNIFICANCE,
             }
 
     # ── Decay analysis: ajustar curva exponencial IC(τ) = IC₀ × exp(-λτ)
@@ -314,11 +332,32 @@ def analyze_factors(
     # (>40d) são duráveis; <10d são noise-driven.
     decay_summary = _compute_decay(factors_summary, IC_FORWARD_WINDOWS)
 
+    # ── Banner de suficiência estatística ──────────────────────────────────
+    # max_obs = maior n_obs entre todos os fatores/janelas. Se nem o melhor
+    # fator atinge o mínimo, NENHUMA métrica abaixo é confiável.
+    max_obs = max(
+        (w.get("n_obs", 0) for f in factors_summary.values() for w in f.values()),
+        default=0,
+    )
+    is_significant = max_obs >= MIN_OBS_FOR_SIGNIFICANCE
+    data_sufficiency = {
+        "min_obs_required":  MIN_OBS_FOR_SIGNIFICANCE,
+        "max_obs_available": max_obs,
+        "is_significant":    is_significant,
+        "warning": None if is_significant else (
+            f"AMOSTRA INSUFICIENTE: no máximo {max_obs} observações por fator "
+            f"(mínimo {MIN_OBS_FOR_SIGNIFICANCE} para significância). "
+            f"Os valores de IC/IR/hit-rate abaixo são RUÍDO, não sinal — "
+            f"não use para decisão. Acumule mais snapshots semanais reais."
+        ),
+    }
+
     result = {
         "analysis_date":      datetime.now().isoformat(),
         "n_snapshots":        len(snaps),
         "n_recommendations":  len(recs),
         "forward_windows_days": IC_FORWARD_WINDOWS,
+        "data_sufficiency":   data_sufficiency,
         "factors":            factors_summary,
         "decay":              decay_summary,
         "interpretation": {
@@ -413,6 +452,12 @@ def _print_table(result: dict) -> None:
     _safe_print(f"  Factor IC Analysis — {result['analysis_date'][:10]}")
     _safe_print(f"  Snapshots: {result['n_snapshots']} | Recomendacoes: {result['n_recommendations']}")
     print("=" * 72)
+
+    # Aviso de suficiência estatística — em destaque, antes da tabela.
+    ds = result.get("data_sufficiency", {})
+    if ds and not ds.get("is_significant", True):
+        _safe_print(f"  [!] {ds.get('warning', 'Amostra insuficiente.')}")
+        print("=" * 72)
 
     factors = result.get("factors", {})
     if not factors:

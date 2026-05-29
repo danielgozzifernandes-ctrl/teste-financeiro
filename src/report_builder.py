@@ -30,7 +30,7 @@ from typing import Any, Optional
 
 import pandas as pd
 
-from src.config import DIVIDEND_TAX_RATE_PF
+from src.config import DIVIDEND_TAX_RATE_PF, MIN_UNIVERSE_COVERAGE
 
 logger = logging.getLogger(__name__)
 
@@ -386,11 +386,26 @@ class ReportBuilder:
         if df_scored.empty:
             return ""
 
-        diag = getattr(df_scored, "attrs", {}).get("portfolio_diagnostics") or {}
-        if not diag:
-            return ""
+        attrs = getattr(df_scored, "attrs", {})
+        diag = attrs.get("portfolio_diagnostics") or {}
+        dq = attrs.get("data_quality") or {}
 
         warnings: list[str] = []
+
+        # Alerta de cobertura de dados — honestidade sobre quanto do universo
+        # foi realmente avaliado. Aparece antes dos alertas de concentração.
+        cov = dq.get("coverage_pct")
+        if cov is not None and cov < MIN_UNIVERSE_COVERAGE:
+            scored = dq.get("scored", "?")
+            declared = dq.get("declared_universe", "?")
+            cov_str = f"{cov * 100:.0f}%"
+            warnings.append(
+                f"Cobertura de dados baixa: apenas {scored}/{declared} ativos "
+                f"avaliados \\({escape(cov_str)} do universo\\)"
+            )
+
+        # Se não há diagnóstico de portfólio, os blocos abaixo no-op com segurança
+        # (diag vazio → defaults), mas um eventual alerta de cobertura permanece.
 
         # Concentração de tema macro
         dom_theme = diag.get("dominant_theme")
@@ -439,7 +454,7 @@ class ReportBuilder:
         body = "\n".join(f"   {escape('•')} {w}" for w in warnings)
         return (
             f"{sep}\n"
-            f"⚠️ {bold('Alertas de concentração')}\n\n"
+            f"⚠️ {bold('Alertas de qualidade e concentração')}\n\n"
             f"{body}"
         )
 
