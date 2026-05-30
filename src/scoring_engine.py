@@ -413,6 +413,19 @@ class ScoringEngine:
             valid_mc = mc.notna() & (mc > 0)
             df["log_market_cap"] = np.where(valid_mc, np.log10(mc.where(valid_mc, 1)), np.nan)
 
+        # Sanidade ROE/ROIC: fora de [-100%, +150%] e' artefato de fonte
+        # (ex.: patrimonio quase zero inflando o quociente). Antes apenas
+        # documentado, nunca implementado — garbage de fonte ia direto ao score.
+        for _col, _lo, _hi in (("roe", -1.0, 1.5), ("roic", -1.0, 1.5)):
+            if _col in df.columns:
+                _v = pd.to_numeric(df[_col], errors="coerce")
+                df[_col] = _v.where((_v >= _lo) & (_v <= _hi))
+
+        # Divida/EBITDA: negativo e' legitimo (caixa liquido); |x| > 50 e' erro.
+        if "divida_ebitda" in df.columns:
+            _de = pd.to_numeric(df["divida_ebitda"], errors="coerce")
+            df["divida_ebitda"] = _de.where(_de.abs() <= 50)
+
         return df
 
     def _add_momentum_metrics(
