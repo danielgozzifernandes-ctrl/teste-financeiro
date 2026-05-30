@@ -115,7 +115,14 @@ QUALITY_FACTORS = {
 # Thresholds e filtros
 # ---------------------------------------------------------------------------
 MIN_DAILY_VOLUME_BRL  = 5_000_000   # R$ 5M/dia — filtro de liquidez mínima
-MAX_DIVIDA_EBITDA     = 5.0         # filtro hard: acima disso, ação é excluída
+MAX_DIVIDA_EBITDA     = 5.0         # piso de alavancagem (abaixo disso nunca exclui)
+# Filtro de alavancagem SETOR-RELATIVO. O flat 5x excluía nomes legitimamente
+# alavancados em setores capital-intensivos (leasing/RENT3, utilities, real
+# estate). Exclui um não-financeiro só se for alto em termos absolutos
+# (> MAX_DIVIDA_EBITDA) E acima da norma do setor (> tolerância × mediana
+# setorial); ou se cruzar o teto absoluto duro.
+ABSOLUTE_MAX_DIVIDA_EBITDA = 10.0   # teto absoluto: acima disso sempre exclui
+SECTOR_LEVERAGE_TOLERANCE  = 1.5    # múltiplo da mediana setorial p/ exclusão
 MAX_PL                = 80.0        # filtro hard: P/L > 80 é distorção (prejuízo)
 MIN_ROE               = -0.50       # filtro hard: ROE < -50% indica destruição de valor
 

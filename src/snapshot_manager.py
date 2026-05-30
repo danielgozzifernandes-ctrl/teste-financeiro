@@ -886,6 +886,8 @@ def _row_to_recommendation(row: pd.Series, entry_price: Optional[float]) -> dict
             "quality":     round(WEIGHTS["quality"]     * qual_score, 2),
         },
         "normalization_method": str(row.get("normalization_method", "")),
+        "conviction":           _safe_float(row.get("conviction")),
+        "conviction_label":     str(row.get("conviction_label", "Baixa")),
         "sector":               str(row.get("setor", "")),
         "sector_peers_count":   sector_peers_count,
         "why":                  str(row.get("why", "")),

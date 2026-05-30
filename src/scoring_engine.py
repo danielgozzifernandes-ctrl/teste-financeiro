@@ -59,7 +59,9 @@ from src.config import (
     GROWTH_WEIGHT,
     INVESTMENT_WEIGHT,
     MACRO_THEME_MAP,
+    ABSOLUTE_MAX_DIVIDA_EBITDA,
     MAX_DIVIDA_EBITDA,
+    SECTOR_LEVERAGE_TOLERANCE,
     MAX_PER_MACRO_THEME,
     MAX_PER_SECTOR,
     MAX_PER_SUBSECTOR,
@@ -818,17 +820,41 @@ class ScoringEngine:
                 logger.info("Hard filter liquidez: %s removidos", excluded)
                 df = df[~low_liq]
 
-        # Filtro de alavancagem (não aplica ao setor financeiro)
+        # Filtro de alavancagem SETOR-RELATIVO (não aplica ao financeiro).
+        # Em vez do flat 5x — que excluía nomes legitimamente alavancados em
+        # setores capital-intensivos (leasing, utilities, real estate) — um
+        # não-financeiro é removido só se:
+        #   (a) D/EBITDA > ABSOLUTE_MAX_DIVIDA_EBITDA (teto duro), OU
+        #   (b) D/EBITDA > MAX_DIVIDA_EBITDA E acima de
+        #       SECTOR_LEVERAGE_TOLERANCE × mediana do próprio setor.
         if "divida_ebitda" in df.columns and "setor" in df.columns:
             is_financial = df["setor"].isin(FINANCIAL_SECTORS)
-            over_levered = (
-                ~is_financial
-                & df["divida_ebitda"].notna()
-                & (df["divida_ebitda"] > MAX_DIVIDA_EBITDA)
+            de = df["divida_ebitda"]
+            has_de = de.notna()
+
+            sector_median = (
+                df.loc[~is_financial & has_de]
+                .groupby("setor")["divida_ebitda"]
+                .median()
             )
+            median_for_row = df["setor"].map(sector_median)
+            relative_ceiling = median_for_row * SECTOR_LEVERAGE_TOLERANCE
+
+            absolute_kill = has_de & (de > ABSOLUTE_MAX_DIVIDA_EBITDA)
+            relative_kill = (
+                has_de
+                & (de > MAX_DIVIDA_EBITDA)
+                & median_for_row.notna()
+                & (de > relative_ceiling)
+            )
+            over_levered = ~is_financial & (absolute_kill | relative_kill)
+
             if over_levered.any():
                 excluded = df[over_levered].index.tolist()
-                logger.info("Hard filter alavancagem: %s removidos", excluded)
+                logger.info(
+                    "Hard filter alavancagem (setor-relativo, teto=%gx): %s removidos",
+                    ABSOLUTE_MAX_DIVIDA_EBITDA, excluded,
+                )
                 df = df[~over_levered]
 
         # Filtro value trap: prejuízo (P/L < 0) + ROE negativo (> -5%)
