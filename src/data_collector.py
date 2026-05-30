@@ -1058,9 +1058,10 @@ class DataCollector:
         logger.info("Coletando preços históricos (1y) para %d tickers", len(tickers))
         series: dict[str, pd.Series] = {}
         yz_vols: dict[str, float] = {}
+        adv_brl: dict[str, float] = {}
         today = datetime.now().strftime("%Y-%m-%d")
 
-        def _fetch_one(ticker: str) -> tuple[Optional[pd.Series], Optional[float]]:
+        def _fetch_one(ticker: str) -> tuple[Optional[pd.Series], Optional[float], Optional[float]]:
             cache_key = f"prices_{ticker}_{today}"
             cached = self.cache.get(cache_key)
             if cached:
@@ -1070,12 +1071,13 @@ class DataCollector:
                     name=ticker,
                 )
                 yz = cached.get("yz_vol_180d")
-                return s, yz
+                adv = cached.get("adv_brl_21d")
+                return s, yz, adv
 
             df_hist = self.yf.fetch_history(ticker)
             if df_hist is None or df_hist.empty:
                 logger.warning("Sem histórico de preços para %s", ticker)
-                return None, None
+                return None, None, None
 
             if isinstance(df_hist.columns, pd.MultiIndex):
                 df_hist.columns = df_hist.columns.get_level_values(0)
@@ -1090,29 +1092,39 @@ class DataCollector:
             # Yang-Zhang vol nos últimos 180 dias (com OHLC do mesmo df_hist)
             yz = _compute_yz_vol(df_hist.tail(180))
 
+            # ADV em R$ = mediana(Close × Volume, 21d). Calculado AQUI, no
+            # caminho de coleta que de fato roda — a tentativa anterior wirou
+            # num método inexistente e virou código morto (avg_volume_30d
+            # continuava vindo da brapi em escala errada, excluindo líquidas).
+            adv = self._adv_brl_from_ohlc(df_hist)
+
             self.cache.set(cache_key, {
                 "ticker":     ticker,
                 "source":     "yfinance",
                 "dates":      [str(d.date()) for d in s.index],
                 "close":      [round(float(v), 4) for v in s.to_numpy()],
                 "yz_vol_180d": yz,
+                "adv_brl_21d": adv,
             })
-            return s, yz
+            return s, yz, adv
 
         with ThreadPoolExecutor(max_workers=6) as pool:
             futures = {pool.submit(_fetch_one, t): t for t in tickers}
             for fut in as_completed(futures):
                 ticker = futures[fut]
                 try:
-                    s, yz = fut.result()
+                    s, yz, adv = fut.result()
                     if s is not None:
                         series[ticker] = s
                     if yz is not None:
                         yz_vols[ticker] = yz
+                    if adv is not None:
+                        adv_brl[ticker] = adv
                 except Exception as exc:
                     logger.warning("Histórico %s falhou: %s", ticker, exc)
         # Disponibilizar para merge em df_fundamentals
         self._yz_vols = yz_vols
+        self._adv_brl = adv_brl
 
         if not series:
             raise DataCollectionError("Nenhum histórico de preços coletado.")
