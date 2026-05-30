@@ -40,6 +40,10 @@ from src.config import (
     BETA_SANITY_MAX,
     BETA_SANITY_MIN,
     BRL_CORRELATION_WINDOW,
+    CONVICTION_HIGH,
+    CONVICTION_MEDIUM,
+    ENABLE_WINSORIZATION,
+    WINSORIZATION_MAD_K,
     ENABLE_LIQUIDITY_PENALTY,
     LIQUIDITY_PENALTY_MIN_FACTOR,
     LIQUIDITY_PENALTY_THRESHOLD_BRL,
@@ -323,6 +327,18 @@ class ScoringEngine:
             for ticker in df.index
         ]
 
+        # ── Convicção: calibração de quão bem-suportada está cada pick ─────
+        conv = {
+            t: self._conviction_score(
+                df.at[t, "total_score"] if "total_score" in df.columns else None,
+                df.at[t, "normalization_method"] if "normalization_method" in df.columns else None,
+                fund_details.get(t, {}),
+            )
+            for t in df.index
+        }
+        df["conviction"]       = pd.Series(conv, dtype=float)
+        df["conviction_label"] = df["conviction"].map(self._conviction_label)
+
         # ── Montar output ─────────────────────────────────────────────────
         ordered_cols = [
             "nome", "setor", "subsetor", "normalization_method", "data_source",
@@ -346,6 +362,8 @@ class ScoringEngine:
             "brl_corr_90d",
             # pilares e total
             "fundamental_score", "momentum_score", "quality_score", "total_score",
+            # convicção (calibração de confiança nos insumos)
+            "conviction", "conviction_label",
             "market_regime",
             # explicabilidade
             "why", "norm_details",
@@ -1089,8 +1107,20 @@ class ScoringEngine:
 
             if n >= MIN_SECTOR_ZSCORE:
                 # ── Z-Score Setorial ────────────────────────────────────
-                mu    = float(sector_values.mean())
-                sigma = float(sector_values.std(ddof=1)) if n > 1 else 0.0
+                # Winsorização robusta via MAD: limita os valores a
+                # mediana ± k·1.4826·MAD antes de estimar μ/σ, para que um
+                # outlier não infle o desvio e comprima o z-score dos demais.
+                # raw_value no detail permanece o valor ORIGINAL.
+                lo_w = hi_w = None
+                if ENABLE_WINSORIZATION and n >= 5:
+                    med = float(sector_values.median())
+                    mad = float((sector_values - med).abs().median())
+                    if mad > 0:
+                        spread = WINSORIZATION_MAD_K * 1.4826 * mad
+                        lo_w, hi_w = med - spread, med + spread
+                sv = sector_values.clip(lo_w, hi_w) if lo_w is not None else sector_values
+                mu    = float(sv.mean())
+                sigma = float(sv.std(ddof=1)) if n > 1 else 0.0
 
                 for ticker in sector_idx:
                     v = values.get(ticker, np.nan)
@@ -1101,10 +1131,11 @@ class ScoringEngine:
                             sector_mean=mu, sector_std=sigma,
                         )
                         continue
+                    v_eff = v if lo_w is None else float(np.clip(v, lo_w, hi_w))
                     if sigma == 0.0:
                         z, score = 0.0, 50.0
                     else:
-                        z     = float(np.clip((v - mu) / sigma, -3.0, 3.0))
+                        z     = float(np.clip((v_eff - mu) / sigma, -3.0, 3.0))
                         score = (z + 3.0) / 6.0 * 100.0
                     scores[ticker]  = score
                     details[ticker] = NormDetail(
@@ -1359,6 +1390,64 @@ class ScoringEngine:
     # ═══════════════════════════════════════════════════════════════════════
     # Geração de explicação ("why")
     # ═══════════════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _conviction_score(
+        total_score: Optional[float],
+        norm_method: Optional[str],
+        fund_details_ticker: dict,
+    ) -> float:
+        """
+        Convicção [0,1]: quão bem-suportada está a recomendação.
+
+        Componentes: cobertura de fatores (35%), nº de peers setoriais (25%),
+        método de normalização (20%), margem de score acima de 50 (20%).
+
+        NÃO é probabilidade de acerto — é confiança nos INSUMOS da decisão.
+        Uma pick com poucos peers, muitos NaN e normalização global é frágil
+        mesmo com score alto.
+        """
+        details = fund_details_ticker or {}
+        n_total = len(details)
+        n_valid = sum(
+            1 for d in details.values()
+            if d is not None and getattr(d, "score", None) is not None
+        )
+        coverage = (n_valid / n_total) if n_total else 0.0
+
+        peers = [getattr(d, "n_peers", 0) or 0 for d in details.values() if d is not None]
+        max_peers = max(peers) if peers else 0
+        peer_support = 1.0 if max_peers >= 8 else 0.6 if max_peers >= 4 else 0.3
+
+        method_score = {
+            "zscore_sectoral": 1.0,
+            "percentile_sectoral": 0.7,
+            "zscore_global": 0.4,
+        }.get(str(norm_method), 0.4)
+
+        if total_score is None or pd.isna(total_score):
+            margin = 0.0
+        else:
+            margin = float(np.clip((float(total_score) - 50.0) / 50.0, 0.0, 1.0))
+
+        conviction = (
+            0.35 * coverage
+            + 0.25 * peer_support
+            + 0.20 * method_score
+            + 0.20 * margin
+        )
+        return round(float(np.clip(conviction, 0.0, 1.0)), 3)
+
+    @staticmethod
+    def _conviction_label(conviction: float) -> str:
+        """Rótulo legível para a convicção numérica."""
+        if conviction is None or pd.isna(conviction):
+            return "Baixa"
+        if conviction >= CONVICTION_HIGH:
+            return "Alta"
+        if conviction >= CONVICTION_MEDIUM:
+            return "Média"
+        return "Baixa"
 
     def _explain(
         self,

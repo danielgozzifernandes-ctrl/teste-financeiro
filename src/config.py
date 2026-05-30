@@ -339,6 +339,21 @@ MIN_UNIVERSE_COVERAGE = 0.60
 BETA_SANITY_MIN = -0.5
 BETA_SANITY_MAX = 3.0
 
+# Winsorização robusta do z-score setorial via MAD (median absolute
+# deviation). Clipa cada valor a mediana ± k·1.4826·MAD antes de estimar
+# média/desvio. Sem isso, um único outlier infla o σ e comprime o z-score
+# de todos os demais (achata o sinal). MAD é robusto a outliers mesmo em
+# setores pequenos (8-20 ações), onde winsorização por quantil é fraca.
+# Referência: modified z-score (Iglewicz-Hoaglin 1993). Só aplica N >= 5.
+ENABLE_WINSORIZATION = True
+WINSORIZATION_MAD_K = 3.0
+
+# Score de convicção: calibração honesta de quão bem-suportada está cada
+# recomendação (cobertura de fatores, nº de peers, método de normalização,
+# margem de score). Limiares para rótulo Alta/Média/Baixa.
+CONVICTION_HIGH = 0.66
+CONVICTION_MEDIUM = 0.40
+
 # ---------------------------------------------------------------------------
 # Data Sources
 # ---------------------------------------------------------------------------

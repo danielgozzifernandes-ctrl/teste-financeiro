@@ -822,12 +822,15 @@ class DataCollector:
 
         # --- Preços históricos ---
         cached_prices = self.cache.get(price_key)
+        adv_key = f"adv_brl_{today}"
         if cached_prices:
             df_prices = pd.DataFrame.from_dict(cached_prices)
             df_prices.index = pd.to_datetime(df_prices.index)
             logger.info("Preços: cache hit (%d dias × %d tickers)", *df_prices.shape)
             # Carregar YZ vols do cache per-ticker
             self._yz_vols = self._load_yz_from_cache(df_prices.columns.tolist(), today)
+            # ADV R$ do cache (calculado no primeiro run do dia)
+            self._adv_brl = self.cache.get(adv_key) or {}
         else:
             valid_tickers = df_fund.loc[
                 df_fund["data_source"] != "failed", "ticker"
@@ -836,6 +839,7 @@ class DataCollector:
             df_cache = df_prices.copy()
             df_cache.index = df_cache.index.strftime("%Y-%m-%d")
             self.cache.set(price_key, df_cache.to_dict())
+            self.cache.set(adv_key, getattr(self, "_adv_brl", {}))
             logger.info("Preços coletados e cacheados (%d dias × %d tickers)", *df_prices.shape)
 
         # Merge YZ vol em df_fund (campo volatility_yz_180d)
@@ -844,6 +848,19 @@ class DataCollector:
             df_fund["volatility_yz_180d"] = df_fund["ticker"].map(yz_map)
             n_yz = df_fund["volatility_yz_180d"].notna().sum()
             logger.info("Yang-Zhang vol: %d/%d tickers", n_yz, len(df_fund))
+
+        # ADV em R$ calculado do OHLCV SUBSTITUI avg_volume_30d (que vinha da
+        # brapi em escala inconsistente — causava exclusão indevida de ações
+        # líquidas no filtro de liquidez, derrubando o universo a ~40%).
+        adv_map = getattr(self, "_adv_brl", {})
+        if adv_map:
+            calc_adv = df_fund["ticker"].map(adv_map)
+            n_adv = int(calc_adv.notna().sum())
+            # Onde o ADV calculado existe, usar; senão manter NaN (o filtro de
+            # liquidez trata NaN como "não penalizar", evitando exclusão por
+            # dado ausente — mais seguro que confiar no campo bruto da brapi).
+            df_fund["avg_volume_30d"] = calc_adv
+            logger.info("ADV R$ (OHLCV close×volume): %d/%d tickers", n_adv, len(df_fund))
 
         return df_fund, df_prices
 
@@ -856,6 +873,42 @@ class DataCollector:
             if cached and cached.get("yz_vol_180d") is not None:
                 out[t] = float(cached["yz_vol_180d"])
         return out
+
+    def _load_adv_from_cache(self, tickers: list[str], today: str) -> dict[str, float]:
+        """Carrega ADV (R$) já computado no cache per-ticker (cache hit de preços)."""
+        out: dict[str, float] = {}
+        for t in tickers:
+            cached = self.cache.get(f"prices_{t}_{today}")
+            if cached and cached.get("adv_brl_21d") is not None:
+                out[t] = float(cached["adv_brl_21d"])
+        return out
+
+    @staticmethod
+    def _adv_brl_from_ohlc(df_ohlc: pd.DataFrame, window: int = 21) -> Optional[float]:
+        """
+        Average Daily Volume em R$ = mediana de (Close × Volume) nos últimos
+        `window` pregões. Mediana (não média) para robustez a dias de pico.
+
+        Por que recalcular em vez de usar averageDailyVolume3Month da brapi?
+        Esse campo vinha em escala inconsistente entre tickers (ora número de
+        ações, ora valores espúrios), fazendo o filtro de liquidez excluir
+        ações líquidas (VIVT3, EGIE3, TAEE11, SANB11...) — ~40% do universo.
+        Close×Volume garante R$ reais e comparáveis ao threshold de liquidez.
+        """
+        if df_ohlc is None or df_ohlc.empty:
+            return None
+        if "Close" not in df_ohlc.columns or "Volume" not in df_ohlc.columns:
+            return None
+        try:
+            tail = df_ohlc.tail(window)
+            dollar_vol = (tail["Close"] * tail["Volume"]).dropna()
+            if dollar_vol.empty:
+                return None
+            adv = float(dollar_vol.median())
+            return adv if adv > 0 else None
+        except Exception as exc:
+            logger.debug("ADV R$ falhou: %s", exc)
+            return None
 
     # ------------------------------------------------------------------
     # Coleta de Fundamentais

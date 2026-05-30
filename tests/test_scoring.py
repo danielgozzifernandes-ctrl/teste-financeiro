@@ -394,3 +394,93 @@ def test_zscore_clipping_bounds(engine):
     assert scores["OUTLIER_LOW"] == scores.min()
     assert scores["OUTLIER_HIGH"] > 80
     assert scores["OUTLIER_LOW"] < 20
+
+
+# ---------------------------------------------------------------------------
+# 14. Sanidade de fundamentos: ROE/ROIC/Dívida fora de faixa → NaN
+# ---------------------------------------------------------------------------
+def test_derive_metrics_sanitizes_garbage(engine):
+    """Valores implausíveis de fonte devem virar NaN (antes passavam direto)."""
+    df = pd.DataFrame({
+        "pl":            [10.0, 10.0, 10.0, 10.0],
+        "roe":           [0.20, 5.00, -3.0, 0.15],   # 500% e -300% são lixo
+        "roic":          [0.12, 0.10, 9.99, 0.11],   # 999% é lixo
+        "divida_ebitda": [2.0, 1.5, 999.0, -1.0],    # 999x é lixo; -1 é caixa líq.
+        "setor":         ["X"]*4,
+    })
+    res = engine._derive_metrics(df)
+    # Linha 0 e 3: valores plausíveis preservados
+    assert res.loc[0, "roe"] == pytest.approx(0.20)
+    assert res.loc[3, "divida_ebitda"] == pytest.approx(-1.0)  # negativo é legítimo
+    # Lixo → NaN
+    assert pd.isna(res.loc[1, "roe"])     # 500%
+    assert pd.isna(res.loc[2, "roe"])     # -300%
+    assert pd.isna(res.loc[2, "roic"])    # 999%
+    assert pd.isna(res.loc[2, "divida_ebitda"])  # 999x
+
+
+# ---------------------------------------------------------------------------
+# 15. Winsorização robusta (MAD) reduz influência de outlier no z-score
+# ---------------------------------------------------------------------------
+def test_winsorization_reduces_outlier_influence(engine, monkeypatch):
+    """Com winsorização, um outlier não esmaga o z-score dos demais."""
+    import src.scoring_engine as se
+    tickers = [f"W{i}" for i in range(10)]
+    sector_map = _make_sector_map({"Setor W": tickers})
+    vals = {f"W{i}": float(10 + i) for i in range(9)}  # 10..18
+    vals["W9"] = 200.0                                  # outlier extremo
+    values = _make_values(vals)
+
+    monkeypatch.setattr(se, "ENABLE_WINSORIZATION", False)
+    scores_off, _ = engine._normalize_adaptive(values, sector_map)
+    monkeypatch.setattr(se, "ENABLE_WINSORIZATION", True)
+    scores_on, _ = engine._normalize_adaptive(values, sector_map)
+
+    # O segundo maior (W8=18) é MENOS comprimido para o centro com winsor.
+    assert scores_on["W8"] > scores_off["W8"]
+    # Limites preservados em ambos
+    assert scores_on.between(0, 100).all()
+    assert scores_off.between(0, 100).all()
+
+
+# ---------------------------------------------------------------------------
+# 16. Score de convicção: bem-suportado > frágil
+# ---------------------------------------------------------------------------
+def test_conviction_score_ranks_support(engine):
+    """Pick com cobertura/peers/método fortes deve ter convicção > frágil."""
+    from src.scoring_engine import NormDetail
+
+    strong_details = {
+        "roe": NormDetail(method="zscore_sectoral", n_peers=12, raw_value=0.2, score=85.0),
+        "pvp": NormDetail(method="zscore_sectoral", n_peers=12, raw_value=1.0, score=80.0),
+        "roic": NormDetail(method="zscore_sectoral", n_peers=12, raw_value=0.15, score=82.0),
+    }
+    weak_details = {
+        "roe": NormDetail(method="zscore_global", n_peers=2, raw_value=0.1, score=55.0),
+        "pvp": None,   # dado ausente
+        "roic": None,  # dado ausente
+    }
+
+    c_strong = engine._conviction_score(85.0, "zscore_sectoral", strong_details)
+    c_weak   = engine._conviction_score(52.0, "zscore_global", weak_details)
+
+    assert 0.0 <= c_weak < c_strong <= 1.0
+    assert engine._conviction_label(c_strong) in ("Alta", "Média")
+    assert engine._conviction_label(c_weak) == "Baixa"
+
+
+# ---------------------------------------------------------------------------
+# 17. ADV em R$ calculado do OHLCV (substitui campo bruto da brapi)
+# ---------------------------------------------------------------------------
+def test_adv_brl_from_ohlc():
+    """ADV R$ = mediana(Close × Volume); robusto e em R$ reais."""
+    from src.data_collector import DataCollector
+    df_ohlc = pd.DataFrame({
+        "Close":  [10.0, 10.0, 10.0, 10.0, 10.0],
+        "Volume": [1_000_000, 1_200_000, 800_000, 1_000_000, 1_000_000],
+    })
+    adv = DataCollector._adv_brl_from_ohlc(df_ohlc, window=21)
+    # mediana(volume)=1.0M × preço 10 = R$10M
+    assert adv == pytest.approx(10_000_000.0)
+    # Sem coluna Volume → None (não quebra)
+    assert DataCollector._adv_brl_from_ohlc(pd.DataFrame({"Close": [1.0]})) is None

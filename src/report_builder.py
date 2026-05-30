@@ -294,6 +294,12 @@ class ReportBuilder:
         else:
             line2 = f"   {setor_emoji} {italic(setor)}"
 
+        # Convicção (calibração de confiança nos insumos da pick)
+        conv_label = str(row.get("conviction_label", "") or "")
+        if conv_label:
+            conv_emoji = {"Alta": "🟢", "Média": "🟡", "Baixa": "🔴"}.get(conv_label, "")
+            line2 = line2 + f"  {conv_emoji} {italic('Conv: ' + conv_label)}"
+
         # Linha 3: métricas — "=" deve ser escapado no MarkdownV2
         metrics_parts: list[str] = []
         if ey is not None and not pd.isna(ey):
