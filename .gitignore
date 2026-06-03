@@ -25,8 +25,12 @@ output/
 output_*.png
 chart_*.png
 
-# Snapshots históricos (manter apenas via GitHub Actions cache)
-# Comente esta linha se quiser versionar os snapshots no git:
+# IMPORTANTE: data/history/ e data/*.json (factor_ic, walk_forward, etc.) são
+# VERSIONADOS no git de propósito. Os workflows (weekly/monthly/daily_closing)
+# commitam os artefatos de cada run de volta ao repo — é assim que o histórico
+# acumula entre execuções. NÃO adicione data/history/ aqui: isso quebraria a
+# acumulação de snapshots e deixaria IC/backtest/walk-forward sem amostra.
+# data/snapshots/ é o diretório legado de cache efêmero (não usado para histórico).
 # data/snapshots/
 
 # Jupyter

@@ -15,6 +15,13 @@ on:
         type: string
         default: ""
 
+permissions:
+  contents: write
+
+concurrency:
+  group: history-writer
+  cancel-in-progress: false
+
 jobs:
   monthly-report:
     runs-on: ubuntu-latest
@@ -23,6 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -40,14 +49,6 @@ jobs:
           key: data-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             data-cache-${{ runner.os }}-
-
-      - name: Restore snapshots
-        uses: actions/cache@v4
-        with:
-          path: data/snapshots/
-          key: snapshots-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            snapshots-${{ runner.os }}-
 
       - name: Run monthly report
         env:
@@ -76,12 +77,20 @@ jobs:
           path: cache/
           key: data-cache-${{ runner.os }}-${{ github.run_id }}
 
-      - name: Save snapshots
+      # Persiste histórico/análises via git commit (ver weekly_report.yml).
+      - name: Commit history artifacts
         if: always()
-        uses: actions/cache@v4
-        with:
-          path: data/snapshots/
-          key: snapshots-${{ runner.os }}-${{ github.run_id }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --autostash origin ${{ github.ref_name }} || true
+          git add -A data/history data/*.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Sem artefatos novos para commitar."
+          else
+            git commit -m "chore(data): monthly snapshot/recomendação/backtest [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
 
       - name: Upload chart artifact
         if: always()

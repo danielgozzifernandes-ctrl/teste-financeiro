@@ -152,7 +152,12 @@ EQUAL_WEIGHT          = 1.0 / TOP_N_RECOMMENDATIONS  # 20% cada posição
 # ---------------------------------------------------------------------------
 MAX_PER_SECTOR        = 2           # máx 2 ações do mesmo setor B3
 MAX_PER_SUBSECTOR     = 1           # máx 1 ação por sub-setor (evita 2 bancos)
-MAX_PER_MACRO_THEME   = 3           # máx 3 ações exposição a mesmo tema macro
+MAX_PER_MACRO_THEME   = 2           # máx 2 ações por tema macro (commodity_export,
+                                    # domestic_consumer, etc.). Reduzido de 3→2:
+                                    # com 3, a carteira ficava dominada por
+                                    # commodities (PETR/VALE/siderurgia) e caía
+                                    # em bloco em dias de queda do barril/minério.
+                                    # 2/tema força diversificação macro real.
 
 # Mapeamento setor B3 → tema macroeconômico
 # Tema captura sensibilidade dominante: commodity vs doméstico vs juros etc.

@@ -16,14 +16,24 @@ on:
         type: string
         default: ""
 
+permissions:
+  contents: write
+
+concurrency:
+  group: history-writer
+  cancel-in-progress: false
+
 jobs:
   closing-report:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
+      # Checkout traz data/history versionado (o weekly já commitou o top 5).
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -33,15 +43,6 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
-
-      # Restaura histórico de recomendações (necessário para saber o top 5)
-      - name: Restore history
-        uses: actions/cache@v4
-        with:
-          path: data/history/
-          key: history-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            history-${{ runner.os }}-
 
       - name: Run closing report
         env:
@@ -63,7 +64,21 @@ jobs:
 
           python main_daily.py --mode closing $DATE_ARG $DRY_FLAG $SEND_FLAG
 
-      # Salva o gráfico de fechamento como artefato
+      # Persiste eventuais snapshots de fechamento gerados (ver weekly_report.yml).
+      - name: Commit history artifacts
+        if: always()
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --autostash origin ${{ github.ref_name }} || true
+          git add -A data/history data/*.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Sem artefatos novos para commitar."
+          else
+            git commit -m "chore(data): closing snapshot [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
+
       - name: Upload closing chart
         if: always()
         uses: actions/upload-artifact@v4

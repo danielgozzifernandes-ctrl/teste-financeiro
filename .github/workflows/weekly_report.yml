@@ -15,6 +15,15 @@ on:
         type: string
         default: ""
 
+# Necessário para o GITHUB_TOKEN poder commitar os artefatos de volta ao repo.
+permissions:
+  contents: write
+
+# Evita corrida entre runs concorrentes que commitam no mesmo branch.
+concurrency:
+  group: history-writer
+  cancel-in-progress: false
+
 jobs:
   weekly-report:
     runs-on: ubuntu-latest
@@ -23,6 +32,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # persist-credentials: true (default) é necessário para o push final.
+          persist-credentials: true
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -33,7 +45,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # Restaura cache de dados (TTL 24h, evita re-download desnecessário)
+      # Cache APENAS de dados regeneráveis (downloads brapi/yfinance, TTL 24h).
+      # O histórico (data/history) NÃO é cacheado — é versionado no git (step final).
       - name: Restore data cache
         uses: actions/cache@v4
         with:
@@ -41,24 +54,6 @@ jobs:
           key: data-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             data-cache-${{ runner.os }}-
-
-      # Restaura snapshots históricos (necessários para backtesting)
-      - name: Restore snapshots
-        uses: actions/cache@v4
-        with:
-          path: data/snapshots/
-          key: snapshots-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            snapshots-${{ runner.os }}-
-
-      # Restaura histórico de recomendações (lido pelos relatórios diários)
-      - name: Restore history
-        uses: actions/cache@v4
-        with:
-          path: data/history/
-          key: history-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            history-${{ runner.os }}-
 
       - name: Run weekly report
         env:
@@ -80,7 +75,6 @@ jobs:
 
           python main.py --mode weekly $DATE_ARG $DRY_FLAG $SEND_FLAG
 
-      # Persiste cache e snapshots gerados nesta execução
       - name: Save data cache
         if: always()
         uses: actions/cache@v4
@@ -88,22 +82,25 @@ jobs:
           path: cache/
           key: data-cache-${{ runner.os }}-${{ github.run_id }}
 
-      - name: Save snapshots
+      # Persiste o histórico e as análises COMMITANDO no repositório.
+      # Sem isso, data/history nunca acumula entre runs e o IC/backtest/walk-forward
+      # ficam permanentemente sem amostra (cache do Actions expira em ~7 dias e
+      # nunca volta ao git). Este é o mecanismo que faz o sistema "aprender".
+      - name: Commit history artifacts
         if: always()
-        uses: actions/cache@v4
-        with:
-          path: data/snapshots/
-          key: snapshots-${{ runner.os }}-${{ github.run_id }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Pull --rebase para reduzir corrida com daily/monthly workflows.
+          git pull --rebase --autostash origin ${{ github.ref_name }} || true
+          git add -A data/history data/*.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Sem artefatos novos para commitar."
+          else
+            git commit -m "chore(data): weekly snapshot/recomendação/backtest [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
 
-      # Persiste histórico de recomendações (lido pelos relatórios diários)
-      - name: Save history
-        if: always()
-        uses: actions/cache@v4
-        with:
-          path: data/history/
-          key: history-${{ runner.os }}-${{ github.run_id }}
-
-      # Salva o gráfico como artefato para inspeção manual
       - name: Upload chart artifact
         if: always()
         uses: actions/upload-artifact@v4
