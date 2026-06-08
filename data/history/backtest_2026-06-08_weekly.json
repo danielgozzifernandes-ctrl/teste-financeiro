@@ -1,0 +1,147 @@
+{
+  "status": "success",
+  "backtest_date": "2026-06-08",
+  "recommendation_date": "2026-05-16",
+  "mode": "weekly",
+  "period_days": 23,
+  "portfolio_return": -0.026398828962,
+  "portfolio_return_pct": -2.6399,
+  "benchmark_returns": {
+    "ibovespa": -0.047759,
+    "cdi": 0.00804,
+    "selic": 0.00804
+  },
+  "alpha_vs_ibov": 0.021360169311956133,
+  "alpha_vs_cdi": -0.03443883973747789,
+  "alpha_vs_ibov_pp": 2.136,
+  "alpha_vs_cdi_pp": -3.4439,
+  "holdings": [
+    {
+      "ticker": "PETR4",
+      "entry_price": 45.47,
+      "current_price": 40.96,
+      "return": -0.101525,
+      "return_pct": -10.1525,
+      "weight": 0.281025,
+      "included": true
+    },
+    {
+      "ticker": "USIM5",
+      "entry_price": 9.12,
+      "current_price": 10.95,
+      "return": 0.19754,
+      "return_pct": 19.754,
+      "weight": 0.139109,
+      "included": true
+    },
+    {
+      "ticker": "INTB3",
+      "entry_price": 14.65,
+      "current_price": 13.52,
+      "return": -0.079529,
+      "return_pct": -7.9529,
+      "weight": 0.183388,
+      "included": true
+    },
+    {
+      "ticker": "ABEV3",
+      "entry_price": 15.69,
+      "current_price": 16.08,
+      "return": 0.022195,
+      "return_pct": 2.2195,
+      "weight": 0.192159,
+      "included": true
+    },
+    {
+      "ticker": "VALE3",
+      "entry_price": 83.5,
+      "current_price": 77.56,
+      "return": -0.07355,
+      "return_pct": -7.355,
+      "weight": 0.204319,
+      "included": true
+    }
+  ],
+  "previous_top5": [
+    "PETR4",
+    "USIM5",
+    "INTB3",
+    "ABEV3",
+    "VALE3"
+  ],
+  "attribution": {
+    "per_ticker": [
+      {
+        "ticker": "USIM5",
+        "sector": "Materiais Básicos",
+        "weight": 0.1391,
+        "return": 0.1975,
+        "contribution": 0.02748
+      },
+      {
+        "ticker": "ABEV3",
+        "sector": "Consumo Não Cíclico",
+        "weight": 0.1922,
+        "return": 0.0222,
+        "contribution": 0.00426
+      },
+      {
+        "ticker": "INTB3",
+        "sector": "Tecnologia da Informação",
+        "weight": 0.1834,
+        "return": -0.0795,
+        "contribution": -0.01458
+      },
+      {
+        "ticker": "VALE3",
+        "sector": "Materiais Básicos",
+        "weight": 0.2043,
+        "return": -0.0736,
+        "contribution": -0.01503
+      },
+      {
+        "ticker": "PETR4",
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "weight": 0.281,
+        "return": -0.1015,
+        "contribution": -0.02853
+      }
+    ],
+    "per_sector": [
+      {
+        "sector": "Materiais Básicos",
+        "n_tickers": 2,
+        "weight": 0.3434,
+        "weighted_return": 0.01245,
+        "sector_return": 0.0363,
+        "alpha_vs_ibov": 0.084
+      },
+      {
+        "sector": "Consumo Não Cíclico",
+        "n_tickers": 1,
+        "weight": 0.1922,
+        "weighted_return": 0.00426,
+        "sector_return": 0.0222,
+        "alpha_vs_ibov": 0.07
+      },
+      {
+        "sector": "Tecnologia da Informação",
+        "n_tickers": 1,
+        "weight": 0.1834,
+        "weighted_return": -0.01458,
+        "sector_return": -0.0795,
+        "alpha_vs_ibov": -0.0318
+      },
+      {
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "n_tickers": 1,
+        "weight": 0.281,
+        "weighted_return": -0.02853,
+        "sector_return": -0.1015,
+        "alpha_vs_ibov": -0.0538
+      }
+    ],
+    "total_active_return": 0.02136
+  },
+  "generated_at": "2026-06-08T14:45:17.384772"
+}
