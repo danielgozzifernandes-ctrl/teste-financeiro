@@ -4,13 +4,15 @@ Sistema automatizado de recomendação de ações da B3 (universo ~97 tickers do
 
 ## O que faz
 
+- **Decide a alocação de capital** ("investidor absoluto"): split entre 4 sleeves — carteira B3 / CDI / IVVB11 (S&P+dólar) / IMAB11 (juro real) — por regime HMM + ERP implícito + time-series momentum 12-1. Com Selic alta, *quanto* estar em bolsa importa mais que *qual* ação (Brinson 1986).
 - **Coleta** fundamentos + OHLC de ~97 tickers via [brapi.dev](https://brapi.dev) + yfinance (fallback), com cache diário e suporte point-in-time (`universe_at(date)`).
-- **Pontua** cada ação (0–100) com normalização adaptativa por setor (z-score setorial / percentil setorial / z-score global) sobre três pilares e sub-fatores estilo Fama-French/QMJ.
-- **Adapta os pesos ao regime de mercado** (risk_on / mean_rev / bear) detectado por HMM 2-estados (fallback para detector IBOV×MA200 + VIX).
-- **Constrói a carteira** do top-5 com HRP (Hierarchical Risk Parity, Ledoit-Wolf) e *volatility targeting*, com diversificação por empresa/sub-setor/setor/tema macro e *turnover band* anti-churn.
-- **Mede a performance** da carteira anterior vs IBOVESPA/CDI/SELIC (ADV-friction + Brinson attribution) e acumula métricas de validação (Factor IC, walk-forward, decomposição de risco).
+- **Pontua** cada ação (0–100) com normalização adaptativa por setor (z-score setorial / percentil setorial / z-score global) sobre três pilares e sub-fatores estilo Fama-French/QMJ. Momentum em convenção 12-1 (skip-month).
+- **Detecta o regime de mercado** (risk_on / mean_rev / bear) por HMM 2-estados — o regime alimenta a camada de alocação; os pesos por regime no *scoring* estão congelados até validação por IC (n≥8).
+- **Constrói a carteira** do top-5 com HRP (linkage ward, Ledoit-Wolf), **cap/floor de peso por posição (30%/5%)** e *volatility targeting* (≤100%, caixa liberado migra pro CDI), com diversificação por empresa/sub-setor/setor/tema macro e *turnover band* anti-churn.
+- **Executa como PF**: folha de ordens em quantidades fracionárias para um capital real (`--capital`), nota de IR (isenção R$20k/mês), e stops do trade advisor **monitorados todo fechamento** com alerta de rompimento.
+- **Mede a performance** em três camadas: equity curve diária (NAV da carteira completa E do sleeve bolsa vs **CDI** e IBOV, com banda de ruído do alpha), backtest semanal rec-vs-preços (ADV-friction + Brinson) e backtest da camada de alocação com 10 anos de ETFs reais.
 - **Reporta** via Telegram com gráfico de performance e alertas de concentração e de qualidade de dados.
-- Roda 100% no **GitHub Actions** (semanal, mensal, diário manhã/fechamento, scanner de oportunidades).
+- Roda 100% no **GitHub Actions** (semanal, mensal, diário manhã/fechamento, scanner de oportunidades), commitando o histórico de volta ao repo.
 
 > **Honestidade de maturidade:** o motor de scoring é robusto e auditável (cada recomendação traz `why` + `norm_details` rastreáveis). As métricas de validação (IC, walk-forward, track record) só ganham significância com **histórico real acumulado** — veja [Validação e limitações](#validação-e-limitações). Não é "elite hedge fund": é buy-side institucional simplificado.
 
@@ -110,6 +112,12 @@ python main.py --validate-token
 
 # Debug verbose
 python main.py --mode weekly --dry-run --debug
+
+# Folha de ordens executável para um capital real (qty fracionária + IR)
+python main.py --mode weekly --dry-run --capital 50000
+
+# Backtest da camada de alocação (10 anos de ETFs reais)
+python -m src.allocation_backtest --years 10
 ```
 
 ## Modelo de scoring
@@ -122,13 +130,9 @@ Pesos-base dos pilares (regime `mean_rev`; variam por regime — ver abaixo):
 | Momentum | 30% | Alpha 3m/6m/12m vs IBOV, momentum idiossincrático (resíduo OLS), PEAD, revisões/preço-alvo de analistas |
 | Qualidade/Risco | 25% | Volatilidade 180d (Yang-Zhang), Beta, Volume médio 30d |
 
-**Pesos adaptativos ao regime** (detectado por HMM 2-estados, fallback IBOV×MA200 + VIX):
+**Pesos por regime no scoring: CONGELADOS** (`ENABLE_REGIME_ADAPTIVE_WEIGHTS=False`). Os três conjuntos de pesos por regime nunca foram validados (IC com n≈2); o regime detectado pelo HMM alimenta apenas a **camada de alocação de capital**, onde a regra é backtestável com 10 anos de dados de ETF (`python -m src.allocation_backtest`).
 
-| Regime | Fundamental | Momentum | Qualidade |
-|--------|-------------|----------|-----------|
-| risk_on | 30% | 50% | 20% |
-| mean_rev | 50% | 20% | 30% |
-| bear | 30% | 10% | 60% |
+**Camada de alocação (investidor absoluto):** base por regime (risk_on 60% / mean_rev 40% / bear 20% em bolsa) com tilts de ±10pp por ERP implícito (EY da carteira − Selic) e TSMOM 12-1 do IBOV vs CDI; bolsa limitada a [10%, 70%]. Resultado honesto do backtest 2016–2026: o mix **estático** 40/30/15/15 teve Sharpe melhor que as regras dinâmicas (0,34 vs 0,21) — o ganho robusto da camada é a *diversificação em si* (≈ retorno da bolsa pura com metade da vol/drawdown), não o timing.
 
 **Normalização adaptativa por setor:** N ≥ 8 → z-score setorial · N ∈ [4,7] → percentil setorial · N < 4 → z-score global.
 
@@ -156,6 +160,18 @@ O sistema acumula, a cada execução, três artefatos de validação em `data/`:
 python -m src.factor_analysis      # regenera data/factor_ic.json
 python -m src.walk_forward         # regenera data/walk_forward.json
 ```
+
+## 🔴 Próximo passo crítico: dados Bloomberg (Insper)
+
+O maior limitador do sistema hoje é **dado, não modelo**: universo com survivorship bias, sem consenso de EPS real, sem fundamentos point-in-time. Tudo isso se resolve com **1 ida ao lab do Insper** com Bloomberg Terminal.
+
+**→ Passo a passo completo em [`docs/BLOOMBERG_DOWNLOAD.md`](docs/BLOOMBERG_DOWNLOAD.md)** (script pronto em `tools/bloomberg_download.py`).
+
+Prioridade dos downloads (bang/buck):
+1. **Composição histórica do IBX/IBrA** — mata o survivorship bias do universo (destrava walk-forward honesto)
+2. **BEst EPS + Reported EPS** — SUE real para o fator PEAD
+3. **BEst Target Price (mean/high/low + nº analistas)** — upside com dispersão real
+4. Short interest, PIT fundamentals, recommendation distribution
 
 ## Disclaimer
 
