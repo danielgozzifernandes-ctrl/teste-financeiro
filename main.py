@@ -27,6 +27,7 @@ Exit codes:
 
 import argparse
 import logging
+import os
 import sys
 from datetime import date, datetime
 from pathlib import Path
@@ -43,6 +44,7 @@ from src.config import (
     OUTPUT_DIR,
     HISTORY_DIR,
     CACHE_DIR,
+    ENABLE_ASSET_ALLOCATION,
     LOG_LEVEL,
     CHART_OUTPUT_PATH,
     HMM_MIN_HISTORY_DAYS,
@@ -116,6 +118,15 @@ def _parse_args(argv: Optional[list] = None) -> argparse.Namespace:
         "--validate-token",
         action="store_true",
         help="Valida o token do Telegram e encerra",
+    )
+    parser.add_argument(
+        "--capital",
+        type=float,
+        default=float(os.getenv("PORTFOLIO_CAPITAL_BRL", "0") or 0),
+        metavar="R$",
+        help="Capital total em R$ — gera folha de ordens executável "
+             "(qty no fracionário, sleeves em R$, nota de IR). "
+             "Também aceita env PORTFOLIO_CAPITAL_BRL.",
     )
     return parser.parse_args(argv)
 
@@ -454,6 +465,7 @@ def run(args: argparse.Namespace) -> int:
     # Turnover band: reduz rotação ruidosa dando bônus de TURNOVER_BAND_PTS
     # aos tickers que já estavam na carteira anterior. Aplicado ANTES do
     # diversificador para que ele veja o ordenamento ajustado.
+    incumbents: list = []
     try:
         prev_snap = SnapshotManager()
         prev_rec = prev_snap.load_latest_recommendation(mode=mode)
@@ -502,15 +514,44 @@ def run(args: argparse.Namespace) -> int:
             declared_universe or -1, n_collected, n_scored,
         )
 
-    # ── 4. Snapshot de preços + recomendação atual ────────────────────────
-    logger.info("Etapa 4/7 — Salvando snapshots...")
+    # ── 3c. Asset allocation (camada "investidor absoluto") ──────────────
+    # Decide QUANTO estar em bolsa antes de QUAL ação — a decisão dominante
+    # com Selic alta. Sinais: regime HMM + ERP implícito + TSMOM 12-1.
+    allocation = None
+    if ENABLE_ASSET_ALLOCATION:
+        try:
+            from src.allocator import (
+                compute_allocation,
+                portfolio_earnings_yield,
+                selic_annual_from_daily,
+            )
+            selic_series = (
+                benchmark_returns["selic"]
+                if "selic" in benchmark_returns.columns else None
+            )
+            cdi_series = (
+                benchmark_returns["cdi"]
+                if "cdi" in benchmark_returns.columns else None
+            )
+            allocation = compute_allocation(
+                regime=market_regime,
+                portfolio_earnings_yield=portfolio_earnings_yield(df_scored),
+                selic_annual=selic_annual_from_daily(selic_series),
+                ibov_prices=ibov_prices,
+                cdi_daily_returns=cdi_series,
+            )
+        except Exception as exc:
+            logger.warning("Asset allocation falhou (não crítico): %s", exc, exc_info=True)
+
+    # ── 4. Snapshot de preços ─────────────────────────────────────────────
+    # A recomendação é salva DEPOIS do trade advice (etapa 4b) para persistir
+    # stops/targets no JSON — o stop-monitor do closing diário depende disso.
+    logger.info("Etapa 4/7 — Salvando snapshot de preços...")
     snap = SnapshotManager()
     try:
         snap.save_price_snapshot(df_prices=df_prices, run_date=run_date)
-        snap.save_recommendation(df_scored=df_scored, df_prices=df_prices,
-                                 run_date=run_date, mode=mode)
     except Exception as exc:
-        logger.warning("Snapshot falhou (não crítico): %s", exc)
+        logger.warning("Snapshot de preços falhou (não crítico): %s", exc)
 
     # ── 4b. Análise técnica + trade advice para o top 5 ──────────────────
     logger.info("Etapa 4b/7 — Análise técnica e trade advice do top 5...")
@@ -545,6 +586,50 @@ def run(args: argparse.Namespace) -> int:
         logger.info("Trade advice calculado para %d tickers.", len(trade_advice))
     except Exception as exc:
         logger.warning("Trade advice falhou (não crítico): %s", exc, exc_info=True)
+
+    # ── 4c. Salvar recomendação (com allocation + stops persistidos) ─────
+    try:
+        rec_path = snap.save_recommendation(
+            df_scored=df_scored, df_prices=df_prices,
+            run_date=run_date, mode=mode,
+            allocation=allocation, trade_advice=trade_advice or None,
+        )
+        # Recarregar a allocation FINAL (gross do vol-target é aplicado dentro
+        # do save) para que o relatório mostre exatamente o que foi persistido.
+        saved_rec: dict = {}
+        try:
+            import json as _json
+            with open(rec_path, encoding="utf-8") as _f:
+                saved_rec = _json.load(_f)
+            allocation = saved_rec.get("allocation") or allocation
+        except Exception:
+            pass
+    except Exception as exc:
+        logger.warning("Snapshot de recomendação falhou (não crítico): %s", exc)
+        saved_rec = {}
+
+    # ── 4d. Order sheet: pesos → ordens executáveis para o capital real ──
+    order_sheet = None
+    if args.capital and args.capital > 0:
+        try:
+            from src.order_sheet import build_order_sheet
+            last_prices = (
+                df_prices.iloc[-1].to_dict() if not df_prices.empty else {}
+            )
+            order_sheet = build_order_sheet(
+                capital_brl=args.capital,
+                allocation=allocation,
+                portfolio_weights=saved_rec.get("portfolio_weights") or {},
+                ticker_prices=last_prices,
+                previous_tickers=incumbents or None,
+            )
+            if order_sheet:
+                logger.info(
+                    "Order sheet gerada para R$ %.2f (%d ordens de bolsa)",
+                    args.capital, len(order_sheet.get("equity_orders", [])),
+                )
+        except Exception as exc:
+            logger.warning("Order sheet falhou (não crítico): %s", exc, exc_info=True)
 
     # ── 5. Backtesting ────────────────────────────────────────────────────
     logger.info("Etapa 5/7 — Executando backtesting...")
@@ -648,6 +733,8 @@ def run(args: argparse.Namespace) -> int:
             run_date=run_date,
             trade_advice=trade_advice,
             regime=market_regime,
+            allocation=allocation,
+            order_sheet=order_sheet,
         )
         logger.info("Relatório construído: %d caracteres.", len(report_text))
     except Exception as exc:

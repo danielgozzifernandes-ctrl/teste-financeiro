@@ -182,6 +182,96 @@ def _portfolio_return(ticker_returns: dict[str, float]) -> float:
     return float(np.mean(valid)) if valid else 0.0
 
 
+def _weighted_portfolio_return(
+    ticker_returns: dict[str, float],
+    weights: Optional[dict[str, float]],
+) -> float:
+    """
+    Retorno do sleeve de bolsa com os pesos REAIS da recomendação (HRP com
+    bounds), renormalizados sobre os tickers com retorno válido. Medir em
+    equal-weight enquanto se recomenda HRP é medir outra carteira.
+    Fallback: equal-weight quando a recomendação não tem pesos.
+    """
+    if not weights:
+        return _portfolio_return(ticker_returns)
+    num = den = 0.0
+    for t, r in ticker_returns.items():
+        if r is None or (isinstance(r, float) and np.isnan(r)):
+            continue
+        w = weights.get(t)
+        if w and w > 0:
+            num += w * r
+            den += w
+    return num / den if den > 0 else _portfolio_return(ticker_returns)
+
+
+def _fetch_etf_daily_returns(symbols: dict[str, str]) -> dict[str, Optional[float]]:
+    """
+    Retorno diário (último pregão) dos ETFs dos sleeves não-bolsa.
+
+    Args: symbols: {sleeve: "IVVB11.SA", ...}
+    Returns: {sleeve: retorno decimal ou None se indisponível}
+    """
+    out: dict[str, Optional[float]] = {s: None for s in symbols}
+    try:
+        raw = yf.download(
+            tickers=list(symbols.values()),
+            period="5d", auto_adjust=True, progress=False,
+        )
+        if raw is None or raw.empty:
+            return out
+        close = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw[["Close"]]
+        for sleeve, sym in symbols.items():
+            col = close[sym] if sym in close.columns else None
+            if col is None:
+                continue
+            clean = col.dropna()
+            if len(clean) >= 2:
+                out[sleeve] = float(clean.iloc[-1] / clean.iloc[-2] - 1.0)
+    except Exception as exc:
+        logger.warning("_fetch_etf_daily_returns: %s", exc)
+    return out
+
+
+def _blended_daily_return(
+    recommendation: Optional[dict],
+    equity_sleeve_return: float,
+    cdi_daily: Optional[float],
+) -> Optional[float]:
+    """
+    Retorno diário da CARTEIRA COMPLETA recomendada (todos os sleeves).
+
+    Esta é a régua do investidor absoluto: o sistema recomenda um split de
+    capital — medir só o sleeve de bolsa é medir outra carteira. Retorna
+    None quando a recomendação não tem allocation (recs antigas) — lacuna
+    declarada, não inventada.
+
+    Sleeve sem retorno disponível entra com 0 no dia (conservador para CDI
+    em feriado; para ETFs, falha de fetch vira lacuna de 1 dia, auditável
+    no log).
+    """
+    sleeves = ((recommendation or {}).get("allocation") or {}).get("sleeves") or {}
+    if not sleeves:
+        return None
+
+    etf_rets = _fetch_etf_daily_returns({
+        "global_usd": "IVVB11.SA",
+        "inflation":  "IMAB11.SA",
+    })
+    sleeve_rets: dict[str, Optional[float]] = {
+        "equities_br": equity_sleeve_return,
+        "cdi":         cdi_daily,
+        **etf_rets,
+    }
+    missing = [s for s, r in sleeve_rets.items() if s in sleeves and r is None]
+    if missing:
+        logger.warning("Sleeves sem retorno hoje (entram com 0): %s", missing)
+
+    return float(sum(
+        w * (sleeve_rets.get(s) or 0.0) for s, w in sleeves.items()
+    ))
+
+
 def _calc_cumulative_returns(
     ticker_prices: dict[str, float],
     entry_prices: dict[str, float],
@@ -196,6 +286,26 @@ def _calc_cumulative_returns(
         if entry and entry > 0 and current and current > 0:
             result[ticker] = (current / entry) - 1
     return result
+
+
+def _fetch_cdi_daily() -> Optional[float]:
+    """
+    Última taxa diária do CDI via BCB (python-bcb, série 12).
+
+    Best-effort: retorna None em falha — a equity curve usa a última taxa
+    conhecida como fallback (CDI é taxa administrada, muda raramente).
+    """
+    try:
+        from src.benchmark import BenchmarkManager
+        start = (date.today() - timedelta(days=15)).strftime("%Y-%m-%d")
+        df = BenchmarkManager().get_returns(start)
+        if "cdi" in df.columns:
+            clean = df["cdi"].dropna()
+            if not clean.empty:
+                return float(clean.iloc[-1])
+    except Exception as exc:
+        logger.warning("_fetch_cdi_daily: %s", exc)
+    return None
 
 
 def _fetch_ibov_cumulative(rec_date: str) -> Optional[float]:
@@ -381,7 +491,12 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
         logger.error("Sem dados de preço para hoje — mercado fechado ou dados indisponíveis")
         return 1
 
-    port_return = _portfolio_return(ticker_returns)
+    # Retorno do sleeve de bolsa com os pesos REAIS da recomendação (HRP
+    # com bounds) — medir equal-weight enquanto se recomenda HRP é medir
+    # outra carteira.
+    port_return = _weighted_portfolio_return(
+        ticker_returns, recommendation.get("portfolio_weights"),
+    )
 
     # Cumulative returns since recommendation
     entry_prices: dict[str, float] = recommendation.get("entry_prices", {})
@@ -395,6 +510,35 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
         (cumulative_portfolio or 0) * 100,
         (ibov_cumulative or 0) * 100,
     )
+
+    # Step 1b: Stop monitor — stops persistidos na recomendação viram alertas
+    # acionáveis. Sem isso, stop é decoração (PETR4 caiu −10% em mai/2026 sem
+    # nenhum aviso).
+    stop_alerts: list = []
+    try:
+        from src.stop_monitor import check_levels
+        stop_alerts = check_levels(recommendation, ticker_prices)
+    except Exception as exc:
+        logger.warning("Stop monitor falhou (não crítico): %s", exc)
+
+    # Step 1c: Equity curve — NAV encadeado vs IBOV e CDI (a régua absoluta).
+    equity_summary: Optional[dict] = None
+    noise_band_pp: Optional[float] = None
+    try:
+        from src.equity_curve import alpha_noise_band_pp, update_equity_curve
+        cdi_daily = _fetch_cdi_daily()
+        # Carteira COMPLETA (todos os sleeves) — a régua absoluta de verdade
+        blended_return = _blended_daily_return(recommendation, port_return, cdi_daily)
+        equity_summary = update_equity_curve(
+            run_date=run_date,
+            portfolio_daily_return=port_return,
+            ibov_daily_return=ibov_return,
+            cdi_daily_return=cdi_daily,
+            blended_daily_return=blended_return,
+        )
+        noise_band_pp = alpha_noise_band_pp()
+    except Exception as exc:
+        logger.warning("Equity curve falhou (não crítico): %s", exc, exc_info=True)
 
     # Step 2: Volume ratios (from intraday)
     volume_ratios: dict[str, float] = {}
@@ -441,6 +585,9 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
             cumulative_portfolio_return=cumulative_portfolio,
             ibov_cumulative_return=ibov_cumulative,
             recommendation_date=rec_date,
+            stop_alerts=stop_alerts,
+            equity_summary=equity_summary,
+            noise_band_pp=noise_band_pp,
         )
         logger.info("Relatório de fechamento: %d caracteres", len(report_text))
     except Exception as exc:

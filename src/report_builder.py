@@ -156,6 +156,8 @@ class ReportBuilder:
         run_date: Optional[str] = None,
         trade_advice: Optional[dict] = None,
         regime: Optional[str] = None,
+        allocation: Optional[dict] = None,
+        order_sheet: Optional[dict] = None,
     ) -> str:
         """
         Monta a mensagem completa em MarkdownV2.
@@ -177,7 +179,21 @@ class ReportBuilder:
         sections: list[str] = []
 
         sections.append(self._header(mode, run_date, regime))
+
+        # Asset allocation primeiro: a decisão de QUANTO estar em bolsa
+        # precede a de QUAL ação comprar.
+        if allocation:
+            alloc_section = self._allocation_section(allocation)
+            if alloc_section:
+                sections.append(alloc_section)
+
         sections.append(self._top5_section(df_scored, trade_advice or {}))
+
+        # Folha de ordens (apenas quando --capital foi informado)
+        if order_sheet:
+            os_section = self._order_sheet_section(order_sheet)
+            if os_section:
+                sections.append(os_section)
 
         # Alerta de concentração (theme/setor) — só aparece se houver risco real
         warn = self._concentration_warning(df_scored)
@@ -233,13 +249,107 @@ class ReportBuilder:
         ]
 
         if regime:
+            # Regime informa a ALOCAÇÃO (seção própria), não os pesos de
+            # pilar do scoring — esses estão congelados (config:
+            # ENABLE_REGIME_ADAPTIVE_WEIGHTS=False, nunca validados).
             regime_labels = {
-                "risk_on":  "Risk\\-On  🟢  Fund 30% · Mom 50% · Qual 20%",
-                "mean_rev": "Mean\\-Rev 🟡  Fund 50% · Mom 20% · Qual 30%",
-                "bear":     "Bear      🔴  Fund 30% · Mom 10% · Qual 60%",
+                "risk_on":  "Risk\\-On 🟢",
+                "mean_rev": "Mean\\-Rev 🟡",
+                "bear":     "Bear 🔴",
             }
             regime_str = regime_labels.get(regime, escape(regime))
             lines.append(f"🌡 {italic_pre(f'Regime: {regime_str}')}")
+
+        return "\n".join(lines)
+
+    _SLEEVE_LABELS: dict[str, str] = {
+        "equities_br": "🇧🇷 Bolsa BR (Top 5 abaixo)",
+        "cdi":         "🏦 CDI / Tesouro Selic",
+        "global_usd":  "🌎 IVVB11 (S&P 500 + dólar)",
+        "inflation":   "📈 IMAB11 (NTN-B, juro real)",
+    }
+
+    def _allocation_section(self, allocation: dict) -> str:
+        """
+        Seção de asset allocation — o split de capital entre sleeves.
+
+        Mostrada ANTES do top-5: com Selic alta, quanto estar em bolsa é a
+        decisão dominante. Inclui os sinais (ERP, TSMOM) de forma compacta.
+        """
+        sleeves = allocation.get("sleeves") or {}
+        if not sleeves:
+            return ""
+
+        lines = [f"🧭 {bold('Alocação de Capital')}"]
+        for sleeve, label in self._SLEEVE_LABELS.items():
+            w = sleeves.get(sleeve)
+            if w is None:
+                continue
+            pct = f"{w * 100:.0f}%".rjust(4)
+            lines.append(f"   {bold_pre(pct)}  {escape(label)}")
+
+        signals = allocation.get("signals") or {}
+        detail_parts = []
+        if signals.get("erp") is not None:
+            detail_parts.append(f"ERP {signals['erp'] * 100:+.1f}pp")
+        if signals.get("tsmom") is not None:
+            detail_parts.append(f"TSMOM 12-1 {signals['tsmom'] * 100:+.1f}pp")
+        if signals.get("selic_annual") is not None:
+            detail_parts.append(f"Selic {signals['selic_annual'] * 100:.1f}%")
+        ge = signals.get("gross_exposure")
+        if ge is not None and ge < 1.0:
+            detail_parts.append(f"vol-target {ge * 100:.0f}%")
+        if detail_parts:
+            lines.append(italic("Sinais: " + " · ".join(detail_parts)))
+
+        return "\n".join(lines)
+
+    def _order_sheet_section(self, order_sheet: dict) -> str:
+        """
+        Folha de ordens executável: sleeves em R$, quantidades no fracionário,
+        rotação e nota de IR. Só aparece quando --capital foi informado.
+        """
+        capital = order_sheet.get("capital_brl")
+        if not capital:
+            return ""
+
+        lines = [f"🧾 {bold('Folha de Ordens')} {italic(f'(capital R$ {capital:,.0f})')}"]
+
+        sleeve_values = order_sheet.get("sleeve_values") or {}
+        for sleeve, label in self._SLEEVE_LABELS.items():
+            v = sleeve_values.get(sleeve)
+            if v is None:
+                continue
+            lines.append(f"   {escape(label)}: {bold_pre(f'R$ {v:,.0f}')}")
+
+        orders = order_sheet.get("equity_orders") or []
+        if orders:
+            lines.append(italic("Ordens (mercado fracionário):"))
+            for o in orders:
+                if o.get("qty") is None:
+                    lines.append(
+                        f"   {bold(o['ticker'])}: "
+                        + escape(f"R$ {o['target_brl']:,.0f} — {o.get('note', '')}")
+                    )
+                else:
+                    lines.append(
+                        f"   {bold(o['ticker'])}: "
+                        + escape(
+                            f"{o['qty']}x @ R$ {o['price']:.2f} "
+                            f"= R$ {o['value_brl']:,.0f}"
+                        )
+                    )
+
+        rotation = order_sheet.get("rotation")
+        if rotation:
+            if rotation.get("exits"):
+                lines.append("   " + escape("Sai: " + ", ".join(rotation["exits"])))
+            if rotation.get("entries"):
+                lines.append("   " + escape("Entra: " + ", ".join(rotation["entries"])))
+
+        tax_note = order_sheet.get("tax_note")
+        if tax_note:
+            lines.append(italic(tax_note))
 
         return "\n".join(lines)
 
@@ -600,6 +710,11 @@ def build_report(
     run_date: Optional[str] = None,
     trade_advice: Optional[dict] = None,
     regime: Optional[str] = None,
+    allocation: Optional[dict] = None,
+    order_sheet: Optional[dict] = None,
 ) -> str:
     """Ponto de entrada simplificado para main.py."""
-    return ReportBuilder().build(df_scored, backtest_result, mode, run_date, trade_advice, regime)
+    return ReportBuilder().build(
+        df_scored, backtest_result, mode, run_date, trade_advice, regime,
+        allocation=allocation, order_sheet=order_sheet,
+    )

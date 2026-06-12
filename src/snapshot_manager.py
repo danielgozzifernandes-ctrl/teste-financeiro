@@ -41,6 +41,8 @@ from src.config import (
     HISTORY_DIR,
     HRP_COVARIANCE_METHOD,
     HRP_LOOKBACK_DAYS,
+    MAX_POSITION_WEIGHT,
+    MIN_POSITION_WEIGHT,
     UNIVERSE_FILE,
     USE_HRP_WEIGHTS,
     VOL_TARGET_ANNUAL,
@@ -210,6 +212,8 @@ class SnapshotManager:
         mode: str,
         run_date: Optional[str | date] = None,
         top_n: int = 10,
+        allocation: Optional[dict] = None,
+        trade_advice: Optional[dict] = None,
     ) -> Path:
         """
         Salva o output do ScoringEngine em JSON estruturado.
@@ -226,6 +230,12 @@ class SnapshotManager:
             mode:       "weekly" ou "monthly".
             run_date:   Data de referência; default = hoje.
             top_n:      Quantos tickers salvar além do top-5 (máx 10 recomendado).
+            allocation: Saída do allocator (sleeves bolsa/CDI/global/inflação).
+                        O gross_exposure do vol-targeting é aplicado AQUI
+                        (bolsa↓ → CDI↑) para que o JSON persista a alocação
+                        final executável.
+            trade_advice: {ticker: {entry/stop/target/...}} do TradeAdvisor.
+                        Persistido para o stop-monitor do closing diário.
 
         Returns:
             Path do arquivo JSON salvo.
@@ -259,6 +269,18 @@ class SnapshotManager:
         vol_target_info = _apply_volatility_targeting(
             portfolio_weights, df_prices, risk_metrics,
         )
+
+        # Allocation final: aplicar o gross do vol-target sobre o sleeve de
+        # bolsa (capital liberado migra para CDI — caixa nunca fica "no ar").
+        if allocation is not None:
+            try:
+                from src.allocator import apply_gross_exposure
+                allocation = apply_gross_exposure(
+                    allocation,
+                    float(vol_target_info.get("gross_exposure", 1.0)),
+                )
+            except Exception as exc:
+                logger.warning("apply_gross_exposure falhou (%s) — allocation crua", exc)
 
         # Validar cobertura: backtester depende de entry_prices para todo o top-N
         top_n_tickers = df_scored.head(top_n)["ticker"].tolist()
@@ -298,6 +320,8 @@ class SnapshotManager:
             "weights":                WEIGHTS,
             "entry_prices":           entry_prices,
             "portfolio_weights":      portfolio_weights,
+            "allocation":             allocation,
+            "trade_advice":           trade_advice,
             "full_universe_scores":   full_universe_scores,
             "execution_metadata": {
                 "universe_size":      len(df_scored),
@@ -768,13 +792,19 @@ def _compute_portfolio_weights(
         #              Gaussiana e N pequeno.
         #   "hist"   — covariância amostral (sem shrinkage).
         # δ é derivado analiticamente — NÃO setar shrinkage_constant manual.
+        # linkage "ward" em vez de "single": single-linkage sofre de chaining
+        # (clusters degenerados em N pequeno) e foi a causa direta da
+        # concentração de 63% em NEOE3 — todos os demais ativos viraram um
+        # único cluster correlacionado e o low-vol isolado levou o peso.
+        # Ward produz clusters balanceados e é o padrão em implementações
+        # HRP modernas para N < 20.
         w = port.optimization(
             model="HRP",
             codependence="pearson",
             method_cov=HRP_COVARIANCE_METHOD,
             rm="MV",
             rf=0,
-            linkage="single",
+            linkage="ward",
             max_k=10,
             leaf_order=True,
         )
@@ -797,9 +827,13 @@ def _compute_portfolio_weights(
         # Normalizar para somar 1.0
         total = sum(weights.values())
         if total > 0:
-            weights = {t: round(w / total, 6) for t, w in weights.items()}
+            weights = {t: w / total for t, w in weights.items()}
 
-        logger.info("Pesos HRP: %s", weights)
+        # Cap/floor por posição — HRP cru concentra em low-vol (ver
+        # _apply_weight_bounds). Aplicado por último, sobre pesos normalizados.
+        weights = _apply_weight_bounds(weights)
+
+        logger.info("Pesos HRP (com bounds): %s", weights)
         return weights, "hrp"
 
     except Exception as exc:
@@ -836,7 +870,66 @@ def _compute_inv_vol_weights(df_scored: pd.DataFrame, n: int = 5) -> dict[str, f
     full_weights = {t: inv_vols.get(t, mean_iv) for t in tickers}
     total_full = total_known + mean_iv * n_missing
 
-    return {t: round(w / total_full, 6) for t, w in full_weights.items()}
+    return _apply_weight_bounds(
+        {t: w / total_full for t, w in full_weights.items()}
+    )
+
+
+def _apply_weight_bounds(
+    weights: dict[str, float],
+    cap: float = MAX_POSITION_WEIGHT,
+    floor: float = MIN_POSITION_WEIGHT,
+) -> dict[str, float]:
+    """
+    Aplica cap/floor por posição com redistribuição proporcional iterativa.
+
+    Sem isso, HRP em portfólios de 5 ativos concentra no ativo de menor vol
+    (NEOE3 recebeu 63,4% em 08/06/2026). O excedente acima do cap é
+    redistribuído proporcionalmente entre as posições não-capadas; posições
+    abaixo do floor são elevadas. Se cap×N < 1 (bounds inviáveis), degrada
+    para equal-weight.
+    """
+    n = len(weights)
+    if n == 0:
+        return weights
+    if cap * n < 1.0 or floor * n > 1.0:
+        logger.warning(
+            "Bounds inviáveis (cap=%.2f, floor=%.2f, n=%d) — equal-weight",
+            cap, floor, n,
+        )
+        return {t: round(1.0 / n, 6) for t in weights}
+
+    # Normalizar entrada (defensivo)
+    total = sum(max(v, 0.0) for v in weights.values())
+    if total <= 0:
+        return {t: round(1.0 / n, 6) for t in weights}
+    w = {t: max(v, 0.0) / total for t, v in weights.items()}
+
+    for _ in range(50):
+        w = {t: max(v, floor) for t, v in w.items()}
+        capped = {t for t, v in w.items() if v >= cap}
+        free = [t for t in w if t not in capped]
+        if not free:
+            w = {t: 1.0 / n for t in w}
+            break
+        w = {t: (cap if t in capped else w[t]) for t in w}
+        remaining = 1.0 - cap * len(capped)
+        free_sum = sum(w[t] for t in free)
+        if free_sum <= 0:
+            share = remaining / len(free)
+            w.update({t: share for t in free})
+        else:
+            w.update({t: w[t] / free_sum * remaining for t in free})
+        # Convergiu se nenhuma posição livre viola bounds
+        if all(floor - 1e-9 <= w[t] <= cap + 1e-9 for t in free):
+            break
+
+    total = sum(w.values())
+    bounded = {t: round(v / total, 6) for t, v in w.items()}
+    if bounded != {t: round(v, 6) for t, v in weights.items()}:
+        logger.info("Pesos após bounds (cap=%.0f%%, floor=%.0f%%): %s",
+                    cap * 100, floor * 100, bounded)
+    return bounded
 
 
 def _row_to_recommendation(row: pd.Series, entry_price: Optional[float]) -> dict:

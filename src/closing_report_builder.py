@@ -20,7 +20,7 @@ from typing import Optional
 import numpy as np
 
 from src.report_builder import (
-    bold, bold_pre, escape, fmt_float, fmt_pct, italic, italic_pre,
+    bold, bold_pre, escape, fmt_float, fmt_pct, fmt_pp, italic, italic_pre,
 )
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,9 @@ class ClosingReportBuilder:
         cumulative_portfolio_return: Optional[float] = None,
         ibov_cumulative_return: Optional[float] = None,
         recommendation_date: Optional[str] = None,
+        stop_alerts: Optional[list[dict]] = None,
+        equity_summary: Optional[dict] = None,
+        noise_band_pp: Optional[float] = None,
     ) -> str:
         """
         Assembles the full closing report.
@@ -87,12 +90,21 @@ class ClosingReportBuilder:
             cumulative_portfolio_return: Equal-weight cumulative portfolio return since rec
             ibov_cumulative_return:      IBOV cumulative return since recommendation date
             recommendation_date:         Date the recommendation was made (YYYY-MM-DD)
+            stop_alerts:                 Saída do stop_monitor.check_levels()
+            equity_summary:              Saída do equity_curve.summarize()
+            noise_band_pp:               1σ do alpha diário em pp (banda de ruído)
 
         Returns:
             MarkdownV2 string.
         """
         sections = []
         sections.append(self._header(run_date))
+
+        # Alertas de stop PRIMEIRO — é a única parte acionável do relatório.
+        alerts_section = self._stop_alerts_section(stop_alerts or [])
+        if alerts_section:
+            sections.append(alerts_section)
+
         sections.append(
             self._tickers_section(
                 ticker_returns, ticker_prices,
@@ -104,9 +116,12 @@ class ClosingReportBuilder:
             self._summary_section(
                 ticker_returns, ibov_return, portfolio_return,
                 cumulative_portfolio_return, ibov_cumulative_return,
-                recommendation_date,
+                recommendation_date, noise_band_pp,
             )
         )
+        equity_section = self._equity_section(equity_summary)
+        if equity_section:
+            sections.append(equity_section)
         sections.append(self._disclaimer())
         return "\n\n".join(filter(None, sections))
 
@@ -119,6 +134,91 @@ class ClosingReportBuilder:
             "📊 " + bold("Fechamento do Mercado") + "\n"
             + escape(date_display) + "  •  " + escape("17h30 · B3")
         )
+
+    @staticmethod
+    def _stop_alerts_section(stop_alerts: list[dict]) -> str:
+        """
+        Alertas de stop/alvo — a parte ACIONÁVEL do relatório.
+
+        stop_hit:    fechou no/abaixo do stop → sair na abertura
+        stop_near:   a <2% do stop → atenção
+        target_hit:  alvo conservador atingido → realizar/reavaliar
+        """
+        if not stop_alerts:
+            return ""
+
+        lines = [_SEP, "🚨 " + bold("Alertas de Nível")]
+        templates = {
+            "stop_hit": (
+                "🔴 {t}: fechou em R$ {p:.2f}, ABAIXO do stop R$ {l:.2f} "
+                "— regra do sistema: SAIR na abertura"
+            ),
+            "stop_near": (
+                "🟠 {t}: R$ {p:.2f} a {d:.1f}% do stop R$ {l:.2f} — atenção"
+            ),
+            "target_hit": (
+                "🎯 {t}: R$ {p:.2f} atingiu o alvo R$ {l:.2f} "
+                "— considerar realizar/reavaliar"
+            ),
+        }
+        for a in stop_alerts:
+            tmpl = templates.get(a.get("kind"))
+            if not tmpl:
+                continue
+            txt = tmpl.format(
+                t=a["ticker"], p=a["price"], l=a["level"],
+                d=abs(a.get("distance_pct", 0)) * 100,
+            )
+            lines.append("  " + escape(txt))
+        return "\n".join(lines)
+
+    @staticmethod
+    def _equity_section(equity_summary: Optional[dict]) -> str:
+        """
+        Desde o início (NAV base 100) — a régua do investidor absoluto.
+
+        CDI primeiro: é o custo de oportunidade real. Bater o Ibov caindo
+        menos é consolo relativo; a pergunta absoluta é "paga mais que o CDI?"
+        """
+        if not equity_summary or equity_summary.get("n_obs", 0) < 2:
+            return ""
+
+        cum   = equity_summary["cum_return"]
+        cum_c = equity_summary["cum_cdi"]
+        cum_i = equity_summary["cum_ibov"]
+        a_cdi  = equity_summary["alpha_vs_cdi_pp"]
+        a_ibov = equity_summary["alpha_vs_ibov_pp"]
+        cum_b = equity_summary.get("cum_blended")
+        a_b_cdi = equity_summary.get("blended_alpha_vs_cdi_pp")
+        since = equity_summary.get("since") or ""
+        since_disp = _format_date(since) if since else "início"
+
+        sign_cdi  = "🟢" if a_cdi >= 0 else "🔴"
+        sign_ibov = "🟢" if a_ibov >= 0 else "🔴"
+
+        lines = [
+            _SEP,
+            "🧭 " + bold("Desde o início") + " " + italic(f"({since_disp}, NAV base 100)"),
+        ]
+
+        # Carteira COMPLETA primeiro (bolsa+CDI+IVVB11+IMAB11): é o que o
+        # sistema mandou fazer — a régua do investidor absoluto.
+        if cum_b is not None and a_b_cdi is not None:
+            sign_b = "🟢" if a_b_cdi >= 0 else "🔴"
+            lines.append(
+                f"   Carteira completa: {bold_pre(fmt_pct(cum_b, 2, sign=True))}"
+                f"   {sign_b} vs CDI {bold_pre(fmt_pp(a_b_cdi / 100))}"
+            )
+
+        lines += [
+            f"   Sleeve bolsa: {bold_pre(fmt_pct(cum, 2, sign=True))}",
+            f"   CDI:        {fmt_pct(cum_c, 2, sign=True)}"
+            f"   {sign_cdi} {bold_pre(fmt_pp(a_cdi / 100))}",
+            f"   IBOVESPA:   {fmt_pct(cum_i, 2, sign=True)}"
+            f"   {sign_ibov} {bold_pre(fmt_pp(a_ibov / 100))}",
+            italic(f"n={equity_summary['n_obs']} pregões"),
+        ]
+        return "\n".join(lines)
 
     @staticmethod
     def _tickers_section(
@@ -194,6 +294,7 @@ class ClosingReportBuilder:
         cumulative_portfolio_return: Optional[float] = None,
         ibov_cumulative_return: Optional[float] = None,
         recommendation_date: Optional[str] = None,
+        noise_band_pp: Optional[float] = None,
     ) -> str:
         alpha_day  = portfolio_return - ibov_return
         alpha_sign = "🟢" if alpha_day >= 0 else "🔴"
@@ -211,6 +312,19 @@ class ClosingReportBuilder:
             f"   IBOVESPA:   {ibov_str}",
             f"   {alpha_sign} Alpha:     {bold_pre(alpha_str)}",
         ]
+
+        # Banda de ruído: alpha de 1 dia de uma estratégia SEMANAL é quase
+        # sempre ruído estatístico. Dizer isso explicitamente protege o
+        # operador de reagir a flutuação diária.
+        if noise_band_pp is not None and noise_band_pp > 0:
+            alpha_pp = abs(alpha_day) * 100
+            if alpha_pp < noise_band_pp:
+                verdict = f"dentro do ruído (1σ = {noise_band_pp:.1f}pp) — ignorar"
+            elif alpha_pp < 2 * noise_band_pp:
+                verdict = f"entre 1σ e 2σ ({noise_band_pp:.1f}pp) — observar"
+            else:
+                verdict = f"acima de 2σ ({noise_band_pp:.1f}pp) — atípico"
+            lines.append("   " + italic(f"Alpha do dia: {verdict}"))
 
         # Cumulative block — only when data is available
         if cumulative_portfolio_return is not None and ibov_cumulative_return is not None:
@@ -276,6 +390,9 @@ def build_closing_report(
     cumulative_portfolio_return: Optional[float] = None,
     ibov_cumulative_return: Optional[float] = None,
     recommendation_date: Optional[str] = None,
+    stop_alerts: Optional[list[dict]] = None,
+    equity_summary: Optional[dict] = None,
+    noise_band_pp: Optional[float] = None,
 ) -> str:
     return ClosingReportBuilder().build(
         ticker_returns=ticker_returns,
@@ -289,6 +406,9 @@ def build_closing_report(
         cumulative_portfolio_return=cumulative_portfolio_return,
         ibov_cumulative_return=ibov_cumulative_return,
         recommendation_date=recommendation_date,
+        stop_alerts=stop_alerts,
+        equity_summary=equity_summary,
+        noise_band_pp=noise_band_pp,
     )
 
 

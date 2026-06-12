@@ -33,6 +33,14 @@ WEIGHTS = {
     "quality":     0.25,
 }
 
+# Pesos adaptativos por regime no SCORING (risk_on/mean_rev/bear com pesos
+# diferentes por pilar). DESLIGADO: os 3 conjuntos de pesos nunca foram
+# validados (IC com n≈2 — seriam 3× mais parâmetros livres sem nenhuma
+# evidência). O regime detectado continua alimentando o ASSET ALLOCATOR,
+# onde a regra é backtestável com 10 anos de dados de ETF. Religar apenas
+# quando houver IC condicional por regime com n>=8 por estado.
+ENABLE_REGIME_ADAPTIVE_WEIGHTS = False
+
 # ---------------------------------------------------------------------------
 # Fatores fundamentalistas
 # direction: lower_is_better = valores menores recebem score maior
@@ -147,6 +155,14 @@ MIN_SECTOR_PERCENTILE = 4           # N mínimo para Percentil setorial
 TOP_N_RECOMMENDATIONS = 5           # Top 5 na carteira recomendada
 EQUAL_WEIGHT          = 1.0 / TOP_N_RECOMMENDATIONS  # 20% cada posição
 
+# Bounds de peso por posição, aplicados APÓS HRP/inverse-vol.
+# Motivação: HRP single-linkage em 5 ativos despeja peso no ativo de menor
+# vol — em 08/06/2026 NEOE3 recebeu 63,4% do portfólio (HHI 0,44, N efetivo
+# 2,28), e com vol-targeting 1,5x virou 95% do capital. Cap de 30% garante
+# N efetivo >= ~3,3; floor de 5% impede posição-token que só gera fricção.
+MAX_POSITION_WEIGHT   = 0.30
+MIN_POSITION_WEIGHT   = 0.05
+
 # ---------------------------------------------------------------------------
 # Diversificação do portfólio
 # ---------------------------------------------------------------------------
@@ -182,6 +198,13 @@ MOMENTUM_WINDOWS = {
     "ret_6m":  126,
     "ret_12m": 252,
 }
+
+# Skip-month (convenção 12-1 de Jegadeesh-Titman 1993): o retorno do último
+# mês é dominado por REVERSÃO de curto prazo, não por continuação. Medir
+# momentum de t-window até t-21 (e não até t) evita comprar o que acabou de
+# esticar. Aplica-se às três janelas (3m/6m/12m) e ao retorno do IBOV usado
+# como referência do alpha — consistência entre numerador e benchmark.
+MOMENTUM_SKIP_DAYS = 21
 
 VOLATILITY_WINDOW = 180  # dias para cálculo de volatilidade histórica
 VOLUME_WINDOW     = 30   # dias para média de volume
@@ -269,7 +292,12 @@ ENABLE_VOLATILITY_TARGETING = True
 VOL_TARGET_ANNUAL  = 0.14         # 14% a.a.
 EWMA_LAMBDA        = 0.94         # RiskMetrics standard
 VOL_TARGET_LEVERAGE_MIN = 0.50    # piso de exposure (50% — não zera em vol alta)
-VOL_TARGET_LEVERAGE_MAX = 1.50    # teto de exposure (150% — sem alavancagem real para PF)
+VOL_TARGET_LEVERAGE_MAX = 1.00    # teto de exposure. Era 1.50, mas investidor PF
+                                  # não opera alavancado — recomendar gross >100%
+                                  # é inexecutável (em 08/06 o relatório sugeria
+                                  # 95% do capital em NEOE3 via scaling 1,5x).
+                                  # Vol-targeting agora só REDUZ exposure em
+                                  # regime de vol alta; nunca aumenta acima de 100%.
 
 # Liquidity penalty no score
 # Tickers com ADV abaixo do threshold sofrem penalty multiplicativo
@@ -316,6 +344,54 @@ USE_HMM_REGIME = True
 HMM_N_STATES = 2
 HMM_MIN_HISTORY_DAYS = 200        # ~10 meses de dados mínimo para ajustar HMM
 HMM_RANDOM_STATE = 42
+
+# ---------------------------------------------------------------------------
+# Asset Allocation — camada "investidor absoluto"
+# ---------------------------------------------------------------------------
+# A decisão dominante de um investidor PF com Selic a 15% não é QUAL ação
+# comprar, é QUANTO estar em bolsa (Brinson 1986: allocation explica ~90% da
+# variância de retorno). Esta camada decide o split entre 4 sleeves ANTES do
+# stock-picking, usando 3 sinais simples e literatura-backed:
+#   1. Regime HMM (já detectado pelo pipeline)
+#   2. ERP implícito: earnings yield da carteira − Selic
+#   3. Time-series momentum 12-1 do IBOV vs CDI (Moskowitz-Ooi-Pedersen 2012)
+ENABLE_ASSET_ALLOCATION = True
+
+# Alocação-base por regime (soma 1.0 em cada linha).
+# bear NÃO zera bolsa: timing binário é não-confiável (lag HMM ~10d);
+# o piso mantém exposição a recuperações em V.
+ALLOCATION_BASE: dict[str, dict[str, float]] = {
+    "risk_on":  {"equities_br": 0.60, "cdi": 0.15, "global_usd": 0.15, "inflation": 0.10},
+    "mean_rev": {"equities_br": 0.40, "cdi": 0.30, "global_usd": 0.15, "inflation": 0.15},
+    "bear":     {"equities_br": 0.20, "cdi": 0.50, "global_usd": 0.15, "inflation": 0.15},
+}
+
+# Tilt por sinal (em pontos de alocação). Cada sinal move bolsa ±tilt,
+# compensado no sleeve CDI. Dois sinais → tilt máximo combinado ±2×.
+ALLOCATION_TILT_PP   = 0.10
+ERP_LOW_THRESHOLD    = 0.02   # EY − Selic < 2pp → bolsa não paga o risco → reduzir
+ERP_HIGH_THRESHOLD   = 0.08   # EY − Selic > 8pp → prêmio gordo → aumentar
+TSMOM_WINDOW_DAYS    = 252    # 12 meses
+TSMOM_SKIP_DAYS      = 21     # convenção 12-1 (consistente com o momentum de ações)
+
+# Bounds duros do sleeve de bolsa após tilts.
+EQUITIES_SLEEVE_MIN  = 0.10
+EQUITIES_SLEEVE_MAX  = 0.70
+
+# Instrumentos executáveis por sleeve (PF, corretora comum).
+ALLOCATION_INSTRUMENTS: dict[str, str] = {
+    "equities_br": "Carteira Top-5 B3 (este relatório)",
+    "cdi":         "Tesouro Selic / CDB 100% CDI",
+    "global_usd":  "IVVB11 (S&P 500 sem hedge cambial)",
+    "inflation":   "IMAB11 / B5P211 (NTN-B, juro real)",
+}
+
+# Tickers usados no backtest standalone da camada (python -m src.allocation_backtest)
+ALLOCATION_BACKTEST_TICKERS = {
+    "equities_br": "BOVA11.SA",
+    "global_usd":  "IVVB11.SA",
+    "inflation":   "IMAB11.SA",
+}
 
 # ---------------------------------------------------------------------------
 # Análise de Factor IC (Information Coefficient)

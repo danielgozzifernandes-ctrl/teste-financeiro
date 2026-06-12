@@ -70,6 +70,8 @@ from src.config import (
     MIN_SCORE_THRESHOLD,
     MIN_SECTOR_PERCENTILE,
     MIN_SECTOR_ZSCORE,
+    ENABLE_REGIME_ADAPTIVE_WEIGHTS,
+    MOMENTUM_SKIP_DAYS,
     MOMENTUM_WINDOWS,
     PEAD_DRIFT_ENTRY_DAYS,
     PEAD_DRIFT_HOLDING_DAYS,
@@ -234,12 +236,26 @@ class ScoringEngine:
         Returns:
             DataFrame ordenado por total_score DESC com todas as colunas de score.
         """
-        active_weights = _REGIME_WEIGHTS.get(regime, WEIGHTS)
-        if regime not in _REGIME_WEIGHTS:
-            logger.warning("Regime '%s' desconhecido — usando pesos padrão (mean_rev)", regime)
+        # Pesos por regime estão CONGELADOS por default (nunca validados —
+        # IC n≈2). O regime continua sendo detectado e usado pelo allocator.
+        # Ver ENABLE_REGIME_ADAPTIVE_WEIGHTS em config.py.
+        if ENABLE_REGIME_ADAPTIVE_WEIGHTS:
+            active_weights = _REGIME_WEIGHTS.get(regime, WEIGHTS)
+            if regime not in _REGIME_WEIGHTS:
+                logger.warning("Regime '%s' desconhecido — usando pesos padrão", regime)
+            else:
+                logger.info(
+                    "Regime de mercado: %s → Fundamental=%.0f%% Momentum=%.0f%% Quality=%.0f%%",
+                    regime,
+                    active_weights["fundamental"] * 100,
+                    active_weights["momentum"] * 100,
+                    active_weights["quality"] * 100,
+                )
         else:
+            active_weights = WEIGHTS
             logger.info(
-                "Regime de mercado: %s → Fundamental=%.0f%% Momentum=%.0f%% Quality=%.0f%%",
+                "Pesos de pilar fixos (regime '%s' informativo): "
+                "Fund=%.0f%% Mom=%.0f%% Qual=%.0f%%",
                 regime,
                 active_weights["fundamental"] * 100,
                 active_weights["momentum"] * 100,
@@ -447,8 +463,13 @@ class ScoringEngine:
         """
         for momentum_col, window in MOMENTUM_WINDOWS.items():
             label = momentum_col.replace("ret_", "alpha_")  # ret_3m → alpha_3m
-            stock_returns = self._trailing_returns(df_prices, window)
-            ibov_return   = self._scalar_return(ibov_prices, window)
+            # Convenção skip-month (Jegadeesh-Titman): mede t-window → t-21,
+            # excluindo o último mês, dominado por reversão de curto prazo.
+            # Mesmo skip no IBOV para o alpha comparar períodos idênticos.
+            stock_returns = self._trailing_returns(
+                df_prices, window, skip_days=MOMENTUM_SKIP_DAYS)
+            ibov_return   = self._scalar_return(
+                ibov_prices, window, skip_days=MOMENTUM_SKIP_DAYS)
             alpha = stock_returns - ibov_return
             df[label] = df.index.map(alpha)
             valid = df[label].notna().sum()
@@ -1344,18 +1365,24 @@ class ScoringEngine:
     # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
-    def _trailing_returns(df_prices: pd.DataFrame, window_days: int) -> pd.Series:
+    def _trailing_returns(
+        df_prices: pd.DataFrame, window_days: int, skip_days: int = 0,
+    ) -> pd.Series:
         """
-        Retorno acumulado no período: (P_atual / P_window_dias_atrás) - 1.
+        Retorno acumulado no período: (P_t-skip / P_t-window) - 1.
 
-        Usa posições -1 e -window_days para robustez com dias sem pregão.
-        Retorna NaN para tickers com dados insuficientes.
+        skip_days > 0 implementa a convenção momentum "12-1": exclui os
+        últimos skip_days (reversão de curto prazo). A janela TOTAL continua
+        sendo window_days contados a partir de hoje — i.e., mede de
+        t-window até t-skip. Retorna NaN para tickers com dados insuficientes.
         """
-        if df_prices.empty or len(df_prices) < 2:
+        if df_prices.empty or len(df_prices) < skip_days + 2:
+            return pd.Series(np.nan, index=df_prices.columns)
+        if skip_days >= window_days:
             return pd.Series(np.nan, index=df_prices.columns)
 
         actual_window = min(window_days, len(df_prices) - 1)
-        price_now  = df_prices.iloc[-1]
+        price_now  = df_prices.iloc[-1 - skip_days]
         price_past = df_prices.iloc[-actual_window]
 
         # Evitar divisão por zero e preços inválidos
@@ -1371,13 +1398,18 @@ class ScoringEngine:
         return ret
 
     @staticmethod
-    def _scalar_return(series: pd.Series, window_days: int) -> float:
-        """Retorno escalar do IBOVESPA na janela especificada. Retorna 0.0 se insuficiente."""
+    def _scalar_return(
+        series: pd.Series, window_days: int, skip_days: int = 0,
+    ) -> float:
+        """
+        Retorno escalar do IBOVESPA na janela t-window → t-skip.
+        Retorna 0.0 se insuficiente. skip_days espelha _trailing_returns.
+        """
         clean = series.dropna()
-        if len(clean) < 2:
+        if len(clean) < skip_days + 2 or skip_days >= window_days:
             return 0.0
         actual_window = min(window_days, len(clean) - 1)
-        return float((clean.iloc[-1] / clean.iloc[-actual_window]) - 1.0)
+        return float((clean.iloc[-1 - skip_days] / clean.iloc[-actual_window]) - 1.0)
 
     @staticmethod
     def _volatility(df_prices: pd.DataFrame, window: int) -> pd.Series:
