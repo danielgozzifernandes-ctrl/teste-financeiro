@@ -1,0 +1,15 @@
+{
+ "series": [
+  {
+   "date": "2026-06-12",
+   "port_ret": -0.002712,
+   "ibov_ret": -0.002124,
+   "cdi_ret": 0.000534,
+   "blended_ret": null,
+   "nav": 99.728828,
+   "ibov_nav": 99.787551,
+   "cdi_nav": 100.0534,
+   "blended_nav": 100.0
+  }
+ ]
+}
