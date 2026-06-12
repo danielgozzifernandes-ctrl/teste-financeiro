@@ -8,6 +8,26 @@ para o pipeline consumir.
 
 ---
 
+## Importante: você NÃO precisa do seu PC de casa
+
+O projeto vive no GitHub — qualquer máquina acessa. O único requisito é que
+o script rode **na máquina onde o Bloomberg Terminal está instalado e
+logado** (API só funciona localmente). O seu laptop só serve se ele tiver o
+Terminal; senão, use o PC do lab.
+
+**Caminho mais simples (sem git na outra máquina):**
+1. Navegador → `github.com/danielgozzifernandes-ctrl/teste-financeiro`
+   → **Code → Download ZIP** → extrair
+2. `pip install xbbg pandas` → `python tools/bloomberg_download.py`
+3. Voltar os CSVs pelo próprio navegador: GitHub → **Add file → Upload
+   files** → arrastar os CSVs → Commit. (Alternativas: pendrive, e-mail
+   para si mesmo, OneDrive — só precisam chegar à pasta `bloomberg_data/`.)
+4. Em casa, pedir ao Claude: *"baixei os dados, integre"*.
+
+**Plano B sem internet liberada no lab:** levar no pendrive só
+`tools/bloomberg_download.py` + `data/universe.csv` (na mesma estrutura de
+pastas) e trazer a pasta `bloomberg_data/` de volta no pendrive.
+
 ## Antes de ir (checklist)
 
 - [ ] Conta GitHub logável no navegador do lab (ou pendrive como plano B)
