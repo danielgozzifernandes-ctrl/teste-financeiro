@@ -1,36 +1,36 @@
 {
-  "analysis_date": "2026-06-08T14:45:18.378554",
-  "n_recommendations": 5,
-  "n_snapshots": 5,
+  "analysis_date": "2026-06-15T16:15:59.138463",
+  "n_recommendations": 6,
+  "n_snapshots": 6,
   "data_sufficiency": {
     "min_periods_required": 6,
-    "max_periods_available": 2,
+    "max_periods_available": 3,
     "is_significant": false,
-    "warning": "AMOSTRA INSUFICIENTE: no máximo 2 janela(s) (mínimo 6). Sharpe/hit-rate/max-DD abaixo NÃO são confiáveis — acumule mais snapshots semanais."
+    "warning": "AMOSTRA INSUFICIENTE: no máximo 3 janela(s) (mínimo 6). Sharpe/hit-rate/max-DD abaixo NÃO são confiáveis — acumule mais snapshots semanais."
   },
   "per_window": {
     "1w": {
-      "n_periods": 1,
-      "mean_return": -0.011,
-      "median_return": -0.011,
-      "std_return": 0.0,
-      "sharpe_annualized": null,
-      "max_drawdown": 0.0,
-      "mean_alpha_ibov": 0.0059,
-      "hit_rate": 1.0,
-      "cumulative_return": -0.011,
+      "n_periods": 2,
+      "mean_return": -0.0066,
+      "median_return": -0.0066,
+      "std_return": 0.0062,
+      "sharpe_annualized": -7.53,
+      "max_drawdown": -0.0022,
+      "mean_alpha_ibov": -0.0054,
+      "hit_rate": 0.5,
+      "cumulative_return": -0.0132,
       "significant": false
     },
     "4w": {
-      "n_periods": 2,
-      "mean_return": -0.0654,
-      "median_return": -0.0654,
-      "std_return": 0.0484,
-      "sharpe_annualized": -4.8,
-      "max_drawdown": -0.0312,
-      "mean_alpha_ibov": -0.0107,
-      "hit_rate": 0.5,
-      "cumulative_return": -0.1277,
+      "n_periods": 3,
+      "mean_return": -0.0502,
+      "median_return": -0.036,
+      "std_return": 0.0441,
+      "sharpe_annualized": -4.039,
+      "max_drawdown": -0.0504,
+      "mean_alpha_ibov": -0.0067,
+      "hit_rate": 0.333,
+      "cumulative_return": -0.1449,
       "significant": false
     },
     "12w": {
@@ -47,6 +47,14 @@
       "window": "1w"
     },
     {
+      "rec_date": "2026-06-08",
+      "exit_date": "2026-06-15",
+      "port_ret": -0.0022,
+      "ibov_ret": 0.0146,
+      "alpha": -0.0168,
+      "window": "1w"
+    },
+    {
       "rec_date": "2026-05-12",
       "exit_date": "2026-06-08",
       "port_ret": -0.0996,
@@ -56,16 +64,24 @@
     },
     {
       "rec_date": "2026-05-15",
-      "exit_date": "2026-06-08",
-      "port_ret": -0.0312,
-      "ibov_ret": -0.0466,
-      "alpha": 0.0154,
+      "exit_date": "2026-06-15",
+      "port_ret": -0.036,
+      "ibov_ret": -0.0347,
+      "alpha": -0.0013,
+      "window": "4w"
+    },
+    {
+      "rec_date": "2026-05-16",
+      "exit_date": "2026-06-15",
+      "port_ret": -0.0149,
+      "ibov_ret": -0.033,
+      "alpha": 0.0181,
       "window": "4w"
     }
   ],
   "decay_alpha": {
-    "1w": 0.0059,
-    "4w": -0.0107
+    "1w": -0.0054,
+    "4w": -0.0067
   },
   "interpretation": {
     "sharpe": "Sharpe anualizado > 1.0 é bom; > 1.5 é excelente; < 0.5 questionável",
