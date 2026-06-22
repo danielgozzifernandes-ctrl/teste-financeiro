@@ -1,0 +1,147 @@
+{
+  "status": "success",
+  "backtest_date": "2026-06-22",
+  "recommendation_date": "2026-06-15",
+  "mode": "weekly",
+  "period_days": 7,
+  "portfolio_return": -0.000959672101,
+  "portfolio_return_pct": -0.096,
+  "benchmark_returns": {
+    "ibovespa": -0.005013999999999999,
+    "cdi": 0.003182,
+    "selic": 0.003182
+  },
+  "alpha_vs_ibov": 0.004054063560736685,
+  "alpha_vs_cdi": -0.004141813033438404,
+  "alpha_vs_ibov_pp": 0.4054,
+  "alpha_vs_cdi_pp": -0.4142,
+  "holdings": [
+    {
+      "ticker": "PETR4",
+      "entry_price": 39.27,
+      "current_price": 38.97,
+      "return": -0.010216,
+      "return_pct": -1.0216,
+      "weight": 0.207093,
+      "included": true
+    },
+    {
+      "ticker": "NEOE3",
+      "entry_price": 33.8,
+      "current_price": 33.8,
+      "return": -0.002597,
+      "return_pct": -0.2597,
+      "weight": 0.3,
+      "included": true
+    },
+    {
+      "ticker": "ABEV3",
+      "entry_price": 16.72,
+      "current_price": 16.34,
+      "return": -0.025265,
+      "return_pct": -2.5265,
+      "weight": 0.159433,
+      "included": true
+    },
+    {
+      "ticker": "ODPV3",
+      "entry_price": 15.02,
+      "current_price": 15.02,
+      "return": -0.002597,
+      "return_pct": -0.2597,
+      "weight": 0.103496,
+      "included": true
+    },
+    {
+      "ticker": "UGPA3",
+      "entry_price": 24.52,
+      "current_price": 25.25,
+      "return": 0.027098,
+      "return_pct": 2.7098,
+      "weight": 0.229978,
+      "included": true
+    }
+  ],
+  "previous_top5": [
+    "PETR4",
+    "NEOE3",
+    "ABEV3",
+    "ODPV3",
+    "UGPA3"
+  ],
+  "attribution": {
+    "per_ticker": [
+      {
+        "ticker": "UGPA3",
+        "sector": "Consumo Não Cíclico",
+        "weight": 0.23,
+        "return": 0.0271,
+        "contribution": 0.00623
+      },
+      {
+        "ticker": "ODPV3",
+        "sector": "Saúde",
+        "weight": 0.1035,
+        "return": -0.0026,
+        "contribution": -0.00027
+      },
+      {
+        "ticker": "NEOE3",
+        "sector": "Energia Elétrica",
+        "weight": 0.3,
+        "return": -0.0026,
+        "contribution": -0.00078
+      },
+      {
+        "ticker": "PETR4",
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "weight": 0.2071,
+        "return": -0.0102,
+        "contribution": -0.00212
+      },
+      {
+        "ticker": "ABEV3",
+        "sector": "Consumo Não Cíclico",
+        "weight": 0.1594,
+        "return": -0.0253,
+        "contribution": -0.00403
+      }
+    ],
+    "per_sector": [
+      {
+        "sector": "Consumo Não Cíclico",
+        "n_tickers": 2,
+        "weight": 0.3894,
+        "weighted_return": 0.0022,
+        "sector_return": 0.0057,
+        "alpha_vs_ibov": 0.0107
+      },
+      {
+        "sector": "Saúde",
+        "n_tickers": 1,
+        "weight": 0.1035,
+        "weighted_return": -0.00027,
+        "sector_return": -0.0026,
+        "alpha_vs_ibov": 0.0024
+      },
+      {
+        "sector": "Energia Elétrica",
+        "n_tickers": 1,
+        "weight": 0.3,
+        "weighted_return": -0.00078,
+        "sector_return": -0.0026,
+        "alpha_vs_ibov": 0.0024
+      },
+      {
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "n_tickers": 1,
+        "weight": 0.2071,
+        "weighted_return": -0.00212,
+        "sector_return": -0.0102,
+        "alpha_vs_ibov": -0.0052
+      }
+    ],
+    "total_active_return": 0.00404
+  },
+  "generated_at": "2026-06-22T15:51:30.042115"
+}
