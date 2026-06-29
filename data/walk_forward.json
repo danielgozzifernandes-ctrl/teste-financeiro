@@ -1,24 +1,24 @@
 {
-  "analysis_date": "2026-06-22T15:51:31.670932",
-  "n_recommendations": 7,
-  "n_snapshots": 7,
+  "analysis_date": "2026-06-29T14:44:54.104456",
+  "n_recommendations": 8,
+  "n_snapshots": 8,
   "data_sufficiency": {
     "min_periods_required": 6,
-    "max_periods_available": 3,
+    "max_periods_available": 4,
     "is_significant": false,
-    "warning": "AMOSTRA INSUFICIENTE: no máximo 3 janela(s) (mínimo 6). Sharpe/hit-rate/max-DD abaixo NÃO são confiáveis — acumule mais snapshots semanais."
+    "warning": "AMOSTRA INSUFICIENTE: no máximo 4 janela(s) (mínimo 6). Sharpe/hit-rate/max-DD abaixo NÃO são confiáveis — acumule mais snapshots semanais."
   },
   "per_window": {
     "1w": {
-      "n_periods": 3,
-      "mean_return": -0.0077,
-      "median_return": -0.0099,
-      "std_return": 0.0048,
-      "sharpe_annualized": -11.401,
+      "n_periods": 4,
+      "mean_return": -0.0046,
+      "median_return": -0.0061,
+      "std_return": 0.0073,
+      "sharpe_annualized": -4.454,
       "max_drawdown": -0.0121,
-      "mean_alpha_ibov": -0.0033,
-      "hit_rate": 0.667,
-      "cumulative_return": -0.0229,
+      "mean_alpha_ibov": -0.0056,
+      "hit_rate": 0.5,
+      "cumulative_return": -0.0184,
       "significant": false
     },
     "4w": {
@@ -63,6 +63,14 @@
       "window": "1w"
     },
     {
+      "rec_date": "2026-06-22",
+      "exit_date": "2026-06-29",
+      "port_ret": 0.0047,
+      "ibov_ret": 0.0172,
+      "alpha": -0.0125,
+      "window": "1w"
+    },
+    {
       "rec_date": "2026-05-12",
       "exit_date": "2026-06-08",
       "port_ret": -0.0996,
@@ -88,7 +96,7 @@
     }
   ],
   "decay_alpha": {
-    "1w": -0.0033,
+    "1w": -0.0056,
     "4w": -0.0067
   },
   "interpretation": {
