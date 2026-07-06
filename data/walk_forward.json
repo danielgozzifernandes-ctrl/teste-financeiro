@@ -1,7 +1,7 @@
 {
-  "analysis_date": "2026-07-01T13:30:30.790199",
-  "n_recommendations": 8,
-  "n_snapshots": 9,
+  "analysis_date": "2026-07-06T14:22:07.013103",
+  "n_recommendations": 9,
+  "n_snapshots": 10,
   "data_sufficiency": {
     "min_periods_required": 6,
     "max_periods_available": 5,
@@ -11,26 +11,26 @@
   "per_window": {
     "1w": {
       "n_periods": 5,
-      "mean_return": -0.0079,
-      "median_return": -0.0099,
-      "std_return": 0.0097,
-      "sharpe_annualized": -5.761,
-      "max_drawdown": -0.0284,
-      "mean_alpha_ibov": -0.0074,
+      "mean_return": -0.004,
+      "median_return": -0.0022,
+      "std_return": 0.0065,
+      "sharpe_annualized": -4.403,
+      "max_drawdown": -0.0121,
+      "mean_alpha_ibov": -0.0061,
       "hit_rate": 0.4,
-      "cumulative_return": -0.0391,
+      "cumulative_return": -0.02,
       "significant": false
     },
     "4w": {
-      "n_periods": 3,
-      "mean_return": -0.0502,
-      "median_return": -0.036,
-      "std_return": 0.0441,
-      "sharpe_annualized": -4.039,
-      "max_drawdown": -0.0504,
-      "mean_alpha_ibov": -0.0067,
-      "hit_rate": 0.333,
-      "cumulative_return": -0.1449,
+      "n_periods": 4,
+      "mean_return": -0.0438,
+      "median_return": -0.0303,
+      "std_return": 0.0382,
+      "sharpe_annualized": -4.072,
+      "max_drawdown": -0.0738,
+      "mean_alpha_ibov": -0.0195,
+      "hit_rate": 0.25,
+      "cumulative_return": -0.1661,
       "significant": false
     },
     "12w": {
@@ -72,10 +72,10 @@
     },
     {
       "rec_date": "2026-06-29",
-      "exit_date": "2026-07-01",
-      "port_ret": -0.0211,
-      "ibov_ret": -0.0068,
-      "alpha": -0.0143,
+      "exit_date": "2026-07-06",
+      "port_ret": -0.0017,
+      "ibov_ret": 0.0061,
+      "alpha": -0.0078,
       "window": "1w"
     },
     {
@@ -101,11 +101,19 @@
       "ibov_ret": -0.033,
       "alpha": 0.0181,
       "window": "4w"
+    },
+    {
+      "rec_date": "2026-06-08",
+      "exit_date": "2026-07-06",
+      "port_ret": -0.0247,
+      "ibov_ret": 0.0332,
+      "alpha": -0.0579,
+      "window": "4w"
     }
   ],
   "decay_alpha": {
-    "1w": -0.0074,
-    "4w": -0.0067
+    "1w": -0.0061,
+    "4w": -0.0195
   },
   "interpretation": {
     "sharpe": "Sharpe anualizado > 1.0 é bom; > 1.5 é excelente; < 0.5 questionável",
