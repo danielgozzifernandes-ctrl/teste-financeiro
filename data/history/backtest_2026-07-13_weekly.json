@@ -1,0 +1,109 @@
+{
+  "status": "partial_data",
+  "backtest_date": "2026-07-13",
+  "recommendation_date": "2026-07-06",
+  "mode": "weekly",
+  "period_days": 7,
+  "portfolio_return": 0.05587578029380175,
+  "portfolio_return_pct": 5.5876,
+  "benchmark_returns": {
+    "ibovespa": 0.020658,
+    "cdi": 0.0026290000000000003,
+    "selic": 0.0026290000000000003
+  },
+  "alpha_vs_ibov": 0.03521770585587364,
+  "alpha_vs_cdi": 0.053246469337863866,
+  "alpha_vs_ibov_pp": 3.5218,
+  "alpha_vs_cdi_pp": 5.3246,
+  "holdings": [
+    {
+      "ticker": "PETR4",
+      "entry_price": 37.89,
+      "current_price": 39.65,
+      "return": 0.043733,
+      "return_pct": 4.3733,
+      "weight": 0.205206,
+      "included": true
+    },
+    {
+      "ticker": "ABEV3",
+      "entry_price": 15.9,
+      "current_price": 15.82,
+      "return": -0.007615,
+      "return_pct": -0.7615,
+      "weight": 0.1594,
+      "included": true
+    },
+    {
+      "ticker": "UGPA3",
+      "entry_price": 27.59,
+      "current_price": 30.71,
+      "return": 0.110194,
+      "return_pct": 11.0194,
+      "weight": 0.232191,
+      "included": true
+    },
+    {
+      "ticker": "NEOE3",
+      "included": false,
+      "reason": "preço ausente"
+    },
+    {
+      "ticker": "ODPV3",
+      "included": false,
+      "reason": "preço ausente"
+    }
+  ],
+  "previous_top5": [
+    "PETR4",
+    "NEOE3",
+    "ODPV3",
+    "ABEV3",
+    "UGPA3"
+  ],
+  "attribution": {
+    "per_ticker": [
+      {
+        "ticker": "UGPA3",
+        "sector": "Consumo Não Cíclico",
+        "weight": 0.2322,
+        "return": 0.1102,
+        "contribution": 0.02559
+      },
+      {
+        "ticker": "PETR4",
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "weight": 0.2052,
+        "return": 0.0437,
+        "contribution": 0.00897
+      },
+      {
+        "ticker": "ABEV3",
+        "sector": "Consumo Não Cíclico",
+        "weight": 0.1594,
+        "return": -0.0076,
+        "contribution": -0.00121
+      }
+    ],
+    "per_sector": [
+      {
+        "sector": "Consumo Não Cíclico",
+        "n_tickers": 2,
+        "weight": 0.3916,
+        "weighted_return": 0.02437,
+        "sector_return": 0.0622,
+        "alpha_vs_ibov": 0.0416
+      },
+      {
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "n_tickers": 1,
+        "weight": 0.2052,
+        "weighted_return": 0.00897,
+        "sector_return": 0.0437,
+        "alpha_vs_ibov": 0.0231
+      }
+    ],
+    "total_active_return": 0.01268
+  },
+  "generated_at": "2026-07-13T13:14:10.817523"
+}
