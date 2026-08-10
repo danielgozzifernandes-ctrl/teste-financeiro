@@ -1,0 +1,155 @@
+{
+  "status": "success",
+  "backtest_date": "2026-08-10",
+  "recommendation_date": "2026-08-03",
+  "mode": "weekly",
+  "period_days": 7,
+  "portfolio_return": -0.036004612122387876,
+  "portfolio_return_pct": -3.6005,
+  "benchmark_returns": {
+    "ibovespa": -0.03082,
+    "cdi": 0.0026119999999999997,
+    "selic": 0.0026119999999999997
+  },
+  "alpha_vs_ibov": -0.005184214254984117,
+  "alpha_vs_cdi": -0.038616466521856525,
+  "alpha_vs_ibov_pp": -0.5184,
+  "alpha_vs_cdi_pp": -3.8616,
+  "holdings": [
+    {
+      "ticker": "PETR4",
+      "entry_price": 42.65,
+      "current_price": 40.87,
+      "return": -0.044223,
+      "return_pct": -4.4223,
+      "weight": 0.249193,
+      "included": true
+    },
+    {
+      "ticker": "ABCB4",
+      "entry_price": 24.08,
+      "current_price": 23.53,
+      "return": -0.025378,
+      "return_pct": -2.5378,
+      "weight": 0.214505,
+      "included": true
+    },
+    {
+      "ticker": "ABEV3",
+      "entry_price": 16.02,
+      "current_price": 15.48,
+      "return": -0.036217,
+      "return_pct": -3.6217,
+      "weight": 0.143821,
+      "included": true
+    },
+    {
+      "ticker": "SUZB3",
+      "entry_price": 43.36,
+      "current_price": 41.7,
+      "return": -0.040781,
+      "return_pct": -4.0781,
+      "weight": 0.232763,
+      "included": true
+    },
+    {
+      "ticker": "CPFE3",
+      "entry_price": 46.08,
+      "current_price": 44.8,
+      "return": -0.030302,
+      "return_pct": -3.0302,
+      "weight": 0.159719,
+      "included": true
+    }
+  ],
+  "previous_top5": [
+    "PETR4",
+    "ABCB4",
+    "ABEV3",
+    "SUZB3",
+    "CPFE3"
+  ],
+  "attribution": {
+    "per_ticker": [
+      {
+        "ticker": "CPFE3",
+        "sector": "Energia Elétrica",
+        "weight": 0.1597,
+        "return": -0.0303,
+        "contribution": -0.00484
+      },
+      {
+        "ticker": "ABEV3",
+        "sector": "Consumo Não Cíclico",
+        "weight": 0.1438,
+        "return": -0.0362,
+        "contribution": -0.00521
+      },
+      {
+        "ticker": "ABCB4",
+        "sector": "Financeiro e Outros",
+        "weight": 0.2145,
+        "return": -0.0254,
+        "contribution": -0.00544
+      },
+      {
+        "ticker": "SUZB3",
+        "sector": "Materiais Básicos",
+        "weight": 0.2328,
+        "return": -0.0408,
+        "contribution": -0.00949
+      },
+      {
+        "ticker": "PETR4",
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "weight": 0.2492,
+        "return": -0.0442,
+        "contribution": -0.01102
+      }
+    ],
+    "per_sector": [
+      {
+        "sector": "Energia Elétrica",
+        "n_tickers": 1,
+        "weight": 0.1597,
+        "weighted_return": -0.00484,
+        "sector_return": -0.0303,
+        "alpha_vs_ibov": 0.0005
+      },
+      {
+        "sector": "Consumo Não Cíclico",
+        "n_tickers": 1,
+        "weight": 0.1438,
+        "weighted_return": -0.00521,
+        "sector_return": -0.0362,
+        "alpha_vs_ibov": -0.0054
+      },
+      {
+        "sector": "Financeiro e Outros",
+        "n_tickers": 1,
+        "weight": 0.2145,
+        "weighted_return": -0.00544,
+        "sector_return": -0.0254,
+        "alpha_vs_ibov": 0.0054
+      },
+      {
+        "sector": "Materiais Básicos",
+        "n_tickers": 1,
+        "weight": 0.2328,
+        "weighted_return": -0.00949,
+        "sector_return": -0.0408,
+        "alpha_vs_ibov": -0.01
+      },
+      {
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "n_tickers": 1,
+        "weight": 0.2492,
+        "weighted_return": -0.01102,
+        "sector_return": -0.0442,
+        "alpha_vs_ibov": -0.0134
+      }
+    ],
+    "total_active_return": -0.00518
+  },
+  "generated_at": "2026-08-10T11:42:30.853620"
+}
