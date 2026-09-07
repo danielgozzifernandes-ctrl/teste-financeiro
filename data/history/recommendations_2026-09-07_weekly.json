@@ -1,0 +1,4370 @@
+{
+  "date": "2026-09-07",
+  "mode": "weekly",
+  "universe_snapshot": "/home/runner/work/teste-financeiro/teste-financeiro/data/history/universe_2026-09-07.json",
+  "top5": [
+    {
+      "ticker": "PETR4",
+      "nome": "Petróleo Brasileiro PN",
+      "score": 73.61,
+      "score_breakdown": {
+        "fundamental": 36.91,
+        "momentum": 17.84,
+        "quality": 18.86
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.734,
+      "conviction_label": "Alta",
+      "sector": "Petróleo Gás e Biocombustíveis",
+      "sector_peers_count": 6,
+      "why": "Earnings Yield EY=21.4% (P/L≈4.7) — top 0% do setor (N=6); Dividend Yield 9.2% — top 0% do setor (N=4); ROE 30.3% — top 8% do setor (N=6)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.214392,
+        "pvp": 1.262461,
+        "roe": 0.30274,
+        "roic": 0.10073,
+        "divida_ebitda": 1.508143,
+        "dy": 0.092,
+        "alpha_6m": 0.036235,
+        "volatility": 0.328827,
+        "beta": 0.384793
+      },
+      "entry_price": 47.11,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 91.67,
+          "z_score": null,
+          "percentile": 91.7,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 91.67,
+          "z_score": null,
+          "percentile": 91.7,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 30.0,
+          "z_score": null,
+          "percentile": 30.0,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 41.67,
+          "z_score": null,
+          "percentile": 41.7,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 49.3,
+          "z_score": -0.042,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 62.78,
+          "z_score": 0.767,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 67.61,
+          "z_score": 1.057,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 67.3,
+          "z_score": 1.038,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 47.76,
+          "z_score": -0.135,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 50.39,
+          "z_score": 0.023,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 55.52,
+          "z_score": 0.331,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 80.6,
+          "z_score": 1.836,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 100.0,
+          "z_score": 3.0,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "CMIN3",
+      "nome": "CSN Mineração ON",
+      "score": 63.47,
+      "score_breakdown": {
+        "fundamental": 32.0,
+        "momentum": 20.68,
+        "quality": 10.78
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.694,
+      "conviction_label": "Alta",
+      "sector": "Materiais Básicos",
+      "sector_peers_count": 7,
+      "why": "ROE 28.1% — top 0% do setor (N=7); ROIC 8.3% — top 0% do setor (N=7); Crescimento Receita 3y +10.7%a.a. — top 0% do setor (N=7)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.048558,
+        "pvp": 4.849154,
+        "roe": 0.28136,
+        "roic": 0.08286,
+        "divida_ebitda": 1.540694,
+        "dy": 0.0949,
+        "alpha_6m": 0.167917,
+        "volatility": 0.414961,
+        "beta": 1.093535
+      },
+      "entry_price": 6.59,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 42.86,
+          "z_score": null,
+          "percentile": 42.9,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 14.29,
+          "z_score": null,
+          "percentile": 14.3,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 66.67,
+          "z_score": null,
+          "percentile": 66.7,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 42.86,
+          "z_score": null,
+          "percentile": 42.9,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 85.71,
+          "z_score": null,
+          "percentile": 85.7,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 97.19,
+          "z_score": 2.831,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 83.12,
+          "z_score": 1.987,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 54.85,
+          "z_score": 0.291,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 17.21,
+          "z_score": -1.967,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 20.23,
+          "z_score": -1.786,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 45.84,
+          "z_score": -0.249,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 38.81,
+          "z_score": -0.671,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 49.63,
+          "z_score": -0.022,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 40.9,
+          "z_score": -0.546,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "ABEV3",
+      "nome": "Ambev ON",
+      "score": 59.76,
+      "score_breakdown": {
+        "fundamental": 28.79,
+        "momentum": 14.85,
+        "quality": 16.11
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.679,
+      "conviction_label": "Alta",
+      "sector": "Consumo Não Cíclico",
+      "sector_peers_count": 6,
+      "why": "ROIC 10.3% — top 0% do setor (N=6); Dívida/EBITDA 0.11 — top 0% do setor (N=6); Investment (Asset Growth) -10.7%a.a. — top 0% do setor (N=6)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.065438,
+        "pvp": 2.754156,
+        "roe": 0.184,
+        "roic": 0.10296,
+        "divida_ebitda": 0.110095,
+        "dy": 0.0464,
+        "alpha_6m": 0.04873,
+        "volatility": 0.279574,
+        "beta": 0.671139
+      },
+      "entry_price": 15.74,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 66.67,
+          "z_score": null,
+          "percentile": 66.7,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 42.27,
+          "z_score": -0.464,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 52.21,
+          "z_score": 0.133,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 62.14,
+          "z_score": 0.728,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 33.91,
+          "z_score": -0.966,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 37.07,
+          "z_score": -0.776,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 44.41,
+          "z_score": -0.335,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 65.07,
+          "z_score": 0.904,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 68.09,
+          "z_score": 1.085,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 58.41,
+          "z_score": 0.505,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "UGPA3",
+      "nome": "Ultrapar ON",
+      "score": 63.2,
+      "score_breakdown": {
+        "fundamental": 29.87,
+        "momentum": 19.83,
+        "quality": 13.5
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.693,
+      "conviction_label": "Alta",
+      "sector": "Consumo Não Cíclico",
+      "sector_peers_count": 6,
+      "why": "ROE 19.8% — top 0% do setor (N=6); Alpha 3m +26.9% vs IBOV — 2.6σ acima da média do universo (N=71); ROIC 9.7% — top 17% do setor (N=6)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.087654,
+        "pvp": 2.428136,
+        "roe": 0.19804,
+        "roic": 0.09726,
+        "divida_ebitda": 2.141593,
+        "dy": 0.0534,
+        "alpha_6m": 0.25581,
+        "volatility": 0.354279,
+        "beta": 0.96596
+      },
+      "entry_price": 37.42,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 66.67,
+          "z_score": null,
+          "percentile": 66.7,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 66.67,
+          "z_score": null,
+          "percentile": 66.7,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 94.11,
+          "z_score": 2.647,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 42.09,
+          "z_score": -0.475,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 80.3,
+          "z_score": 1.818,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 57.65,
+          "z_score": 0.459,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 29.49,
+          "z_score": -1.231,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 62.22,
+          "z_score": 0.733,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 50.58,
+          "z_score": 0.035,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 55.21,
+          "z_score": 0.312,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 57.77,
+          "z_score": 0.466,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "ABCB4",
+      "nome": "ABC Brasil PN",
+      "score": 58.07,
+      "score_breakdown": {
+        "fundamental": 28.07,
+        "momentum": 15.3,
+        "quality": 14.71
+      },
+      "normalization_method": "zscore_sectoral",
+      "conviction": 0.797,
+      "conviction_label": "Alta",
+      "sector": "Financeiro e Outros",
+      "sector_peers_count": 13,
+      "why": "Earnings Yield EY=22.7% (P/L≈4.4) — 1.9σ acima da média do setor (N=13); Investment (Asset Growth) -9.9%a.a. — 1.7σ abaixo da média do setor (N=13); Size (log Mkt Cap) Mkt Cap R$ 6.4 B — 1.5σ abaixo da média do setor (N=13)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.226607,
+        "pvp": 0.87349,
+        "roe": 0.14905,
+        "roic": 0.01544,
+        "divida_ebitda": null,
+        "dy": 0.095,
+        "alpha_6m": -0.016533,
+        "volatility": 0.237494,
+        "beta": 0.939914
+      },
+      "entry_price": 24.58,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 81.19,
+          "z_score": 1.872,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 63.28,
+          "z_score": 0.797,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 41.57,
+          "z_score": -0.506,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 41.49,
+          "z_score": -0.511,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "zscore_global",
+          "n_peers": 57,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 11,
+          "score": 72.32,
+          "z_score": 1.339,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 75.56,
+          "z_score": 1.534,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 12,
+          "score": 48.96,
+          "z_score": -0.062,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 12,
+          "score": 46.19,
+          "z_score": -0.228,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 78.96,
+          "z_score": 1.738,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 51.69,
+          "z_score": 0.101,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 53.97,
+          "z_score": 0.238,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 52.21,
+          "z_score": 0.133,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 39.94,
+          "z_score": -0.604,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 42.44,
+          "z_score": -0.454,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 48.61,
+          "z_score": -0.083,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 73.23,
+          "z_score": 1.394,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 56.35,
+          "z_score": 0.381,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 39.26,
+          "z_score": -0.645,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    }
+  ],
+  "top10": [
+    {
+      "ticker": "PETR4",
+      "nome": "Petróleo Brasileiro PN",
+      "score": 73.61,
+      "score_breakdown": {
+        "fundamental": 36.91,
+        "momentum": 17.84,
+        "quality": 18.86
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.734,
+      "conviction_label": "Alta",
+      "sector": "Petróleo Gás e Biocombustíveis",
+      "sector_peers_count": 6,
+      "why": "Earnings Yield EY=21.4% (P/L≈4.7) — top 0% do setor (N=6); Dividend Yield 9.2% — top 0% do setor (N=4); ROE 30.3% — top 8% do setor (N=6)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.214392,
+        "pvp": 1.262461,
+        "roe": 0.30274,
+        "roic": 0.10073,
+        "divida_ebitda": 1.508143,
+        "dy": 0.092,
+        "alpha_6m": 0.036235,
+        "volatility": 0.328827,
+        "beta": 0.384793
+      },
+      "entry_price": 47.11,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 91.67,
+          "z_score": null,
+          "percentile": 91.7,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 91.67,
+          "z_score": null,
+          "percentile": 91.7,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 30.0,
+          "z_score": null,
+          "percentile": 30.0,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 41.67,
+          "z_score": null,
+          "percentile": 41.7,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 49.3,
+          "z_score": -0.042,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 62.78,
+          "z_score": 0.767,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 67.61,
+          "z_score": 1.057,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 67.3,
+          "z_score": 1.038,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 47.76,
+          "z_score": -0.135,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 50.39,
+          "z_score": 0.023,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 55.52,
+          "z_score": 0.331,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 80.6,
+          "z_score": 1.836,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 100.0,
+          "z_score": 3.0,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "CMIN3",
+      "nome": "CSN Mineração ON",
+      "score": 63.47,
+      "score_breakdown": {
+        "fundamental": 32.0,
+        "momentum": 20.68,
+        "quality": 10.78
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.694,
+      "conviction_label": "Alta",
+      "sector": "Materiais Básicos",
+      "sector_peers_count": 7,
+      "why": "ROE 28.1% — top 0% do setor (N=7); ROIC 8.3% — top 0% do setor (N=7); Crescimento Receita 3y +10.7%a.a. — top 0% do setor (N=7)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.048558,
+        "pvp": 4.849154,
+        "roe": 0.28136,
+        "roic": 0.08286,
+        "divida_ebitda": 1.540694,
+        "dy": 0.0949,
+        "alpha_6m": 0.167917,
+        "volatility": 0.414961,
+        "beta": 1.093535
+      },
+      "entry_price": 6.59,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 42.86,
+          "z_score": null,
+          "percentile": 42.9,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 14.29,
+          "z_score": null,
+          "percentile": 14.3,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 66.67,
+          "z_score": null,
+          "percentile": 66.7,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 42.86,
+          "z_score": null,
+          "percentile": 42.9,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 85.71,
+          "z_score": null,
+          "percentile": 85.7,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 97.19,
+          "z_score": 2.831,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 83.12,
+          "z_score": 1.987,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 54.85,
+          "z_score": 0.291,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 17.21,
+          "z_score": -1.967,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 20.23,
+          "z_score": -1.786,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 45.84,
+          "z_score": -0.249,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 38.81,
+          "z_score": -0.671,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 49.63,
+          "z_score": -0.022,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 40.9,
+          "z_score": -0.546,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "ABEV3",
+      "nome": "Ambev ON",
+      "score": 59.76,
+      "score_breakdown": {
+        "fundamental": 28.79,
+        "momentum": 14.85,
+        "quality": 16.11
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.679,
+      "conviction_label": "Alta",
+      "sector": "Consumo Não Cíclico",
+      "sector_peers_count": 6,
+      "why": "ROIC 10.3% — top 0% do setor (N=6); Dívida/EBITDA 0.11 — top 0% do setor (N=6); Investment (Asset Growth) -10.7%a.a. — top 0% do setor (N=6)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.065438,
+        "pvp": 2.754156,
+        "roe": 0.184,
+        "roic": 0.10296,
+        "divida_ebitda": 0.110095,
+        "dy": 0.0464,
+        "alpha_6m": 0.04873,
+        "volatility": 0.279574,
+        "beta": 0.671139
+      },
+      "entry_price": 15.74,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 66.67,
+          "z_score": null,
+          "percentile": 66.7,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 42.27,
+          "z_score": -0.464,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 52.21,
+          "z_score": 0.133,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 62.14,
+          "z_score": 0.728,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 33.91,
+          "z_score": -0.966,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 37.07,
+          "z_score": -0.776,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 44.41,
+          "z_score": -0.335,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 65.07,
+          "z_score": 0.904,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 68.09,
+          "z_score": 1.085,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 58.41,
+          "z_score": 0.505,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "UGPA3",
+      "nome": "Ultrapar ON",
+      "score": 63.2,
+      "score_breakdown": {
+        "fundamental": 29.87,
+        "momentum": 19.83,
+        "quality": 13.5
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.693,
+      "conviction_label": "Alta",
+      "sector": "Consumo Não Cíclico",
+      "sector_peers_count": 6,
+      "why": "ROE 19.8% — top 0% do setor (N=6); Alpha 3m +26.9% vs IBOV — 2.6σ acima da média do universo (N=71); ROIC 9.7% — top 17% do setor (N=6)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.087654,
+        "pvp": 2.428136,
+        "roe": 0.19804,
+        "roic": 0.09726,
+        "divida_ebitda": 2.141593,
+        "dy": 0.0534,
+        "alpha_6m": 0.25581,
+        "volatility": 0.354279,
+        "beta": 0.96596
+      },
+      "entry_price": 37.42,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 66.67,
+          "z_score": null,
+          "percentile": 66.7,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 16.67,
+          "z_score": null,
+          "percentile": 16.7,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 66.67,
+          "z_score": null,
+          "percentile": 66.7,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 33.33,
+          "z_score": null,
+          "percentile": 33.3,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 94.11,
+          "z_score": 2.647,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 42.09,
+          "z_score": -0.475,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 80.3,
+          "z_score": 1.818,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 57.65,
+          "z_score": 0.459,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 29.49,
+          "z_score": -1.231,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 62.22,
+          "z_score": 0.733,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 50.58,
+          "z_score": 0.035,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 55.21,
+          "z_score": 0.312,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 57.77,
+          "z_score": 0.466,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "ABCB4",
+      "nome": "ABC Brasil PN",
+      "score": 58.07,
+      "score_breakdown": {
+        "fundamental": 28.07,
+        "momentum": 15.3,
+        "quality": 14.71
+      },
+      "normalization_method": "zscore_sectoral",
+      "conviction": 0.797,
+      "conviction_label": "Alta",
+      "sector": "Financeiro e Outros",
+      "sector_peers_count": 13,
+      "why": "Earnings Yield EY=22.7% (P/L≈4.4) — 1.9σ acima da média do setor (N=13); Investment (Asset Growth) -9.9%a.a. — 1.7σ abaixo da média do setor (N=13); Size (log Mkt Cap) Mkt Cap R$ 6.4 B — 1.5σ abaixo da média do setor (N=13)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.226607,
+        "pvp": 0.87349,
+        "roe": 0.14905,
+        "roic": 0.01544,
+        "divida_ebitda": null,
+        "dy": 0.095,
+        "alpha_6m": -0.016533,
+        "volatility": 0.237494,
+        "beta": 0.939914
+      },
+      "entry_price": 24.58,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 81.19,
+          "z_score": 1.872,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 63.28,
+          "z_score": 0.797,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 41.57,
+          "z_score": -0.506,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 41.49,
+          "z_score": -0.511,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "zscore_global",
+          "n_peers": 57,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 11,
+          "score": 72.32,
+          "z_score": 1.339,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 75.56,
+          "z_score": 1.534,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 12,
+          "score": 48.96,
+          "z_score": -0.062,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 12,
+          "score": 46.19,
+          "z_score": -0.228,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 78.96,
+          "z_score": 1.738,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 51.69,
+          "z_score": 0.101,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 53.97,
+          "z_score": 0.238,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 52.21,
+          "z_score": 0.133,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 39.94,
+          "z_score": -0.604,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 42.44,
+          "z_score": -0.454,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 48.61,
+          "z_score": -0.083,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 73.23,
+          "z_score": 1.394,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 56.35,
+          "z_score": 0.381,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 39.26,
+          "z_score": -0.645,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "PETR3",
+      "nome": "Petróleo Brasileiro ON",
+      "score": 67.41,
+      "score_breakdown": {
+        "fundamental": 33.73,
+        "momentum": 17.66,
+        "quality": 16.02
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.71,
+      "conviction_label": "Alta",
+      "sector": "Petróleo Gás e Biocombustíveis",
+      "sector_peers_count": 6,
+      "why": "ROE 30.3% — top 8% do setor (N=6); ROIC 10.1% — top 8% do setor (N=6); Earnings Yield EY=19.4% (P/L≈5.1) — top 17% do setor (N=6)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.194193,
+        "pvp": 1.393772,
+        "roe": 0.30274,
+        "roic": 0.10073,
+        "divida_ebitda": 1.508143,
+        "dy": 0.0834,
+        "alpha_6m": 0.069955,
+        "volatility": 0.348476,
+        "beta": 0.413013
+      },
+      "entry_price": 52.01,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 83.33,
+          "z_score": null,
+          "percentile": 83.3,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 66.67,
+          "z_score": null,
+          "percentile": 66.7,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 91.67,
+          "z_score": null,
+          "percentile": 91.7,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 91.67,
+          "z_score": null,
+          "percentile": 91.7,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 5,
+          "score": 30.0,
+          "z_score": null,
+          "percentile": 30.0,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 41.67,
+          "z_score": null,
+          "percentile": 41.7,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 49.17,
+          "z_score": -0.05,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 60.98,
+          "z_score": 0.659,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 69.97,
+          "z_score": 1.198,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 66.13,
+          "z_score": 0.968,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 39.23,
+          "z_score": -0.646,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 48.66,
+          "z_score": -0.081,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 51.71,
+          "z_score": 0.102,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 79.37,
+          "z_score": 1.762,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 62.5,
+          "z_score": 0.75,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "BBSE3",
+      "nome": "BB Seguridade ON",
+      "score": 57.86,
+      "score_breakdown": {
+        "fundamental": 25.49,
+        "momentum": 14.93,
+        "quality": 17.45
+      },
+      "normalization_method": "zscore_sectoral",
+      "conviction": 0.796,
+      "conviction_label": "Alta",
+      "sector": "Financeiro e Outros",
+      "sector_peers_count": 13,
+      "why": "ROE 85.9% — 2.2σ acima da média do setor (N=13); Recomendação Analistas 2.4/5 — 1.9σ abaixo da média do universo (N=70); P/VP 7.52 — 1.8σ acima da média do setor (N=13)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.112192,
+        "pvp": 7.515151,
+        "roe": 0.85944,
+        "roic": 0.28809,
+        "divida_ebitda": null,
+        "dy": 0.1089,
+        "alpha_6m": 0.23085,
+        "volatility": 0.208177,
+        "beta": 0.56288
+      },
+      "entry_price": 42.16,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 52.8,
+          "z_score": 0.168,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 19.91,
+          "z_score": -1.806,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 86.67,
+          "z_score": 2.2,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 72.97,
+          "z_score": 1.378,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "zscore_global",
+          "n_peers": 57,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 11,
+          "score": 79.48,
+          "z_score": 1.769,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 46.77,
+          "z_score": -0.194,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 12,
+          "score": 53.4,
+          "z_score": 0.204,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 12,
+          "score": 51.72,
+          "z_score": 0.103,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "zscore_sectoral",
+          "n_peers": 13,
+          "score": 48.5,
+          "z_score": -0.09,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 65.29,
+          "z_score": 0.917,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 38.22,
+          "z_score": -0.707,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 62.71,
+          "z_score": 0.763,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 18.08,
+          "z_score": -1.915,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 24.08,
+          "z_score": -1.555,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 54.95,
+          "z_score": 0.297,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 78.92,
+          "z_score": 1.735,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 72.82,
+          "z_score": 1.369,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 50.89,
+          "z_score": 0.053,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "FLRY3",
+      "nome": "Fleury ON",
+      "score": 59.08,
+      "score_breakdown": {
+        "fundamental": 28.98,
+        "momentum": 16.64,
+        "quality": 13.46
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.676,
+      "conviction_label": "Alta",
+      "sector": "Saúde",
+      "sector_peers_count": 4,
+      "why": "Dividend Yield 8.0% — top 0% do setor (N=4); Size (log Mkt Cap) Mkt Cap R$ 11.0 B — top 0% do setor (N=4); Investment (Asset Growth) +1.2%a.a. — top 0% do setor (N=4)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.057511,
+        "pvp": 2.197886,
+        "roe": 0.12618,
+        "roic": 0.06468,
+        "divida_ebitda": 2.73852,
+        "dy": 0.0798,
+        "alpha_6m": 0.114476,
+        "volatility": 0.312102,
+        "beta": 0.945111
+      },
+      "entry_price": 20.17,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 75.0,
+          "z_score": null,
+          "percentile": 75.0,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 72.35,
+          "z_score": 1.341,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 46.68,
+          "z_score": -0.199,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 52.36,
+          "z_score": 0.142,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 33.91,
+          "z_score": -0.966,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 25.2,
+          "z_score": -1.488,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 85.95,
+          "z_score": 2.157,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 58.76,
+          "z_score": 0.526,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 56.12,
+          "z_score": 0.367,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 42.69,
+          "z_score": -0.438,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "GOAU4",
+      "nome": "Metalúrgica Gerdau PN",
+      "score": 58.28,
+      "score_breakdown": {
+        "fundamental": 27.11,
+        "momentum": 17.65,
+        "quality": 13.52
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.673,
+      "conviction_label": "Alta",
+      "sector": "Materiais Básicos",
+      "sector_peers_count": 7,
+      "why": "Alpha 12m +35.0% vs IBOV — 1.5σ acima da média do universo (N=71); P/VP 0.77 — top 29% do setor (N=7); ROIC 5.1% — top 29% do setor (N=7)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.053715,
+        "pvp": 0.768226,
+        "roe": 0.04168,
+        "roic": 0.05061,
+        "divida_ebitda": 1.540819,
+        "dy": 0.0394,
+        "alpha_6m": 0.370265,
+        "volatility": 0.318533,
+        "beta": 0.924731
+      },
+      "entry_price": 11.17,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 57.14,
+          "z_score": null,
+          "percentile": 57.1,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 71.43,
+          "z_score": null,
+          "percentile": 71.4,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 57.14,
+          "z_score": null,
+          "percentile": 57.1,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 71.43,
+          "z_score": null,
+          "percentile": 71.4,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 57.14,
+          "z_score": null,
+          "percentile": 57.1,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 6,
+          "score": 66.67,
+          "z_score": null,
+          "percentile": 66.7,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 7,
+          "score": 57.14,
+          "z_score": null,
+          "percentile": 57.1,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 60.35,
+          "z_score": 0.621,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 48.75,
+          "z_score": -0.075,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 75.06,
+          "z_score": 1.503,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 54.26,
+          "z_score": 0.255,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 42.12,
+          "z_score": -0.473,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": null,
+          "z_score": null,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 57.51,
+          "z_score": 0.451,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 57.01,
+          "z_score": 0.421,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 44.42,
+          "z_score": -0.335,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    },
+    {
+      "ticker": "RADL3",
+      "nome": "Raia Drogasil ON",
+      "score": 57.88,
+      "score_breakdown": {
+        "fundamental": 29.17,
+        "momentum": 17.58,
+        "quality": 11.12
+      },
+      "normalization_method": "percentile_sectoral",
+      "conviction": 0.672,
+      "conviction_label": "Alta",
+      "sector": "Saúde",
+      "sector_peers_count": 4,
+      "why": "ROE 20.0% — top 0% do setor (N=4); ROIC 7.8% — top 0% do setor (N=4); Dívida/EBITDA 2.23 — top 0% do setor (N=4)",
+      "metrics": {
+        "pl": null,
+        "earnings_yield": 0.042521,
+        "pvp": 4.793765,
+        "roe": 0.19993,
+        "roic": 0.07799,
+        "divida_ebitda": 2.226421,
+        "dy": 0.022,
+        "alpha_6m": -0.110763,
+        "volatility": 0.394645,
+        "beta": 1.208259
+      },
+      "entry_price": 19.99,
+      "norm_details": {
+        "earnings_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "higher_is_better"
+        },
+        "pvp": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "lower_is_better"
+        },
+        "roe": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "roic": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "higher_is_better"
+        },
+        "divida_ebitda": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 100.0,
+          "z_score": null,
+          "percentile": 100.0,
+          "direction": "lower_is_better"
+        },
+        "dividend_yield": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "log_market_cap": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "lower_is_better"
+        },
+        "revenue_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "earnings_growth_3y": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 50.0,
+          "z_score": null,
+          "percentile": 50.0,
+          "direction": "higher_is_better"
+        },
+        "asset_growth_yoy": {
+          "normalization_method": "percentile_sectoral",
+          "n_peers": 4,
+          "score": 25.0,
+          "z_score": null,
+          "percentile": 25.0,
+          "direction": "lower_is_better"
+        },
+        "alpha_3m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 68.65,
+          "z_score": 1.119,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "idio_alpha_6m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 49.65,
+          "z_score": -0.021,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "alpha_12m": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 55.41,
+          "z_score": 0.325,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_rec_score": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 57.42,
+          "z_score": 0.445,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "analyst_target_upside": {
+          "normalization_method": "zscore_global",
+          "n_peers": 70,
+          "score": 56.28,
+          "z_score": 0.377,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "pead_signal": {
+          "normalization_method": "zscore_global",
+          "n_peers": 68,
+          "score": 75.99,
+          "z_score": 1.56,
+          "percentile": null,
+          "direction": "higher_is_better"
+        },
+        "volatility_180d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 42.75,
+          "z_score": -0.435,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "beta": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 44.62,
+          "z_score": -0.323,
+          "percentile": null,
+          "direction": "lower_is_better"
+        },
+        "avg_volume_30d": {
+          "normalization_method": "zscore_global",
+          "n_peers": 71,
+          "score": 47.14,
+          "z_score": -0.172,
+          "percentile": null,
+          "direction": "higher_is_better"
+        }
+      }
+    }
+  ],
+  "weights": {
+    "fundamental": 0.45,
+    "momentum": 0.3,
+    "quality": 0.25
+  },
+  "entry_prices": {
+    "PETR4": 47.11,
+    "CMIN3": 6.59,
+    "ABEV3": 15.74,
+    "UGPA3": 37.42,
+    "ABCB4": 24.58,
+    "PETR3": 52.01,
+    "BBSE3": 42.16,
+    "FLRY3": 20.17,
+    "GOAU4": 11.17,
+    "RADL3": 19.99
+  },
+  "portfolio_weights": {
+    "PETR4": 0.231086,
+    "CMIN3": 0.122995,
+    "ABEV3": 0.187311,
+    "UGPA3": 0.22141,
+    "ABCB4": 0.237199
+  },
+  "allocation": {
+    "sleeves": {
+      "equities_br": 0.4029,
+      "cdi": 0.3471,
+      "global_usd": 0.15,
+      "inflation": 0.1
+    },
+    "signals": {
+      "regime": "risk_on",
+      "erp": -0.0105,
+      "erp_tilt": -0.1,
+      "tsmom": 0.1091,
+      "tsmom_tilt": 0.1,
+      "portfolio_ey": 0.1285,
+      "selic_annual": 0.139,
+      "gross_exposure": 0.6715
+    },
+    "instruments": {
+      "equities_br": "Carteira Top-5 B3 (este relatório)",
+      "cdi": "Tesouro Selic / CDB 100% CDI",
+      "global_usd": "IVVB11 (S&P 500 sem hedge cambial)",
+      "inflation": "IMAB11 / B5P211 (NTN-B, juro real)"
+    },
+    "rationale": [
+      "Regime risk_on: base bolsa 60%",
+      "ERP implícito -1.0% < 2%: bolsa não paga o risco vs Selic → −10% bolsa",
+      "TSMOM 12-1 IBOV vs CDI: +10.9% → +10% bolsa",
+      "Vol-targeting: exposure 67% → 20% do capital migra de bolsa para CDI"
+    ]
+  },
+  "trade_advice": {
+    "PETR4": {
+      "entry_low": 46.17,
+      "entry_high": 48.05,
+      "target_conservative": 49.4,
+      "target_extended": 65.39,
+      "stop": 45.61,
+      "rr": 1.53,
+      "opportunity_type": "Misto",
+      "horizon": "3–8 semanas",
+      "target_pl": 65.39,
+      "target_pvp": 57.78,
+      "target_graham": 49.4
+    },
+    "CMIN3": {
+      "entry_low": 6.46,
+      "entry_high": 6.72,
+      "target_conservative": 7.25,
+      "target_extended": 7.91,
+      "stop": 6.31,
+      "rr": 2.36,
+      "opportunity_type": "Misto",
+      "horizon": "3–8 semanas",
+      "target_pl": 5.96,
+      "target_pvp": 1.26,
+      "target_graham": 1.68
+    },
+    "ABEV3": {
+      "entry_low": 15.43,
+      "entry_high": 16.05,
+      "target_conservative": 16.9,
+      "target_extended": 18.59,
+      "stop": 15.27,
+      "rr": 2.47,
+      "opportunity_type": "Qualidade",
+      "horizon": "3–8 semanas",
+      "target_pl": 10.53,
+      "target_pvp": 7.16,
+      "target_graham": 6.17
+    },
+    "UGPA3": {
+      "entry_low": 36.67,
+      "entry_high": 38.17,
+      "target_conservative": 41.16,
+      "target_extended": 44.9,
+      "stop": 36.26,
+      "rr": 3.22,
+      "opportunity_type": "Misto",
+      "horizon": "3–8 semanas",
+      "target_pl": 33.53,
+      "target_pvp": 19.29,
+      "target_graham": 18.09
+    },
+    "ABCB4": {
+      "entry_low": 24.09,
+      "entry_high": 25.07,
+      "target_conservative": 26.85,
+      "target_extended": 55.59,
+      "stop": 23.84,
+      "rr": 3.07,
+      "opportunity_type": "Valor",
+      "horizon": "3–8 semanas",
+      "target_pl": 55.59,
+      "target_pvp": 46.91,
+      "target_graham": 31.86
+    }
+  },
+  "full_universe_scores": {
+    "PETR4": {
+      "earnings_yield": 100.0,
+      "pvp": 83.33,
+      "roe": 91.67,
+      "roic": 91.67,
+      "divida_ebitda": 75.0,
+      "dividend_yield": 100.0,
+      "log_market_cap": 25.0,
+      "revenue_growth_3y": 25.0,
+      "earnings_growth_3y": 30.0,
+      "asset_growth_yoy": 41.67,
+      "alpha_3m": 49.3,
+      "idio_alpha_6m": 62.78,
+      "alpha_12m": 67.61,
+      "analyst_rec_score": 67.3,
+      "analyst_target_upside": 47.76,
+      "pead_signal": 50.39,
+      "volatility_180d": 55.52,
+      "beta": 80.6,
+      "avg_volume_30d": 100.0
+    },
+    "CMIN3": {
+      "earnings_yield": 42.86,
+      "pvp": 14.29,
+      "roe": 100.0,
+      "roic": 100.0,
+      "divida_ebitda": 66.67,
+      "dividend_yield": 83.33,
+      "log_market_cap": 42.86,
+      "revenue_growth_3y": 100.0,
+      "earnings_growth_3y": 100.0,
+      "asset_growth_yoy": 85.71,
+      "alpha_3m": 97.19,
+      "idio_alpha_6m": 83.12,
+      "alpha_12m": 54.85,
+      "analyst_rec_score": 17.21,
+      "analyst_target_upside": 20.23,
+      "pead_signal": 45.84,
+      "volatility_180d": 38.81,
+      "beta": 49.63,
+      "avg_volume_30d": 40.9
+    },
+    "ABEV3": {
+      "earnings_yield": 33.33,
+      "pvp": 16.67,
+      "roe": 83.33,
+      "roic": 100.0,
+      "divida_ebitda": 100.0,
+      "dividend_yield": 50.0,
+      "log_market_cap": 16.67,
+      "revenue_growth_3y": 66.67,
+      "earnings_growth_3y": 50.0,
+      "asset_growth_yoy": 100.0,
+      "alpha_3m": 42.27,
+      "idio_alpha_6m": 52.21,
+      "alpha_12m": 62.14,
+      "analyst_rec_score": 33.91,
+      "analyst_target_upside": 37.07,
+      "pead_signal": 44.41,
+      "volatility_180d": 65.07,
+      "beta": 68.09,
+      "avg_volume_30d": 58.41
+    },
+    "UGPA3": {
+      "earnings_yield": 50.0,
+      "pvp": 33.33,
+      "roe": 100.0,
+      "roic": 83.33,
+      "divida_ebitda": 66.67,
+      "dividend_yield": 83.33,
+      "log_market_cap": 33.33,
+      "revenue_growth_3y": 16.67,
+      "earnings_growth_3y": 66.67,
+      "asset_growth_yoy": 33.33,
+      "alpha_3m": 94.11,
+      "idio_alpha_6m": 42.09,
+      "alpha_12m": 80.3,
+      "analyst_rec_score": 57.65,
+      "analyst_target_upside": 29.49,
+      "pead_signal": 62.22,
+      "volatility_180d": 50.58,
+      "beta": 55.21,
+      "avg_volume_30d": 57.77
+    },
+    "ABCB4": {
+      "earnings_yield": 81.19,
+      "pvp": 63.28,
+      "roe": 41.57,
+      "roic": 41.49,
+      "dividend_yield": 72.32,
+      "log_market_cap": 75.56,
+      "revenue_growth_3y": 48.96,
+      "earnings_growth_3y": 46.19,
+      "asset_growth_yoy": 78.96,
+      "alpha_3m": 51.69,
+      "idio_alpha_6m": 53.97,
+      "alpha_12m": 52.21,
+      "analyst_rec_score": 39.94,
+      "analyst_target_upside": 42.44,
+      "pead_signal": 48.61,
+      "volatility_180d": 73.23,
+      "beta": 56.35,
+      "avg_volume_30d": 39.26
+    },
+    "PETR3": {
+      "earnings_yield": 83.33,
+      "pvp": 66.67,
+      "roe": 91.67,
+      "roic": 91.67,
+      "divida_ebitda": 75.0,
+      "dividend_yield": 75.0,
+      "log_market_cap": 25.0,
+      "revenue_growth_3y": 25.0,
+      "earnings_growth_3y": 30.0,
+      "asset_growth_yoy": 41.67,
+      "alpha_3m": 49.17,
+      "idio_alpha_6m": 60.98,
+      "alpha_12m": 69.97,
+      "analyst_rec_score": 66.13,
+      "analyst_target_upside": 39.23,
+      "pead_signal": 48.66,
+      "volatility_180d": 51.71,
+      "beta": 79.37,
+      "avg_volume_30d": 62.5
+    },
+    "BBSE3": {
+      "earnings_yield": 52.8,
+      "pvp": 19.91,
+      "roe": 86.67,
+      "roic": 72.97,
+      "dividend_yield": 79.48,
+      "log_market_cap": 46.77,
+      "revenue_growth_3y": 53.4,
+      "earnings_growth_3y": 51.72,
+      "asset_growth_yoy": 48.5,
+      "alpha_3m": 65.29,
+      "idio_alpha_6m": 38.22,
+      "alpha_12m": 62.71,
+      "analyst_rec_score": 18.08,
+      "analyst_target_upside": 24.08,
+      "pead_signal": 54.95,
+      "volatility_180d": 78.92,
+      "beta": 72.82,
+      "avg_volume_30d": 50.89
+    },
+    "FLRY3": {
+      "earnings_yield": 50.0,
+      "pvp": 75.0,
+      "roe": 25.0,
+      "roic": 75.0,
+      "divida_ebitda": 75.0,
+      "dividend_yield": 100.0,
+      "log_market_cap": 100.0,
+      "revenue_growth_3y": 75.0,
+      "earnings_growth_3y": 75.0,
+      "asset_growth_yoy": 100.0,
+      "alpha_3m": 72.35,
+      "idio_alpha_6m": 46.68,
+      "alpha_12m": 52.36,
+      "analyst_rec_score": 33.91,
+      "analyst_target_upside": 25.2,
+      "pead_signal": 85.95,
+      "volatility_180d": 58.76,
+      "beta": 56.12,
+      "avg_volume_30d": 42.69
+    },
+    "GOAU4": {
+      "earnings_yield": 57.14,
+      "pvp": 71.43,
+      "roe": 57.14,
+      "roic": 71.43,
+      "divida_ebitda": 50.0,
+      "dividend_yield": 50.0,
+      "log_market_cap": 57.14,
+      "revenue_growth_3y": 50.0,
+      "earnings_growth_3y": 66.67,
+      "asset_growth_yoy": 57.14,
+      "alpha_3m": 60.35,
+      "idio_alpha_6m": 48.75,
+      "alpha_12m": 75.06,
+      "analyst_rec_score": 54.26,
+      "analyst_target_upside": 42.12,
+      "volatility_180d": 57.51,
+      "beta": 57.01,
+      "avg_volume_30d": 44.42
+    },
+    "RADL3": {
+      "earnings_yield": 25.0,
+      "pvp": 25.0,
+      "roe": 100.0,
+      "roic": 100.0,
+      "divida_ebitda": 100.0,
+      "dividend_yield": 50.0,
+      "log_market_cap": 50.0,
+      "revenue_growth_3y": 50.0,
+      "earnings_growth_3y": 50.0,
+      "asset_growth_yoy": 25.0,
+      "alpha_3m": 68.65,
+      "idio_alpha_6m": 49.65,
+      "alpha_12m": 55.41,
+      "analyst_rec_score": 57.42,
+      "analyst_target_upside": 56.28,
+      "pead_signal": 75.99,
+      "volatility_180d": 42.75,
+      "beta": 44.62,
+      "avg_volume_30d": 47.14
+    },
+    "CXSE3": {
+      "earnings_yield": 42.13,
+      "pvp": 28.44,
+      "roe": 70.86,
+      "roic": 72.97,
+      "dividend_yield": 59.49,
+      "log_market_cap": 50.27,
+      "revenue_growth_3y": 62.21,
+      "earnings_growth_3y": 50.97,
+      "asset_growth_yoy": 51.37,
+      "alpha_3m": 60.82,
+      "idio_alpha_6m": 64.04,
+      "alpha_12m": 69.29,
+      "analyst_rec_score": 39.72,
+      "analyst_target_upside": 34.42,
+      "pead_signal": 43.21,
+      "volatility_180d": 73.76,
+      "beta": 68.0,
+      "avg_volume_30d": 43.45
+    },
+    "HYPE3": {
+      "earnings_yield": 100.0,
+      "pvp": 100.0,
+      "roe": 50.0,
+      "roic": 25.0,
+      "divida_ebitda": 50.0,
+      "dividend_yield": 75.0,
+      "log_market_cap": 75.0,
+      "revenue_growth_3y": 25.0,
+      "earnings_growth_3y": 25.0,
+      "asset_growth_yoy": 75.0,
+      "alpha_3m": 52.54,
+      "idio_alpha_6m": 57.92,
+      "alpha_12m": 41.27,
+      "analyst_rec_score": 64.66,
+      "analyst_target_upside": 52.59,
+      "pead_signal": 60.07,
+      "volatility_180d": 51.75,
+      "beta": 51.11,
+      "avg_volume_30d": 41.85
+    },
+    "PRIO3": {
+      "earnings_yield": 16.67,
+      "pvp": 50.0,
+      "roe": 50.0,
+      "roic": 50.0,
+      "divida_ebitda": 50.0,
+      "log_market_cap": 50.0,
+      "revenue_growth_3y": 100.0,
+      "earnings_growth_3y": 80.0,
+      "asset_growth_yoy": 83.33,
+      "alpha_3m": 37.39,
+      "idio_alpha_6m": 77.54,
+      "alpha_12m": 74.57,
+      "analyst_rec_score": 61.04,
+      "analyst_target_upside": 45.17,
+      "pead_signal": 53.11,
+      "volatility_180d": 35.59,
+      "beta": 91.17,
+      "avg_volume_30d": 57.88
+    },
+    "CMIG4": {
+      "earnings_yield": 68.35,
+      "pvp": 65.46,
+      "roe": 48.63,
+      "roic": 47.04,
+      "divida_ebitda": 68.27,
+      "dividend_yield": 76.17,
+      "log_market_cap": 51.69,
+      "revenue_growth_3y": 45.56,
+      "earnings_growth_3y": 56.49,
+      "asset_growth_yoy": 32.22,
+      "alpha_3m": 56.06,
+      "idio_alpha_6m": 50.37,
+      "alpha_12m": 50.41,
+      "analyst_rec_score": 24.55,
+      "analyst_target_upside": 40.42,
+      "pead_signal": 46.96,
+      "volatility_180d": 71.25,
+      "beta": 55.98,
+      "avg_volume_30d": 46.27
+    },
+    "ITUB4": {
+      "earnings_yield": 49.3,
+      "pvp": 50.76,
+      "roe": 52.01,
+      "roic": 41.78,
+      "dividend_yield": 34.34,
+      "log_market_cap": 26.72,
+      "revenue_growth_3y": 45.79,
+      "earnings_growth_3y": 53.77,
+      "asset_growth_yoy": 47.48,
+      "alpha_3m": 58.55,
+      "idio_alpha_6m": 57.65,
+      "alpha_12m": 56.14,
+      "analyst_rec_score": 61.04,
+      "analyst_target_upside": 48.07,
+      "pead_signal": 44.25,
+      "volatility_180d": 68.18,
+      "beta": 46.05,
+      "avg_volume_30d": 88.51
+    },
+    "VBBR3": {
+      "earnings_yield": 33.33,
+      "pvp": 33.33,
+      "roe": 66.67,
+      "roic": 66.67,
+      "divida_ebitda": 33.33,
+      "dividend_yield": 25.0,
+      "log_market_cap": 66.67,
+      "revenue_growth_3y": 66.67,
+      "earnings_growth_3y": 100.0,
+      "asset_growth_yoy": 16.67,
+      "alpha_3m": 79.75,
+      "idio_alpha_6m": 52.89,
+      "alpha_12m": 77.93,
+      "analyst_rec_score": 64.43,
+      "analyst_target_upside": 42.67,
+      "pead_signal": 49.2,
+      "volatility_180d": 52.81,
+      "beta": 52.04,
+      "avg_volume_30d": 55.47
+    },
+    "GGBR4": {
+      "earnings_yield": 28.57,
+      "pvp": 57.14,
+      "roe": 71.43,
+      "roic": 57.14,
+      "divida_ebitda": 83.33,
+      "dividend_yield": 33.33,
+      "log_market_cap": 28.57,
+      "revenue_growth_3y": 50.0,
+      "earnings_growth_3y": 33.33,
+      "asset_growth_yoy": 42.86,
+      "alpha_3m": 61.77,
+      "idio_alpha_6m": 47.85,
+      "alpha_12m": 72.62,
+      "analyst_rec_score": 55.61,
+      "analyst_target_upside": 39.88,
+      "pead_signal": 57.37,
+      "volatility_180d": 54.86,
+      "beta": 59.54,
+      "avg_volume_30d": 51.07
+    },
+    "BRAP4": {
+      "earnings_yield": 71.43,
+      "pvp": 42.86,
+      "roe": 85.71,
+      "roic": 14.29,
+      "dividend_yield": 100.0,
+      "log_market_cap": 85.71,
+      "revenue_growth_3y": 14.29,
+      "earnings_growth_3y": 83.33,
+      "asset_growth_yoy": 71.43,
+      "alpha_3m": 47.36,
+      "idio_alpha_6m": 43.93,
+      "alpha_12m": 68.24,
+      "analyst_rec_score": 39.33,
+      "analyst_target_upside": 40.23,
+      "volatility_180d": 62.57,
+      "beta": 56.78,
+      "avg_volume_30d": 40.69
+    },
+    "VALE3": {
+      "earnings_yield": 14.29,
+      "pvp": 28.57,
+      "roe": 42.86,
+      "roic": 85.71,
+      "divida_ebitda": 100.0,
+      "dividend_yield": 66.67,
+      "log_market_cap": 14.29,
+      "revenue_growth_3y": 71.43,
+      "earnings_growth_3y": 50.0,
+      "asset_growth_yoy": 14.29,
+      "alpha_3m": 43.12,
+      "idio_alpha_6m": 49.11,
+      "alpha_12m": 65.71,
+      "analyst_rec_score": 53.73,
+      "analyst_target_upside": 40.9,
+      "pead_signal": 42.75,
+      "volatility_180d": 63.55,
+      "beta": 59.86,
+      "avg_volume_30d": 100.0
+    },
+    "PSSA3": {
+      "earnings_yield": 52.14,
+      "pvp": 51.44,
+      "roe": 56.28,
+      "roic": 72.97,
+      "dividend_yield": 43.83,
+      "log_market_cap": 56.95,
+      "revenue_growth_3y": 79.54,
+      "earnings_growth_3y": 79.4,
+      "asset_growth_yoy": 30.78,
+      "alpha_3m": 62.05,
+      "idio_alpha_6m": 45.15,
+      "alpha_12m": 50.22,
+      "analyst_rec_score": 47.47,
+      "analyst_target_upside": 44.21,
+      "pead_signal": 37.72,
+      "volatility_180d": 63.53,
+      "beta": 64.63,
+      "avg_volume_30d": 43.01
+    },
+    "WEGE3": {
+      "earnings_yield": 31.04,
+      "pvp": 0.0,
+      "roe": 69.67,
+      "roic": 69.43,
+      "divida_ebitda": 73.56,
+      "log_market_cap": 24.7,
+      "revenue_growth_3y": 52.56,
+      "earnings_growth_3y": 49.26,
+      "asset_growth_yoy": 55.8,
+      "alpha_3m": 69.22,
+      "idio_alpha_6m": 45.96,
+      "alpha_12m": 63.3,
+      "analyst_rec_score": 57.65,
+      "analyst_target_upside": 37.45,
+      "pead_signal": 61.22,
+      "volatility_180d": 56.22,
+      "beta": 65.88,
+      "avg_volume_30d": 55.82
+    },
+    "CPFE3": {
+      "earnings_yield": 58.65,
+      "pvp": 30.61,
+      "roe": 71.23,
+      "roic": 82.72,
+      "divida_ebitda": 72.04,
+      "dividend_yield": 52.75,
+      "log_market_cap": 31.5,
+      "revenue_growth_3y": 32.37,
+      "earnings_growth_3y": 42.94,
+      "asset_growth_yoy": 57.25,
+      "alpha_3m": 56.47,
+      "idio_alpha_6m": 28.41,
+      "alpha_12m": 60.28,
+      "analyst_rec_score": 27.65,
+      "analyst_target_upside": 38.55,
+      "pead_signal": 35.73,
+      "volatility_180d": 64.8,
+      "beta": 55.77,
+      "avg_volume_30d": 41.55
+    },
+    "ISAE4": {
+      "earnings_yield": 71.41,
+      "pvp": 73.14,
+      "roe": 43.13,
+      "roic": 50.26,
+      "divida_ebitda": 54.54,
+      "dividend_yield": 63.32,
+      "log_market_cap": 75.27,
+      "revenue_growth_3y": 65.73,
+      "earnings_growth_3y": 43.71,
+      "asset_growth_yoy": 43.63,
+      "alpha_3m": 46.34,
+      "idio_alpha_6m": 37.59,
+      "alpha_12m": 56.31,
+      "analyst_rec_score": 39.72,
+      "analyst_target_upside": 41.23,
+      "pead_signal": 46.34,
+      "volatility_180d": 68.49,
+      "beta": 54.9,
+      "avg_volume_30d": 42.47
+    },
+    "INTB3": {
+      "earnings_yield": 54.54,
+      "pvp": 54.0,
+      "roe": 54.5,
+      "roic": 49.85,
+      "divida_ebitda": 64.61,
+      "dividend_yield": 59.82,
+      "log_market_cap": 67.42,
+      "revenue_growth_3y": 40.44,
+      "earnings_growth_3y": 46.11,
+      "asset_growth_yoy": 66.97,
+      "alpha_3m": 72.68,
+      "idio_alpha_6m": 44.07,
+      "alpha_12m": 57.68,
+      "analyst_rec_score": 58.33,
+      "analyst_target_upside": 43.89,
+      "pead_signal": 67.74,
+      "volatility_180d": 47.6,
+      "beta": 52.21,
+      "avg_volume_30d": 39.44
+    },
+    "ITSA4": {
+      "earnings_yield": 53.94,
+      "pvp": 55.32,
+      "roe": 47.96,
+      "roic": 31.17,
+      "log_market_cap": 39.42,
+      "revenue_growth_3y": 27.44,
+      "earnings_growth_3y": 44.85,
+      "asset_growth_yoy": 66.44,
+      "alpha_3m": 60.25,
+      "idio_alpha_6m": 51.27,
+      "alpha_12m": 63.23,
+      "analyst_rec_score": 64.92,
+      "analyst_target_upside": 46.22,
+      "pead_signal": 43.58,
+      "volatility_180d": 68.3,
+      "beta": 43.96,
+      "avg_volume_30d": 54.09
+    },
+    "MDIA3": {
+      "earnings_yield": 66.67,
+      "pvp": 100.0,
+      "roe": 33.33,
+      "roic": 33.33,
+      "divida_ebitda": 83.33,
+      "dividend_yield": 33.33,
+      "log_market_cap": 100.0,
+      "revenue_growth_3y": 50.0,
+      "earnings_growth_3y": 83.33,
+      "asset_growth_yoy": 83.33,
+      "alpha_3m": 37.4,
+      "idio_alpha_6m": 56.48,
+      "alpha_12m": 24.55,
+      "analyst_rec_score": 28.97,
+      "analyst_target_upside": 64.3,
+      "pead_signal": 59.54,
+      "volatility_180d": 60.35,
+      "beta": 66.29,
+      "avg_volume_30d": 39.32
+    },
+    "GMAT3": {
+      "earnings_yield": 100.0,
+      "pvp": 66.67,
+      "roe": 66.67,
+      "roic": 50.0,
+      "divida_ebitda": 50.0,
+      "dividend_yield": 66.67,
+      "log_market_cap": 50.0,
+      "revenue_growth_3y": 100.0,
+      "earnings_growth_3y": 100.0,
+      "asset_growth_yoy": 16.67,
+      "alpha_3m": 44.12,
+      "idio_alpha_6m": 49.47,
+      "alpha_12m": 20.44,
+      "analyst_rec_score": 43.4,
+      "analyst_target_upside": 49.49,
+      "pead_signal": 86.75,
+      "volatility_180d": 34.49,
+      "beta": 45.76,
+      "avg_volume_30d": 40.07
+    },
+    "RDOR3": {
+      "earnings_yield": 75.0,
+      "pvp": 50.0,
+      "roe": 75.0,
+      "roic": 50.0,
+      "divida_ebitda": 25.0,
+      "dividend_yield": 25.0,
+      "log_market_cap": 25.0,
+      "revenue_growth_3y": 100.0,
+      "earnings_growth_3y": 100.0,
+      "asset_growth_yoy": 50.0,
+      "alpha_3m": 55.6,
+      "idio_alpha_6m": 47.22,
+      "alpha_12m": 42.45,
+      "analyst_rec_score": 66.85,
+      "analyst_target_upside": 55.68,
+      "pead_signal": 64.74,
+      "volatility_180d": 47.06,
+      "beta": 44.89,
+      "avg_volume_30d": 51.79
+    },
+    "CSMG3": {
+      "earnings_yield": 39.11,
+      "pvp": 45.53,
+      "roe": 49.99,
+      "roic": 51.26,
+      "divida_ebitda": 46.63,
+      "dividend_yield": 31.37,
+      "log_market_cap": 50.91,
+      "revenue_growth_3y": 51.99,
+      "earnings_growth_3y": 50.12,
+      "asset_growth_yoy": 37.75,
+      "alpha_3m": 61.88,
+      "idio_alpha_6m": 42.45,
+      "alpha_12m": 100.0,
+      "analyst_rec_score": 70.08,
+      "analyst_target_upside": 61.43,
+      "pead_signal": 40.75,
+      "volatility_180d": 49.86,
+      "beta": 59.29,
+      "avg_volume_30d": 49.77
+    },
+    "TIMS3": {
+      "earnings_yield": 47.59,
+      "pvp": 50.5,
+      "roe": 52.84,
+      "roic": 56.48,
+      "divida_ebitda": 65.52,
+      "dividend_yield": 61.32,
+      "log_market_cap": 42.33,
+      "revenue_growth_3y": 47.82,
+      "earnings_growth_3y": 54.05,
+      "asset_growth_yoy": 58.45,
+      "alpha_3m": 24.89,
+      "idio_alpha_6m": 73.58,
+      "alpha_12m": 38.19,
+      "analyst_rec_score": 39.33,
+      "analyst_target_upside": 50.47,
+      "pead_signal": 31.62,
+      "volatility_180d": 59.75,
+      "beta": 62.63,
+      "avg_volume_30d": 45.37
+    },
+    "GRND3": {
+      "earnings_yield": 57.13,
+      "pvp": 53.43,
+      "roe": 62.11,
+      "roic": 31.7,
+      "divida_ebitda": 81.85,
+      "log_market_cap": 62.61,
+      "revenue_growth_3y": 30.11,
+      "earnings_growth_3y": 37.68,
+      "asset_growth_yoy": 58.36,
+      "alpha_3m": 35.15,
+      "idio_alpha_6m": 49.65,
+      "alpha_12m": 37.93,
+      "volatility_180d": 67.85,
+      "beta": 64.89,
+      "avg_volume_30d": 39.36
+    },
+    "SBSP3": {
+      "earnings_yield": 46.32,
+      "pvp": 48.54,
+      "roe": 54.75,
+      "roic": 56.56,
+      "divida_ebitda": 45.06,
+      "dividend_yield": 46.78,
+      "log_market_cap": 34.19,
+      "revenue_growth_3y": 64.56,
+      "earnings_growth_3y": 54.54,
+      "asset_growth_yoy": 15.35,
+      "alpha_3m": 46.86,
+      "idio_alpha_6m": 53.79,
+      "alpha_12m": 52.96,
+      "analyst_rec_score": 66.13,
+      "analyst_target_upside": 54.83,
+      "pead_signal": 28.39,
+      "volatility_180d": 57.99,
+      "beta": 48.84,
+      "avg_volume_30d": 67.27
+    },
+    "CPLE3": {
+      "earnings_yield": 45.64,
+      "pvp": 38.57,
+      "roe": 42.29,
+      "roic": 40.88,
+      "divida_ebitda": 59.63,
+      "dividend_yield": 43.84,
+      "log_market_cap": 39.21,
+      "revenue_growth_3y": 41.32,
+      "earnings_growth_3y": 84.33,
+      "asset_growth_yoy": 56.78,
+      "alpha_3m": 54.08,
+      "idio_alpha_6m": 53.56,
+      "alpha_12m": 65.75,
+      "analyst_rec_score": 70.73,
+      "analyst_target_upside": 46.29,
+      "pead_signal": 52.5,
+      "volatility_180d": 62.6,
+      "beta": 48.73,
+      "avg_volume_30d": 53.07
+    },
+    "POMO4": {
+      "earnings_yield": 76.38,
+      "pvp": 55.29,
+      "roe": 66.6,
+      "roic": 60.28,
+      "divida_ebitda": 55.84,
+      "log_market_cap": 66.0,
+      "revenue_growth_3y": 62.87,
+      "earnings_growth_3y": 54.58,
+      "asset_growth_yoy": 55.5,
+      "alpha_3m": 17.33,
+      "idio_alpha_6m": 41.73,
+      "alpha_12m": 23.41,
+      "analyst_rec_score": 63.75,
+      "analyst_target_upside": 90.23,
+      "pead_signal": 22.32,
+      "volatility_180d": 54.38,
+      "beta": 54.83,
+      "avg_volume_30d": 41.18
+    },
+    "TAEE11": {
+      "earnings_yield": 33.08,
+      "pvp": 47.13,
+      "roe": 58.44,
+      "roic": 59.03,
+      "divida_ebitda": 44.54,
+      "dividend_yield": 62.01,
+      "log_market_cap": 44.43,
+      "revenue_growth_3y": 67.69,
+      "earnings_growth_3y": 44.64,
+      "asset_growth_yoy": 39.52,
+      "alpha_3m": 49.69,
+      "idio_alpha_6m": 45.87,
+      "alpha_12m": 54.33,
+      "analyst_rec_score": 10.95,
+      "analyst_target_upside": 25.09,
+      "pead_signal": 51.31,
+      "volatility_180d": 73.08,
+      "beta": 58.2,
+      "avg_volume_30d": 42.49
+    },
+    "VIVA3": {
+      "earnings_yield": 44.14,
+      "pvp": 34.29,
+      "roe": 66.36,
+      "roic": 81.28,
+      "divida_ebitda": 68.89,
+      "dividend_yield": 43.93,
+      "log_market_cap": 50.18,
+      "revenue_growth_3y": 47.59,
+      "earnings_growth_3y": 45.99,
+      "asset_growth_yoy": 39.68,
+      "alpha_3m": 55.38,
+      "idio_alpha_6m": 55.77,
+      "alpha_12m": 34.24,
+      "analyst_rec_score": 64.92,
+      "analyst_target_upside": 62.58,
+      "pead_signal": 42.66,
+      "volatility_180d": 35.0,
+      "beta": 47.4,
+      "avg_volume_30d": 41.7
+    },
+    "MULT3": {
+      "earnings_yield": 41.22,
+      "pvp": 23.98,
+      "roe": 71.61,
+      "roic": 84.55,
+      "divida_ebitda": 64.05,
+      "dividend_yield": 35.14,
+      "log_market_cap": 37.44,
+      "revenue_growth_3y": 49.83,
+      "earnings_growth_3y": 42.92,
+      "asset_growth_yoy": 49.25,
+      "alpha_3m": 48.13,
+      "idio_alpha_6m": 38.22,
+      "alpha_12m": 46.59,
+      "analyst_rec_score": 65.21,
+      "analyst_target_upside": 49.33,
+      "pead_signal": 48.57,
+      "volatility_180d": 57.28,
+      "beta": 42.46,
+      "avg_volume_30d": 43.76
+    },
+    "EGIE3": {
+      "earnings_yield": 59.51,
+      "pvp": 32.86,
+      "roe": 73.85,
+      "roic": 56.31,
+      "divida_ebitda": 44.57,
+      "dividend_yield": 37.42,
+      "log_market_cap": 44.74,
+      "revenue_growth_3y": 29.27,
+      "earnings_growth_3y": 30.3,
+      "asset_growth_yoy": 38.75,
+      "alpha_3m": 32.56,
+      "idio_alpha_6m": 48.21,
+      "alpha_12m": 47.12,
+      "analyst_rec_score": 18.4,
+      "analyst_target_upside": 41.25,
+      "pead_signal": 46.98,
+      "volatility_180d": 62.81,
+      "beta": 56.83,
+      "avg_volume_30d": 43.95
+    },
+    "SMTO3": {
+      "earnings_yield": 83.33,
+      "pvp": 83.33,
+      "roe": 50.0,
+      "roic": 16.67,
+      "divida_ebitda": 33.33,
+      "dividend_yield": 16.67,
+      "log_market_cap": 83.33,
+      "revenue_growth_3y": 83.33,
+      "earnings_growth_3y": 33.33,
+      "asset_growth_yoy": 66.67,
+      "alpha_3m": 29.82,
+      "idio_alpha_6m": 72.68,
+      "alpha_12m": 34.56,
+      "analyst_rec_score": 36.62,
+      "analyst_target_upside": 34.87,
+      "pead_signal": 63.29,
+      "volatility_180d": 32.28,
+      "beta": 71.92,
+      "avg_volume_30d": 40.78
+    },
+    "BRSR6": {
+      "earnings_yield": 81.19,
+      "pvp": 66.89,
+      "roe": 40.9,
+      "roic": 36.66,
+      "dividend_yield": 53.51,
+      "log_market_cap": 75.05,
+      "revenue_growth_3y": 47.07,
+      "earnings_growth_3y": 72.21,
+      "asset_growth_yoy": 41.39,
+      "alpha_3m": 45.38,
+      "idio_alpha_6m": 0.0,
+      "alpha_12m": 62.02,
+      "analyst_rec_score": 10.17,
+      "analyst_target_upside": 34.01,
+      "pead_signal": 54.24,
+      "volatility_180d": 63.64,
+      "beta": 49.65,
+      "avg_volume_30d": 39.48
+    },
+    "VIVT3": {
+      "earnings_yield": 40.92,
+      "pvp": 54.76,
+      "roe": 43.65,
+      "roic": 48.12,
+      "divida_ebitda": 70.42,
+      "dividend_yield": 42.05,
+      "log_market_cap": 33.82,
+      "revenue_growth_3y": 47.97,
+      "earnings_growth_3y": 49.23,
+      "asset_growth_yoy": 56.23,
+      "alpha_3m": 37.79,
+      "idio_alpha_6m": 54.51,
+      "alpha_12m": 43.49,
+      "analyst_rec_score": 33.91,
+      "analyst_target_upside": 50.97,
+      "pead_signal": 35.25,
+      "volatility_180d": 63.33,
+      "beta": 61.61,
+      "avg_volume_30d": 45.83
+    },
+    "USIM5": {
+      "earnings_yield": 100.0,
+      "pvp": 100.0,
+      "roe": 14.29,
+      "roic": 28.57,
+      "divida_ebitda": 33.33,
+      "log_market_cap": 71.43,
+      "revenue_growth_3y": 28.57,
+      "asset_growth_yoy": 100.0,
+      "alpha_3m": 0.0,
+      "idio_alpha_6m": 69.44,
+      "alpha_12m": 75.31,
+      "analyst_rec_score": 41.66,
+      "analyst_target_upside": 42.07,
+      "pead_signal": 12.54,
+      "volatility_180d": 29.28,
+      "beta": 58.15,
+      "avg_volume_30d": 41.79
+    },
+    "BBAS3": {
+      "earnings_yield": 47.93,
+      "pvp": 64.96,
+      "roe": 34.65,
+      "roic": 34.77,
+      "log_market_cap": 41.64,
+      "revenue_growth_3y": 44.5,
+      "earnings_growth_3y": 17.76,
+      "asset_growth_yoy": 56.7,
+      "alpha_3m": 57.67,
+      "idio_alpha_6m": 53.47,
+      "alpha_12m": 42.44,
+      "analyst_rec_score": 35.99,
+      "analyst_target_upside": 35.02,
+      "pead_signal": 41.09,
+      "volatility_180d": 60.12,
+      "beta": 44.56,
+      "avg_volume_30d": 68.33
+    },
+    "RECV3": {
+      "earnings_yield": 50.0,
+      "pvp": 100.0,
+      "roe": 33.33,
+      "roic": 16.67,
+      "divida_ebitda": 16.67,
+      "dividend_yield": 50.0,
+      "log_market_cap": 100.0,
+      "revenue_growth_3y": 83.33,
+      "earnings_growth_3y": 60.0,
+      "asset_growth_yoy": 66.67,
+      "alpha_3m": 41.57,
+      "idio_alpha_6m": 55.41,
+      "alpha_12m": 36.83,
+      "analyst_rec_score": 33.91,
+      "analyst_target_upside": 39.12,
+      "pead_signal": 52.46,
+      "volatility_180d": 46.73,
+      "beta": 65.67,
+      "avg_volume_30d": 39.73
+    },
+    "LREN3": {
+      "earnings_yield": 48.94,
+      "pvp": 53.44,
+      "roe": 53.81,
+      "roic": 54.54,
+      "divida_ebitda": 71.05,
+      "dividend_yield": 53.01,
+      "log_market_cap": 31.84,
+      "revenue_growth_3y": 37.34,
+      "earnings_growth_3y": 37.56,
+      "asset_growth_yoy": 64.88,
+      "alpha_3m": 36.2,
+      "idio_alpha_6m": 64.4,
+      "alpha_12m": 39.73,
+      "analyst_rec_score": 57.42,
+      "analyst_target_upside": 76.32,
+      "pead_signal": 29.59,
+      "volatility_180d": 34.45,
+      "beta": 34.34,
+      "avg_volume_30d": 48.46
+    },
+    "BPAC11": {
+      "earnings_yield": 23.14,
+      "pvp": 36.43,
+      "roe": 56.66,
+      "roic": 49.15,
+      "dividend_yield": 31.41,
+      "log_market_cap": 36.69,
+      "revenue_growth_3y": 80.56,
+      "earnings_growth_3y": 65.07,
+      "asset_growth_yoy": 16.21,
+      "alpha_3m": 68.9,
+      "idio_alpha_6m": 48.39,
+      "alpha_12m": 57.12,
+      "analyst_rec_score": 63.13,
+      "analyst_target_upside": 43.36,
+      "pead_signal": 39.45,
+      "volatility_180d": 52.24,
+      "beta": 28.5,
+      "avg_volume_30d": 72.63
+    },
+    "ALPA4": {
+      "earnings_yield": 37.33,
+      "pvp": 14.87,
+      "roe": 62.49,
+      "roic": 63.48,
+      "divida_ebitda": 68.46,
+      "dividend_yield": 39.35,
+      "log_market_cap": 40.66,
+      "revenue_growth_3y": 33.07,
+      "earnings_growth_3y": 71.63,
+      "asset_growth_yoy": 77.79,
+      "alpha_3m": 42.38,
+      "idio_alpha_6m": 32.01,
+      "alpha_12m": 64.78,
+      "analyst_rec_score": 40.69,
+      "analyst_target_upside": 35.81,
+      "pead_signal": 84.75,
+      "volatility_180d": 37.46,
+      "beta": 52.24,
+      "avg_volume_30d": 40.25
+    },
+    "IGTI11": {
+      "earnings_yield": 24.23,
+      "pvp": 39.64,
+      "roe": 51.56,
+      "roic": 49.68,
+      "divida_ebitda": 42.63,
+      "dividend_yield": 30.1,
+      "revenue_growth_3y": 47.68,
+      "earnings_growth_3y": 78.68,
+      "asset_growth_yoy": 37.59,
+      "alpha_3m": 47.41,
+      "idio_alpha_6m": 52.89,
+      "alpha_12m": 47.37,
+      "analyst_rec_score": 67.82,
+      "analyst_target_upside": 53.76,
+      "pead_signal": 57.87,
+      "volatility_180d": 61.82,
+      "beta": 40.53,
+      "avg_volume_30d": 41.69
+    },
+    "CYRE3": {
+      "earnings_yield": 58.65,
+      "pvp": 54.82,
+      "roe": 68.49,
+      "roic": 38.23,
+      "divida_ebitda": 31.56,
+      "dividend_yield": 81.29,
+      "log_market_cap": 32.6,
+      "revenue_growth_3y": 57.07,
+      "earnings_growth_3y": 54.42,
+      "asset_growth_yoy": 17.54,
+      "alpha_3m": 58.31,
+      "idio_alpha_6m": 54.6,
+      "alpha_12m": 34.91,
+      "analyst_rec_score": 61.04,
+      "analyst_target_upside": 64.32,
+      "pead_signal": 64.28,
+      "volatility_180d": 25.4,
+      "beta": 23.65,
+      "avg_volume_30d": 48.28
+    },
+    "TOTS3": {
+      "earnings_yield": 34.87,
+      "pvp": 34.15,
+      "roe": 52.54,
+      "roic": 55.16,
+      "divida_ebitda": 44.1,
+      "dividend_yield": 32.58,
+      "log_market_cap": 51.36,
+      "revenue_growth_3y": 58.0,
+      "earnings_growth_3y": 50.67,
+      "asset_growth_yoy": 43.3,
+      "alpha_3m": 67.35,
+      "idio_alpha_6m": 47.22,
+      "alpha_12m": 32.39,
+      "analyst_rec_score": 67.3,
+      "analyst_target_upside": 60.97,
+      "pead_signal": 57.04,
+      "volatility_180d": 38.91,
+      "beta": 57.23,
+      "avg_volume_30d": 44.78
+    },
+    "DXCO3": {
+      "earnings_yield": 85.71,
+      "pvp": 85.71,
+      "roe": 28.57,
+      "roic": 42.86,
+      "divida_ebitda": 16.67,
+      "dividend_yield": 16.67,
+      "log_market_cap": 100.0,
+      "revenue_growth_3y": 85.71,
+      "earnings_growth_3y": 16.67,
+      "asset_growth_yoy": 28.57,
+      "alpha_3m": 64.88,
+      "idio_alpha_6m": 47.98,
+      "alpha_12m": 44.62,
+      "analyst_rec_score": 63.75,
+      "analyst_target_upside": 63.9,
+      "pead_signal": 54.86,
+      "volatility_180d": 43.72,
+      "beta": 46.7,
+      "avg_volume_30d": 39.19
+    },
+    "ENGI11": {
+      "earnings_yield": 33.54,
+      "pvp": 68.09,
+      "roe": 35.6,
+      "roic": 33.2,
+      "divida_ebitda": 29.2,
+      "dividend_yield": 25.06,
+      "log_market_cap": 75.27,
+      "revenue_growth_3y": 45.16,
+      "earnings_growth_3y": 38.44,
+      "asset_growth_yoy": 46.63,
+      "alpha_3m": 59.02,
+      "idio_alpha_6m": 54.73,
+      "alpha_12m": 50.82,
+      "analyst_rec_score": 68.64,
+      "analyst_target_upside": 49.04,
+      "pead_signal": 37.73,
+      "volatility_180d": 57.53,
+      "beta": 39.91,
+      "avg_volume_30d": 48.85
+    },
+    "RAIL3": {
+      "earnings_yield": 35.19,
+      "pvp": 50.43,
+      "roe": 42.33,
+      "roic": 53.94,
+      "divida_ebitda": 39.46,
+      "log_market_cap": 48.17,
+      "revenue_growth_3y": 54.07,
+      "earnings_growth_3y": 49.95,
+      "asset_growth_yoy": 50.3,
+      "alpha_3m": 52.19,
+      "idio_alpha_6m": 38.13,
+      "alpha_12m": 41.4,
+      "analyst_rec_score": 52.9,
+      "analyst_target_upside": 59.29,
+      "pead_signal": 66.17,
+      "volatility_180d": 46.94,
+      "beta": 50.3,
+      "avg_volume_30d": 47.1
+    },
+    "RENT3": {
+      "earnings_yield": 39.88,
+      "pvp": 42.06,
+      "roe": 50.36,
+      "roic": 54.9,
+      "divida_ebitda": 35.25,
+      "dividend_yield": 43.81,
+      "log_market_cap": 17.17,
+      "revenue_growth_3y": 74.57,
+      "earnings_growth_3y": 35.65,
+      "asset_growth_yoy": 61.84,
+      "alpha_3m": 45.73,
+      "idio_alpha_6m": 60.62,
+      "alpha_12m": 48.0,
+      "analyst_rec_score": 66.47,
+      "analyst_target_upside": 71.54,
+      "pead_signal": 47.37,
+      "volatility_180d": 34.0,
+      "beta": 21.75,
+      "avg_volume_30d": 57.96
+    },
+    "MRVE3": {
+      "earnings_yield": 83.45,
+      "pvp": 62.99,
+      "roe": 12.57,
+      "roic": 38.66,
+      "divida_ebitda": 38.42,
+      "log_market_cap": 64.13,
+      "revenue_growth_3y": 53.82,
+      "asset_growth_yoy": 63.88,
+      "alpha_3m": 29.67,
+      "idio_alpha_6m": 100.0,
+      "alpha_12m": 21.19,
+      "analyst_rec_score": 46.43,
+      "analyst_target_upside": 56.71,
+      "pead_signal": 91.96,
+      "volatility_180d": 18.73,
+      "beta": 29.03,
+      "avg_volume_30d": 42.04
+    },
+    "BBDC4": {
+      "earnings_yield": 55.76,
+      "pvp": 61.57,
+      "roe": 39.76,
+      "roic": 37.25,
+      "dividend_yield": 29.91,
+      "log_market_cap": 37.35,
+      "revenue_growth_3y": 36.22,
+      "earnings_growth_3y": 42.13,
+      "asset_growth_yoy": 38.04,
+      "alpha_3m": 54.69,
+      "idio_alpha_6m": 0.0,
+      "alpha_12m": 51.0,
+      "analyst_rec_score": 53.29,
+      "analyst_target_upside": 50.83,
+      "pead_signal": 45.08,
+      "volatility_180d": 60.39,
+      "beta": 45.05,
+      "avg_volume_30d": 71.69
+    },
+    "SAPR11": {
+      "earnings_yield": 29.62,
+      "pvp": 59.63,
+      "roe": 36.12,
+      "roic": 49.62,
+      "divida_ebitda": 54.62,
+      "dividend_yield": 36.2,
+      "log_market_cap": 58.76,
+      "revenue_growth_3y": 49.09,
+      "earnings_growth_3y": 50.75,
+      "asset_growth_yoy": 14.8,
+      "alpha_3m": 38.02,
+      "idio_alpha_6m": 50.91,
+      "alpha_12m": 42.91,
+      "analyst_rec_score": 19.11,
+      "analyst_target_upside": 46.57,
+      "pead_signal": 63.26,
+      "volatility_180d": 55.7,
+      "beta": 54.55,
+      "avg_volume_30d": 41.04
+    },
+    "SBFG3": {
+      "earnings_yield": 62.07,
+      "pvp": 63.8,
+      "roe": 52.01,
+      "roic": 44.34,
+      "divida_ebitda": 46.57,
+      "dividend_yield": 44.47,
+      "log_market_cap": 74.22,
+      "revenue_growth_3y": 39.08,
+      "earnings_growth_3y": 44.49,
+      "asset_growth_yoy": 46.92,
+      "alpha_3m": 30.69,
+      "idio_alpha_6m": 54.51,
+      "alpha_12m": 34.69,
+      "analyst_rec_score": 64.05,
+      "analyst_target_upside": 92.0,
+      "pead_signal": 41.88,
+      "volatility_180d": 31.38,
+      "beta": 27.32,
+      "avg_volume_30d": 39.81
+    },
+    "IRBR3": {
+      "earnings_yield": 33.88,
+      "pvp": 62.48,
+      "roe": 25.15,
+      "roic": 48.18,
+      "dividend_yield": 36.46,
+      "log_market_cap": 78.23,
+      "asset_growth_yoy": 69.87,
+      "alpha_3m": 53.23,
+      "idio_alpha_6m": 22.3,
+      "alpha_12m": 53.49,
+      "analyst_rec_score": 64.92,
+      "analyst_target_upside": 38.03,
+      "pead_signal": 72.79,
+      "volatility_180d": 59.3,
+      "beta": 51.02,
+      "avg_volume_30d": 40.28
+    },
+    "AZZA3": {
+      "earnings_yield": 78.34,
+      "pvp": 69.12,
+      "roe": 28.7,
+      "roic": 35.98,
+      "divida_ebitda": 50.64,
+      "dividend_yield": 77.79,
+      "log_market_cap": 60.25,
+      "revenue_growth_3y": 85.46,
+      "earnings_growth_3y": 50.97,
+      "asset_growth_yoy": 56.13,
+      "alpha_3m": 41.7,
+      "idio_alpha_6m": 54.69,
+      "alpha_12m": 21.21,
+      "analyst_rec_score": 47.47,
+      "analyst_target_upside": 67.0,
+      "pead_signal": 28.67,
+      "volatility_180d": 20.48,
+      "beta": 39.99,
+      "avg_volume_30d": 40.63
+    },
+    "CEAB3": {
+      "earnings_yield": 62.63,
+      "pvp": 61.85,
+      "roe": 56.29,
+      "roic": 52.54,
+      "divida_ebitda": 58.89,
+      "dividend_yield": 59.88,
+      "log_market_cap": 66.52,
+      "revenue_growth_3y": 41.27,
+      "earnings_growth_3y": 78.68,
+      "asset_growth_yoy": 71.46,
+      "alpha_3m": 26.79,
+      "idio_alpha_6m": 52.89,
+      "alpha_12m": 22.42,
+      "analyst_rec_score": 70.08,
+      "analyst_target_upside": 95.71,
+      "pead_signal": 36.44,
+      "volatility_180d": 14.94,
+      "beta": 19.62,
+      "avg_volume_30d": 42.94
+    },
+    "LWSA3": {
+      "earnings_yield": 44.27,
+      "pvp": 58.7,
+      "roe": 21.68,
+      "roic": 12.66,
+      "divida_ebitda": 84.94,
+      "dividend_yield": 25.82,
+      "log_market_cap": 75.46,
+      "revenue_growth_3y": 50.62,
+      "asset_growth_yoy": 74.63,
+      "alpha_3m": 54.82,
+      "idio_alpha_6m": 59.72,
+      "alpha_12m": 43.92,
+      "analyst_rec_score": 65.97,
+      "analyst_target_upside": 65.5,
+      "pead_signal": 96.99,
+      "volatility_180d": 30.01,
+      "beta": 40.38,
+      "avg_volume_30d": 39.31
+    },
+    "SLCE3": {
+      "earnings_yield": 16.67,
+      "pvp": 50.0,
+      "roe": 16.67,
+      "roic": 66.67,
+      "divida_ebitda": 16.67,
+      "dividend_yield": 100.0,
+      "log_market_cap": 66.67,
+      "revenue_growth_3y": 33.33,
+      "earnings_growth_3y": 16.67,
+      "asset_growth_yoy": 50.0,
+      "alpha_3m": 30.66,
+      "idio_alpha_6m": 60.44,
+      "alpha_12m": 39.85,
+      "analyst_rec_score": 37.61,
+      "analyst_target_upside": 36.13,
+      "pead_signal": 51.49,
+      "volatility_180d": 63.37,
+      "beta": 75.79,
+      "avg_volume_30d": 40.94
+    },
+    "EQTL3": {
+      "earnings_yield": 29.81,
+      "pvp": 44.16,
+      "roe": 26.81,
+      "roic": 30.55,
+      "divida_ebitda": 27.21,
+      "dividend_yield": 39.42,
+      "log_market_cap": 37.89,
+      "revenue_growth_3y": 72.91,
+      "earnings_growth_3y": 59.15,
+      "asset_growth_yoy": 85.23,
+      "alpha_3m": 47.65,
+      "idio_alpha_6m": 44.07,
+      "alpha_12m": 49.64,
+      "analyst_rec_score": 70.73,
+      "analyst_target_upside": 54.46,
+      "pead_signal": 41.34,
+      "volatility_180d": 59.29,
+      "beta": 45.46,
+      "avg_volume_30d": 60.25
+    },
+    "B3SA3": {
+      "earnings_yield": 36.89,
+      "pvp": 25.46,
+      "roe": 61.91,
+      "roic": 72.97,
+      "dividend_yield": 49.65,
+      "log_market_cap": 46.41,
+      "revenue_growth_3y": 38.17,
+      "earnings_growth_3y": 41.18,
+      "asset_growth_yoy": 47.87,
+      "alpha_3m": 52.23,
+      "idio_alpha_6m": 28.64,
+      "alpha_12m": 56.89,
+      "analyst_rec_score": 55.23,
+      "analyst_target_upside": 44.92,
+      "pead_signal": 48.46,
+      "volatility_180d": 43.58,
+      "beta": 26.94,
+      "avg_volume_30d": 64.33
+    },
+    "SANB11": {
+      "earnings_yield": 39.7,
+      "pvp": 63.06,
+      "roe": 35.61,
+      "roic": 37.67,
+      "dividend_yield": 59.59,
+      "log_market_cap": 38.94,
+      "revenue_growth_3y": 36.14,
+      "earnings_growth_3y": 34.75,
+      "asset_growth_yoy": 56.39,
+      "alpha_3m": 63.43,
+      "idio_alpha_6m": 15.19,
+      "alpha_12m": 49.48,
+      "analyst_rec_score": 40.07,
+      "analyst_target_upside": 37.32,
+      "pead_signal": 35.32,
+      "volatility_180d": 58.09,
+      "beta": 48.09,
+      "avg_volume_30d": 45.1
+    },
+    "SMFT3": {
+      "earnings_yield": 35.03,
+      "pvp": 33.57,
+      "roe": 47.2,
+      "roic": 53.01,
+      "divida_ebitda": 34.34,
+      "dividend_yield": 43.52,
+      "log_market_cap": 32.55,
+      "revenue_growth_3y": 77.7,
+      "asset_growth_yoy": 27.83,
+      "alpha_3m": 44.46,
+      "idio_alpha_6m": 48.57,
+      "alpha_12m": 33.12,
+      "analyst_rec_score": 69.39,
+      "analyst_target_upside": 92.82,
+      "pead_signal": 28.37,
+      "volatility_180d": 40.41,
+      "beta": 42.1,
+      "avg_volume_30d": 47.16
+    },
+    "EZTC3": {
+      "earnings_yield": 47.92,
+      "pvp": 62.82,
+      "roe": 44.47,
+      "roic": 32.23,
+      "divida_ebitda": 33.41,
+      "dividend_yield": 31.6,
+      "log_market_cap": 60.7,
+      "revenue_growth_3y": 43.03,
+      "earnings_growth_3y": 45.11,
+      "asset_growth_yoy": 38.28,
+      "alpha_3m": 30.14,
+      "idio_alpha_6m": 41.37,
+      "alpha_12m": 40.25,
+      "analyst_rec_score": 43.77,
+      "analyst_target_upside": 56.82,
+      "pead_signal": 45.09,
+      "volatility_180d": 36.03,
+      "beta": 38.47,
+      "avg_volume_30d": 40.55
+    },
+    "CSAN3": {
+      "earnings_yield": 66.67,
+      "pvp": 16.67,
+      "roe": 16.67,
+      "roic": 33.33,
+      "divida_ebitda": 100.0,
+      "log_market_cap": 83.33,
+      "revenue_growth_3y": 50.0,
+      "asset_growth_yoy": 100.0,
+      "alpha_3m": 66.25,
+      "idio_alpha_6m": 38.49,
+      "alpha_12m": 19.05,
+      "analyst_rec_score": 42.05,
+      "analyst_target_upside": 49.42,
+      "pead_signal": 39.24,
+      "volatility_180d": 23.13,
+      "beta": 17.36,
+      "avg_volume_30d": 45.48
+    },
+    "MOVI3": {
+      "earnings_yield": 52.28,
+      "pvp": 59.09,
+      "roe": 50.82,
+      "roic": 58.13,
+      "divida_ebitda": 44.71,
+      "dividend_yield": 66.09,
+      "log_market_cap": 61.67,
+      "revenue_growth_3y": 51.69,
+      "earnings_growth_3y": 26.2,
+      "asset_growth_yoy": 33.03,
+      "alpha_3m": 25.66,
+      "idio_alpha_6m": 33.09,
+      "alpha_12m": 45.46,
+      "analyst_rec_score": 61.04,
+      "analyst_target_upside": 98.06,
+      "pead_signal": 19.96,
+      "volatility_180d": 3.57,
+      "beta": 0.0,
+      "avg_volume_30d": 40.61
+    },
+    "MGLU3": {
+      "earnings_yield": 26.75,
+      "pvp": 70.22,
+      "roe": 21.14,
+      "roic": 26.76,
+      "divida_ebitda": 29.31,
+      "log_market_cap": 57.46,
+      "revenue_growth_3y": 30.68,
+      "asset_growth_yoy": 55.55,
+      "alpha_3m": 31.47,
+      "idio_alpha_6m": 92.83,
+      "alpha_12m": 19.96,
+      "analyst_rec_score": 33.0,
+      "analyst_target_upside": 52.59,
+      "pead_signal": 33.3,
+      "volatility_180d": 5.12,
+      "beta": 8.11,
+      "avg_volume_30d": 44.81
+    }
+  },
+  "execution_metadata": {
+    "universe_size": 71,
+    "tickers_scored": 71,
+    "data_quality": {
+      "declared_universe": 97,
+      "collected": 97,
+      "scored": 71,
+      "coverage_pct": 0.732
+    },
+    "generated_at": "2026-09-07T16:12:19.592732",
+    "portfolio_weights_method": "hrp",
+    "risk_metrics": {
+      "var_95": -0.01443,
+      "cvar_95": -0.02271,
+      "hhi": 0.2089,
+      "effective_n": 4.79,
+      "ann_vol": 0.1697,
+      "sharpe_naive": 2.702,
+      "n_obs": 248
+    },
+    "vol_targeting": {
+      "enabled": true,
+      "vol_target": 0.14,
+      "vol_estimated": 0.2085,
+      "gross_exposure": 0.6715,
+      "scaled_weights": {
+        "PETR4": 0.155173,
+        "CMIN3": 0.08259,
+        "ABEV3": 0.125778,
+        "UGPA3": 0.148675,
+        "ABCB4": 0.159277
+      },
+      "raw_leverage": 0.6715,
+      "ewma_lambda": 0.94
+    },
+    "score_range": {
+      "max": 73.61,
+      "min": 34.58,
+      "p50": 50.69
+    }
+  }
+}
