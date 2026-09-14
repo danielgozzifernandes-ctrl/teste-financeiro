@@ -1,49 +1,49 @@
 {
-  "analysis_date": "2026-09-07T16:12:28.408504",
-  "n_recommendations": 18,
-  "n_snapshots": 21,
+  "analysis_date": "2026-09-14T16:43:19.862208",
+  "n_recommendations": 19,
+  "n_snapshots": 22,
   "data_sufficiency": {
     "min_periods_required": 6,
-    "max_periods_available": 14,
+    "max_periods_available": 15,
     "is_significant": true,
     "warning": null
   },
   "per_window": {
     "1w": {
-      "n_periods": 14,
-      "mean_return": 0.0088,
-      "median_return": 0.0015,
-      "std_return": 0.0262,
-      "sharpe_annualized": 2.382,
+      "n_periods": 15,
+      "mean_return": 0.0094,
+      "median_return": 0.0047,
+      "std_return": 0.0254,
+      "sharpe_annualized": 2.632,
       "max_drawdown": -0.0508,
-      "mean_alpha_ibov": 0.0032,
-      "hit_rate": 0.571,
-      "cumulative_return": 0.1255,
+      "mean_alpha_ibov": 0.0042,
+      "hit_rate": 0.6,
+      "cumulative_return": 0.1457,
       "significant": true
     },
     "4w": {
-      "n_periods": 13,
-      "mean_return": 0.0243,
-      "median_return": 0.0025,
-      "std_return": 0.0684,
-      "sharpe_annualized": 1.262,
+      "n_periods": 14,
+      "mean_return": 0.0308,
+      "median_return": 0.0118,
+      "std_return": 0.0701,
+      "sharpe_annualized": 1.56,
       "max_drawdown": -0.0738,
-      "mean_alpha_ibov": 0.0247,
-      "hit_rate": 0.769,
-      "cumulative_return": 0.3305,
+      "mean_alpha_ibov": 0.0224,
+      "hit_rate": 0.714,
+      "cumulative_return": 0.4837,
       "significant": true
     },
     "12w": {
-      "n_periods": 5,
-      "mean_return": 0.022,
-      "median_return": -0.0214,
-      "std_return": 0.1362,
-      "sharpe_annualized": 0.331,
+      "n_periods": 6,
+      "mean_return": 0.0657,
+      "median_return": -0.0029,
+      "std_return": 0.1622,
+      "sharpe_annualized": 0.831,
       "max_drawdown": -0.1358,
-      "mean_alpha_ibov": 0.0134,
-      "hit_rate": 0.4,
-      "cumulative_return": 0.0792,
-      "significant": false
+      "mean_alpha_ibov": 0.0421,
+      "hit_rate": 0.5,
+      "cumulative_return": 0.386,
+      "significant": true
     }
   },
   "per_period": [
@@ -160,6 +160,14 @@
       "window": "1w"
     },
     {
+      "rec_date": "2026-09-07",
+      "exit_date": "2026-09-14",
+      "port_ret": 0.018,
+      "ibov_ret": -0.0009,
+      "alpha": 0.0189,
+      "window": "1w"
+    },
+    {
       "rec_date": "2026-05-12",
       "exit_date": "2026-06-08",
       "port_ret": -0.0996,
@@ -264,6 +272,14 @@
       "window": "4w"
     },
     {
+      "rec_date": "2026-08-17",
+      "exit_date": "2026-09-14",
+      "port_ret": 0.1151,
+      "ibov_ret": 0.1225,
+      "alpha": -0.0073,
+      "window": "4w"
+    },
+    {
       "rec_date": "2026-05-12",
       "exit_date": "2026-08-10",
       "port_ret": -0.0214,
@@ -302,12 +318,20 @@
       "ibov_ret": 0.0864,
       "alpha": 0.17,
       "window": "12w"
+    },
+    {
+      "rec_date": "2026-06-22",
+      "exit_date": "2026-09-14",
+      "port_ret": 0.2842,
+      "ibov_ret": 0.0988,
+      "alpha": 0.1854,
+      "window": "12w"
     }
   ],
   "decay_alpha": {
-    "1w": 0.0032,
-    "4w": 0.0247,
-    "12w": 0.0134
+    "1w": 0.0042,
+    "4w": 0.0224,
+    "12w": 0.0421
   },
   "interpretation": {
     "sharpe": "Sharpe anualizado > 1.0 é bom; > 1.5 é excelente; < 0.5 questionável",
