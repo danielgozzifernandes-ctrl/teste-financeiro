@@ -1,6 +1,6 @@
 {
-  "analysis_date": "2026-09-28T18:20:38.336173",
-  "n_snapshots": 24,
+  "analysis_date": "2026-10-01T17:13:07.011657",
+  "n_snapshots": 25,
   "n_recommendations": 21,
   "forward_windows_days": {
     "1w": 5,
@@ -9,55 +9,239 @@
   },
   "data_sufficiency": {
     "min_obs_required": 8,
-    "max_obs_available": 18,
+    "max_obs_available": 19,
     "is_significant": true,
     "warning": null
   },
   "factors": {
-    "alpha_3m": {
+    "pvp": {
       "1w": {
-        "mean_ic": -0.0982,
-        "ir": -0.3008,
-        "hit_rate": 0.2778,
+        "mean_ic": 0.141,
+        "ir": 0.3819,
+        "hit_rate": 0.6842,
+        "n_obs": 19,
+        "significant": true
+      },
+      "4w": {
+        "mean_ic": 0.3104,
+        "ir": 0.7587,
+        "hit_rate": 0.7778,
+        "n_obs": 18,
+        "significant": true
+      },
+      "12w": {
+        "mean_ic": 0.1002,
+        "ir": 0.2774,
+        "hit_rate": 0.6667,
+        "n_obs": 9,
+        "significant": true
+      }
+    },
+    "analyst_rec_score": {
+      "1w": {
+        "mean_ic": 0.0776,
+        "ir": 0.1854,
+        "hit_rate": 0.6471,
+        "n_obs": 17,
+        "significant": true
+      },
+      "4w": {
+        "mean_ic": 0.2518,
+        "ir": 0.6798,
+        "hit_rate": 0.625,
+        "n_obs": 16,
+        "significant": true
+      },
+      "12w": {
+        "mean_ic": 0.1733,
+        "ir": 0.6091,
+        "hit_rate": 0.7143,
+        "n_obs": 7,
+        "significant": false
+      }
+    },
+    "avg_volume_30d": {
+      "1w": {
+        "mean_ic": 0.0241,
+        "ir": 0.0749,
+        "hit_rate": 0.5263,
+        "n_obs": 19,
+        "significant": true
+      },
+      "4w": {
+        "mean_ic": 0.182,
+        "ir": 0.883,
+        "hit_rate": 0.7778,
+        "n_obs": 18,
+        "significant": true
+      },
+      "12w": {
+        "mean_ic": -0.0865,
+        "ir": -0.2315,
+        "hit_rate": 0.5556,
+        "n_obs": 9,
+        "significant": true
+      }
+    },
+    "idio_alpha_6m": {
+      "1w": {
+        "mean_ic": -0.0679,
+        "ir": -0.1787,
+        "hit_rate": 0.3889,
         "n_obs": 18,
         "significant": true
       },
       "4w": {
-        "mean_ic": -0.2956,
-        "ir": -0.9319,
-        "hit_rate": 0.1176,
+        "mean_ic": -0.1076,
+        "ir": -0.2861,
+        "hit_rate": 0.4706,
         "n_obs": 17,
         "significant": true
       },
       "12w": {
-        "mean_ic": -0.2791,
-        "ir": -1.1512,
+        "mean_ic": -0.152,
+        "ir": -0.4803,
+        "hit_rate": 0.375,
+        "n_obs": 8,
+        "significant": true
+      }
+    },
+    "volatility_180d": {
+      "1w": {
+        "mean_ic": 0.0137,
+        "ir": 0.0327,
+        "hit_rate": 0.5263,
+        "n_obs": 19,
+        "significant": true
+      },
+      "4w": {
+        "mean_ic": -0.1126,
+        "ir": -0.2586,
+        "hit_rate": 0.3333,
+        "n_obs": 18,
+        "significant": true
+      },
+      "12w": {
+        "mean_ic": -0.1541,
+        "ir": -0.629,
+        "hit_rate": 0.3333,
+        "n_obs": 9,
+        "significant": true
+      }
+    },
+    "roic": {
+      "1w": {
+        "mean_ic": -0.094,
+        "ir": -0.2547,
+        "hit_rate": 0.4211,
+        "n_obs": 19,
+        "significant": true
+      },
+      "4w": {
+        "mean_ic": -0.0719,
+        "ir": -0.2349,
+        "hit_rate": 0.5,
+        "n_obs": 18,
+        "significant": true
+      },
+      "12w": {
+        "mean_ic": 0.0767,
+        "ir": 0.2382,
+        "hit_rate": 0.7778,
+        "n_obs": 9,
+        "significant": true
+      }
+    },
+    "alpha_12m": {
+      "1w": {
+        "mean_ic": 0.0452,
+        "ir": 0.1207,
+        "hit_rate": 0.5789,
+        "n_obs": 19,
+        "significant": true
+      },
+      "4w": {
+        "mean_ic": 0.1351,
+        "ir": 0.4573,
+        "hit_rate": 0.6667,
+        "n_obs": 18,
+        "significant": true
+      },
+      "12w": {
+        "mean_ic": 0.215,
+        "ir": 0.6733,
+        "hit_rate": 0.8889,
+        "n_obs": 9,
+        "significant": true
+      }
+    },
+    "earnings_growth_3y": {
+      "1w": {
+        "mean_ic": 0.0131,
+        "ir": 0.0368,
+        "hit_rate": 0.5882,
+        "n_obs": 17,
+        "significant": true
+      },
+      "4w": {
+        "mean_ic": 0.1202,
+        "ir": 0.4122,
+        "hit_rate": 0.5625,
+        "n_obs": 16,
+        "significant": true
+      },
+      "12w": {
+        "mean_ic": 0.5112,
+        "ir": 1.8255,
+        "hit_rate": 1.0,
+        "n_obs": 7,
+        "significant": false
+      }
+    },
+    "divida_ebitda": {
+      "1w": {
+        "mean_ic": -0.1778,
+        "ir": -0.4556,
+        "hit_rate": 0.3684,
+        "n_obs": 19,
+        "significant": true
+      },
+      "4w": {
+        "mean_ic": -0.1067,
+        "ir": -0.3324,
+        "hit_rate": 0.2222,
+        "n_obs": 18,
+        "significant": true
+      },
+      "12w": {
+        "mean_ic": -0.1355,
+        "ir": -0.7364,
         "hit_rate": 0.1111,
         "n_obs": 9,
         "significant": true
       }
     },
-    "pvp": {
+    "revenue_growth_3y": {
       "1w": {
-        "mean_ic": 0.1299,
-        "ir": 0.3449,
-        "hit_rate": 0.6667,
-        "n_obs": 18,
-        "significant": true
-      },
-      "4w": {
-        "mean_ic": 0.2777,
-        "ir": 0.6999,
-        "hit_rate": 0.7647,
+        "mean_ic": -0.1908,
+        "ir": -0.4356,
+        "hit_rate": 0.2941,
         "n_obs": 17,
         "significant": true
       },
-      "12w": {
-        "mean_ic": 0.0976,
-        "ir": 0.2714,
-        "hit_rate": 0.6667,
-        "n_obs": 9,
+      "4w": {
+        "mean_ic": -0.5276,
+        "ir": -1.5605,
+        "hit_rate": 0.1875,
+        "n_obs": 16,
         "significant": true
+      },
+      "12w": {
+        "mean_ic": -0.6809,
+        "ir": -1.6617,
+        "hit_rate": 0.0,
+        "n_obs": 7,
+        "significant": false
       }
     },
     "alpha_6m": {
@@ -83,203 +267,180 @@
         "significant": false
       }
     },
-    "idio_alpha_6m": {
+    "asset_growth_yoy": {
       "1w": {
-        "mean_ic": -0.0574,
-        "ir": -0.1476,
-        "hit_rate": 0.4118,
+        "mean_ic": -0.1509,
+        "ir": -0.4587,
+        "hit_rate": 0.3529,
         "n_obs": 17,
         "significant": true
       },
       "4w": {
-        "mean_ic": -0.1147,
-        "ir": -0.2962,
-        "hit_rate": 0.4375,
-        "n_obs": 16,
-        "significant": true
-      },
-      "12w": {
-        "mean_ic": -0.1639,
-        "ir": -0.4925,
+        "mean_ic": -0.083,
+        "ir": -0.3084,
         "hit_rate": 0.375,
-        "n_obs": 8,
-        "significant": true
-      }
-    },
-    "alpha_12m": {
-      "1w": {
-        "mean_ic": 0.071,
-        "ir": 0.1929,
-        "hit_rate": 0.6111,
-        "n_obs": 18,
-        "significant": true
-      },
-      "4w": {
-        "mean_ic": 0.1392,
-        "ir": 0.4576,
-        "hit_rate": 0.6471,
-        "n_obs": 17,
-        "significant": true
-      },
-      "12w": {
-        "mean_ic": 0.2176,
-        "ir": 0.68,
-        "hit_rate": 0.8889,
-        "n_obs": 9,
-        "significant": true
-      }
-    },
-    "revenue_growth_3y": {
-      "1w": {
-        "mean_ic": -0.2065,
-        "ir": -0.4616,
-        "hit_rate": 0.25,
         "n_obs": 16,
         "significant": true
       },
-      "4w": {
-        "mean_ic": -0.5347,
-        "ir": -1.5333,
-        "hit_rate": 0.2,
-        "n_obs": 15,
-        "significant": true
-      },
       "12w": {
-        "mean_ic": -0.6809,
-        "ir": -1.6617,
-        "hit_rate": 0.0,
+        "mean_ic": -0.0314,
+        "ir": -0.2212,
+        "hit_rate": 0.4286,
         "n_obs": 7,
         "significant": false
       }
     },
-    "dividend_yield": {
+    "alpha_3m": {
       "1w": {
-        "mean_ic": 0.0353,
-        "ir": 0.1197,
-        "hit_rate": 0.5556,
-        "n_obs": 18,
+        "mean_ic": -0.0877,
+        "ir": -0.2733,
+        "hit_rate": 0.3158,
+        "n_obs": 19,
         "significant": true
       },
       "4w": {
-        "mean_ic": 0.0819,
-        "ir": 0.3111,
-        "hit_rate": 0.5882,
-        "n_obs": 17,
+        "mean_ic": -0.297,
+        "ir": -0.965,
+        "hit_rate": 0.1111,
+        "n_obs": 18,
         "significant": true
       },
       "12w": {
-        "mean_ic": 0.0136,
-        "ir": 0.0296,
-        "hit_rate": 0.4444,
+        "mean_ic": -0.2817,
+        "ir": -1.142,
+        "hit_rate": 0.1111,
         "n_obs": 9,
         "significant": true
       }
     },
-    "earnings_yield": {
+    "analyst_target_upside": {
       "1w": {
-        "mean_ic": 0.1127,
-        "ir": 0.2647,
-        "hit_rate": 0.6111,
-        "n_obs": 18,
-        "significant": true
-      },
-      "4w": {
-        "mean_ic": 0.2389,
-        "ir": 0.8283,
+        "mean_ic": 0.1128,
+        "ir": 0.3218,
         "hit_rate": 0.7059,
         "n_obs": 17,
         "significant": true
       },
+      "4w": {
+        "mean_ic": 0.1723,
+        "ir": 0.6241,
+        "hit_rate": 0.7333,
+        "n_obs": 15,
+        "significant": true
+      },
       "12w": {
-        "mean_ic": 0.1601,
-        "ir": 0.3903,
+        "mean_ic": 0.3232,
+        "ir": 0.9532,
+        "hit_rate": 0.8333,
+        "n_obs": 6,
+        "significant": false
+      }
+    },
+    "earnings_yield": {
+      "1w": {
+        "mean_ic": 0.1151,
+        "ir": 0.2781,
+        "hit_rate": 0.6316,
+        "n_obs": 19,
+        "significant": true
+      },
+      "4w": {
+        "mean_ic": 0.2617,
+        "ir": 0.8839,
+        "hit_rate": 0.7222,
+        "n_obs": 18,
+        "significant": true
+      },
+      "12w": {
+        "mean_ic": 0.1653,
+        "ir": 0.4021,
         "hit_rate": 0.7778,
+        "n_obs": 9,
+        "significant": true
+      }
+    },
+    "beta": {
+      "1w": {
+        "mean_ic": -0.0457,
+        "ir": -0.1266,
+        "hit_rate": 0.3684,
+        "n_obs": 19,
+        "significant": true
+      },
+      "4w": {
+        "mean_ic": -0.0405,
+        "ir": -0.1045,
+        "hit_rate": 0.5,
+        "n_obs": 18,
+        "significant": true
+      },
+      "12w": {
+        "mean_ic": -0.05,
+        "ir": -0.1692,
+        "hit_rate": 0.3333,
         "n_obs": 9,
         "significant": true
       }
     },
     "pead_signal": {
       "1w": {
-        "mean_ic": 0.1135,
-        "ir": 0.2884,
-        "hit_rate": 0.6429,
-        "n_obs": 14,
+        "mean_ic": 0.1605,
+        "ir": 0.3815,
+        "hit_rate": 0.6667,
+        "n_obs": 15,
         "significant": true
       },
       "4w": {
-        "mean_ic": 0.2664,
-        "ir": 0.8672,
-        "hit_rate": 0.9167,
-        "n_obs": 12,
+        "mean_ic": 0.2677,
+        "ir": 0.9101,
+        "hit_rate": 0.9231,
+        "n_obs": 13,
         "significant": true
       },
       "12w": {
-        "mean_ic": 0.177,
-        "ir": 0.5117,
+        "mean_ic": 0.173,
+        "ir": 0.5061,
         "hit_rate": 0.8333,
         "n_obs": 6,
         "significant": false
       }
     },
-    "avg_volume_30d": {
+    "dividend_yield": {
       "1w": {
-        "mean_ic": 0.0446,
-        "ir": 0.1404,
-        "hit_rate": 0.5556,
-        "n_obs": 18,
+        "mean_ic": 0.0369,
+        "ir": 0.129,
+        "hit_rate": 0.5789,
+        "n_obs": 19,
         "significant": true
       },
       "4w": {
-        "mean_ic": 0.178,
-        "ir": 0.8409,
-        "hit_rate": 0.7647,
-        "n_obs": 17,
-        "significant": true
-      },
-      "12w": {
-        "mean_ic": -0.0905,
-        "ir": -0.2446,
-        "hit_rate": 0.5556,
-        "n_obs": 9,
-        "significant": true
-      }
-    },
-    "volatility_180d": {
-      "1w": {
-        "mean_ic": 0.0195,
-        "ir": 0.0453,
-        "hit_rate": 0.5556,
+        "mean_ic": 0.1038,
+        "ir": 0.3819,
+        "hit_rate": 0.6111,
         "n_obs": 18,
         "significant": true
       },
-      "4w": {
-        "mean_ic": -0.1353,
-        "ir": -0.309,
-        "hit_rate": 0.2941,
-        "n_obs": 17,
-        "significant": true
-      },
       "12w": {
-        "mean_ic": -0.1567,
-        "ir": -0.6361,
-        "hit_rate": 0.3333,
+        "mean_ic": 0.0216,
+        "ir": 0.0468,
+        "hit_rate": 0.5556,
         "n_obs": 9,
         "significant": true
       }
     },
     "log_market_cap": {
       "1w": {
-        "mean_ic": -0.0004,
-        "ir": -0.0011,
-        "hit_rate": 0.375,
-        "n_obs": 16,
+        "mean_ic": 0.0351,
+        "ir": 0.1048,
+        "hit_rate": 0.4118,
+        "n_obs": 17,
         "significant": true
       },
       "4w": {
-        "mean_ic": 0.0308,
-        "ir": 0.1238,
-        "hit_rate": 0.5333,
-        "n_obs": 15,
+        "mean_ic": 0.0349,
+        "ir": 0.1451,
+        "hit_rate": 0.5625,
+        "n_obs": 16,
         "significant": true
       },
       "12w": {
@@ -290,111 +451,19 @@
         "significant": false
       }
     },
-    "divida_ebitda": {
-      "1w": {
-        "mean_ic": -0.1836,
-        "ir": -0.4583,
-        "hit_rate": 0.3889,
-        "n_obs": 18,
-        "significant": true
-      },
-      "4w": {
-        "mean_ic": -0.1122,
-        "ir": -0.3402,
-        "hit_rate": 0.2353,
-        "n_obs": 17,
-        "significant": true
-      },
-      "12w": {
-        "mean_ic": -0.1355,
-        "ir": -0.7364,
-        "hit_rate": 0.1111,
-        "n_obs": 9,
-        "significant": true
-      }
-    },
-    "beta": {
-      "1w": {
-        "mean_ic": -0.0216,
-        "ir": -0.0608,
-        "hit_rate": 0.3889,
-        "n_obs": 18,
-        "significant": true
-      },
-      "4w": {
-        "mean_ic": -0.0704,
-        "ir": -0.1861,
-        "hit_rate": 0.4706,
-        "n_obs": 17,
-        "significant": true
-      },
-      "12w": {
-        "mean_ic": -0.0526,
-        "ir": -0.1791,
-        "hit_rate": 0.3333,
-        "n_obs": 9,
-        "significant": true
-      }
-    },
-    "earnings_growth_3y": {
-      "1w": {
-        "mean_ic": -0.0013,
-        "ir": -0.0037,
-        "hit_rate": 0.5625,
-        "n_obs": 16,
-        "significant": true
-      },
-      "4w": {
-        "mean_ic": 0.1515,
-        "ir": 0.5554,
-        "hit_rate": 0.6,
-        "n_obs": 15,
-        "significant": true
-      },
-      "12w": {
-        "mean_ic": 0.5112,
-        "ir": 1.8255,
-        "hit_rate": 1.0,
-        "n_obs": 7,
-        "significant": false
-      }
-    },
-    "roic": {
-      "1w": {
-        "mean_ic": -0.0735,
-        "ir": -0.1996,
-        "hit_rate": 0.4444,
-        "n_obs": 18,
-        "significant": true
-      },
-      "4w": {
-        "mean_ic": -0.0522,
-        "ir": -0.172,
-        "hit_rate": 0.5294,
-        "n_obs": 17,
-        "significant": true
-      },
-      "12w": {
-        "mean_ic": 0.0767,
-        "ir": 0.2382,
-        "hit_rate": 0.7778,
-        "n_obs": 9,
-        "significant": true
-      }
-    },
     "roe": {
       "1w": {
-        "mean_ic": 0.0464,
-        "ir": 0.0904,
-        "hit_rate": 0.5,
-        "n_obs": 18,
+        "mean_ic": 0.0242,
+        "ir": 0.0476,
+        "hit_rate": 0.4737,
+        "n_obs": 19,
         "significant": true
       },
       "4w": {
-        "mean_ic": 0.2035,
-        "ir": 0.4195,
-        "hit_rate": 0.6471,
-        "n_obs": 17,
+        "mean_ic": 0.1641,
+        "ir": 0.3287,
+        "hit_rate": 0.6111,
+        "n_obs": 18,
         "significant": true
       },
       "12w": {
@@ -404,117 +473,16 @@
         "n_obs": 9,
         "significant": true
       }
-    },
-    "analyst_rec_score": {
-      "1w": {
-        "mean_ic": 0.0661,
-        "ir": 0.154,
-        "hit_rate": 0.625,
-        "n_obs": 16,
-        "significant": true
-      },
-      "4w": {
-        "mean_ic": 0.2342,
-        "ir": 0.6221,
-        "hit_rate": 0.6,
-        "n_obs": 15,
-        "significant": true
-      },
-      "12w": {
-        "mean_ic": 0.1801,
-        "ir": 0.6382,
-        "hit_rate": 0.7143,
-        "n_obs": 7,
-        "significant": false
-      }
-    },
-    "analyst_target_upside": {
-      "1w": {
-        "mean_ic": 0.1157,
-        "ir": 0.3197,
-        "hit_rate": 0.6875,
-        "n_obs": 16,
-        "significant": true
-      },
-      "4w": {
-        "mean_ic": 0.1686,
-        "ir": 0.5893,
-        "hit_rate": 0.7143,
-        "n_obs": 14,
-        "significant": true
-      },
-      "12w": {
-        "mean_ic": 0.3192,
-        "ir": 0.9288,
-        "hit_rate": 0.8333,
-        "n_obs": 6,
-        "significant": false
-      }
-    },
-    "asset_growth_yoy": {
-      "1w": {
-        "mean_ic": -0.1295,
-        "ir": -0.3957,
-        "hit_rate": 0.375,
-        "n_obs": 16,
-        "significant": true
-      },
-      "4w": {
-        "mean_ic": -0.0934,
-        "ir": -0.3394,
-        "hit_rate": 0.3333,
-        "n_obs": 15,
-        "significant": true
-      },
-      "12w": {
-        "mean_ic": -0.0314,
-        "ir": -0.2212,
-        "hit_rate": 0.4286,
-        "n_obs": 7,
-        "significant": false
-      }
     }
   },
   "decay": {
-    "alpha_3m": {
-      "half_life_days": null,
-      "n_points": 0
-    },
     "pvp": {
-      "half_life_days": 72.8,
-      "ic_zero": 0.1992,
-      "decay_rate": 0.00952,
+      "half_life_days": 64.4,
+      "ic_zero": 0.222,
+      "decay_rate": 0.01076,
       "n_points": 3
     },
-    "alpha_6m": {
-      "half_life_days": null,
-      "n_points": 1
-    },
-    "idio_alpha_6m": {
-      "half_life_days": null,
-      "n_points": 0
-    },
-    "alpha_12m": {
-      "half_life_days": null,
-      "n_points": 3,
-      "trend": "stable_or_growing"
-    },
-    "revenue_growth_3y": {
-      "half_life_days": null,
-      "n_points": 0
-    },
-    "dividend_yield": {
-      "half_life_days": 30.1,
-      "ic_zero": 0.0653,
-      "decay_rate": 0.02302,
-      "n_points": 3
-    },
-    "earnings_yield": {
-      "half_life_days": null,
-      "n_points": 3,
-      "trend": "stable_or_growing"
-    },
-    "pead_signal": {
+    "analyst_rec_score": {
       "half_life_days": null,
       "n_points": 3,
       "trend": "stable_or_growing"
@@ -524,50 +492,83 @@
       "n_points": 2,
       "trend": "stable_or_growing"
     },
+    "idio_alpha_6m": {
+      "half_life_days": null,
+      "n_points": 0
+    },
     "volatility_180d": {
       "half_life_days": null,
       "n_points": 1
     },
-    "log_market_cap": {
+    "roic": {
       "half_life_days": null,
-      "n_points": 2,
+      "n_points": 1
+    },
+    "alpha_12m": {
+      "half_life_days": null,
+      "n_points": 3,
+      "trend": "stable_or_growing"
+    },
+    "earnings_growth_3y": {
+      "half_life_days": null,
+      "n_points": 3,
       "trend": "stable_or_growing"
     },
     "divida_ebitda": {
       "half_life_days": null,
       "n_points": 0
     },
-    "beta": {
+    "revenue_growth_3y": {
       "half_life_days": null,
       "n_points": 0
     },
-    "earnings_growth_3y": {
-      "half_life_days": null,
-      "n_points": 2,
-      "trend": "stable_or_growing"
-    },
-    "roic": {
+    "alpha_6m": {
       "half_life_days": null,
       "n_points": 1
     },
-    "roe": {
+    "asset_growth_yoy": {
       "half_life_days": null,
-      "n_points": 3,
-      "trend": "stable_or_growing"
+      "n_points": 0
     },
-    "analyst_rec_score": {
+    "alpha_3m": {
       "half_life_days": null,
-      "n_points": 3,
-      "trend": "stable_or_growing"
+      "n_points": 0
     },
     "analyst_target_upside": {
       "half_life_days": null,
       "n_points": 3,
       "trend": "stable_or_growing"
     },
-    "asset_growth_yoy": {
+    "earnings_yield": {
+      "half_life_days": null,
+      "n_points": 3,
+      "trend": "stable_or_growing"
+    },
+    "beta": {
       "half_life_days": null,
       "n_points": 0
+    },
+    "pead_signal": {
+      "half_life_days": 593.5,
+      "ic_zero": 0.2017,
+      "decay_rate": 0.00117,
+      "n_points": 3
+    },
+    "dividend_yield": {
+      "half_life_days": 43.8,
+      "ic_zero": 0.0682,
+      "decay_rate": 0.01582,
+      "n_points": 3
+    },
+    "log_market_cap": {
+      "half_life_days": null,
+      "n_points": 3,
+      "trend": "stable_or_growing"
+    },
+    "roe": {
+      "half_life_days": null,
+      "n_points": 3,
+      "trend": "stable_or_growing"
     }
   },
   "interpretation": {
