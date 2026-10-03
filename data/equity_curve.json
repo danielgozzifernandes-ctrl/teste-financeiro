@@ -857,6 +857,17 @@
    "ibov_nav": 109.479501,
    "cdi_nav": 104.142427,
    "blended_nav": 114.295347
+  },
+  {
+   "date": "2026-10-03",
+   "port_ret": 0.01943,
+   "ibov_ret": 0.026264,
+   "cdi_ret": null,
+   "blended_ret": 0.010581,
+   "nav": 121.528295,
+   "ibov_nav": 112.354858,
+   "cdi_nav": 104.195331,
+   "blended_nav": 115.504756
   }
  ]
 }
