@@ -1,0 +1,147 @@
+{
+  "status": "success",
+  "backtest_date": "2026-10-05",
+  "recommendation_date": "2026-09-28",
+  "mode": "weekly",
+  "period_days": 7,
+  "portfolio_return": 0.10261103291099999,
+  "portfolio_return_pct": 10.2611,
+  "benchmark_returns": {
+    "ibovespa": 0.14,
+    "cdi": 0.003051,
+    "selic": 0.003051
+  },
+  "alpha_vs_ibov": -0.037389229383456735,
+  "alpha_vs_cdi": 0.09955988115851327,
+  "alpha_vs_ibov_pp": -3.7389,
+  "alpha_vs_cdi_pp": 9.956,
+  "holdings": [
+    {
+      "ticker": "PETR4",
+      "entry_price": 48.84,
+      "current_price": 56.35,
+      "return": 0.150772,
+      "return_pct": 15.0772,
+      "weight": 0.225836,
+      "included": true
+    },
+    {
+      "ticker": "UGPA3",
+      "entry_price": 37.22,
+      "current_price": 39.18,
+      "return": 0.049926,
+      "return_pct": 4.9926,
+      "weight": 0.210274,
+      "included": true
+    },
+    {
+      "ticker": "CMIN3",
+      "entry_price": 4.94,
+      "current_price": 5.07,
+      "return": 0.023651,
+      "return_pct": 2.3651,
+      "weight": 0.11088,
+      "included": true
+    },
+    {
+      "ticker": "ABEV3",
+      "entry_price": 15.25,
+      "current_price": 16.64,
+      "return": 0.088314,
+      "return_pct": 8.8314,
+      "weight": 0.194235,
+      "included": true
+    },
+    {
+      "ticker": "ABCB4",
+      "entry_price": 24.91,
+      "current_price": 28.67,
+      "return": 0.147955,
+      "return_pct": 14.7955,
+      "weight": 0.258775,
+      "included": true
+    }
+  ],
+  "previous_top5": [
+    "PETR4",
+    "UGPA3",
+    "CMIN3",
+    "ABEV3",
+    "ABCB4"
+  ],
+  "attribution": {
+    "per_ticker": [
+      {
+        "ticker": "ABCB4",
+        "sector": "Financeiro e Outros",
+        "weight": 0.2588,
+        "return": 0.148,
+        "contribution": 0.03829
+      },
+      {
+        "ticker": "PETR4",
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "weight": 0.2258,
+        "return": 0.1508,
+        "contribution": 0.03405
+      },
+      {
+        "ticker": "ABEV3",
+        "sector": "Consumo Não Cíclico",
+        "weight": 0.1942,
+        "return": 0.0883,
+        "contribution": 0.01715
+      },
+      {
+        "ticker": "UGPA3",
+        "sector": "Consumo Não Cíclico",
+        "weight": 0.2103,
+        "return": 0.0499,
+        "contribution": 0.0105
+      },
+      {
+        "ticker": "CMIN3",
+        "sector": "Materiais Básicos",
+        "weight": 0.1109,
+        "return": 0.0237,
+        "contribution": 0.00262
+      }
+    ],
+    "per_sector": [
+      {
+        "sector": "Financeiro e Outros",
+        "n_tickers": 1,
+        "weight": 0.2588,
+        "weighted_return": 0.03829,
+        "sector_return": 0.148,
+        "alpha_vs_ibov": 0.008
+      },
+      {
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "n_tickers": 1,
+        "weight": 0.2258,
+        "weighted_return": 0.03405,
+        "sector_return": 0.1508,
+        "alpha_vs_ibov": 0.0108
+      },
+      {
+        "sector": "Consumo Não Cíclico",
+        "n_tickers": 2,
+        "weight": 0.4045,
+        "weighted_return": 0.02765,
+        "sector_return": 0.0684,
+        "alpha_vs_ibov": -0.0716
+      },
+      {
+        "sector": "Materiais Básicos",
+        "n_tickers": 1,
+        "weight": 0.1109,
+        "weighted_return": 0.00262,
+        "sector_return": 0.0237,
+        "alpha_vs_ibov": -0.1163
+      }
+    ],
+    "total_active_return": -0.03739
+  },
+  "generated_at": "2026-10-05T19:28:04.235262"
+}
