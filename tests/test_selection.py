@@ -106,3 +106,30 @@ def test_inverse_vol_floor_limits_near_zero_vol():
     # sem piso, A teria ~97% e pararia no cap de 30%; com piso de 10% fica em 10/(10+4×6,67)
     assert w["A"] == pytest.approx(10 / (10 + 4 / 0.15), abs=0.005)
     assert w["A"] < 0.30
+
+
+# ---------------------------------------------------------------------------
+# exclusion_date do universo
+# ---------------------------------------------------------------------------
+
+_DEAD = {"BRFS3", "MRFG3", "CIEL3", "ELET3", "ELET6", "EMBR3",
+         "JBSS3", "NTCO3", "SULA11", "NEOE3", "ODPV3"}
+
+
+def test_current_universe_skips_delisted(tmp_path):
+    from src.data_collector import CacheManager, DataCollector
+
+    dc = DataCollector(cache=CacheManager(cache_dir=tmp_path))
+    assert not _DEAD & set(dc.universe["ticker"])
+    assert len(dc.universe) >= 80
+
+
+def test_universe_at_keeps_names_before_exclusion(tmp_path):
+    from src.data_collector import CacheManager, DataCollector
+
+    dc = DataCollector(cache=CacheManager(cache_dir=tmp_path))
+    before = set(dc.universe_at("2026-05-04")["ticker"])
+    assert {"NEOE3", "ODPV3"} <= before
+    assert not {"SULA11", "ELET3"} & before
+    assert "ELET3" in set(dc.universe_at("2025-11-07")["ticker"])
+    assert not {"NEOE3", "ODPV3"} & set(dc.universe_at("2026-05-05")["ticker"])
