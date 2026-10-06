@@ -50,6 +50,7 @@ from src.config import (
     ENABLE_BRL_FACTOR,
     ENABLE_FCF_PAYOUT_CHECK,
     ENABLE_GROWTH_FACTOR,
+    ENABLE_IDIO_MOMENTUM,
     ENABLE_INVESTMENT_FACTOR,
     ENABLE_PEAD_FACTOR,
     ENABLE_SIZE_FACTOR,
@@ -136,9 +137,13 @@ if ENABLE_INVESTMENT_FACTOR:
 
 _MOMENTUM_CFG: dict[str, dict] = {
     "alpha_3m":      {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 3m"},
-    "idio_alpha_6m": {"base_weight": 0.40, "direction": "higher_is_better", "label": "Momentum Idiossincr. 6m"},
     "alpha_12m":     {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 12m"},
 }
+if ENABLE_IDIO_MOMENTUM:
+    _MOMENTUM_CFG["idio_alpha_6m"] = {
+        "base_weight": 0.40, "direction": "higher_is_better",
+        "label": "Momentum Idiossincr. 6m",
+    }
 if ENABLE_ANALYST_REVISIONS:
     # Sub-fator de momentum: tendência de revisão analista (1-5, higher = better).
     # Peso baixo dentro do pilar — proxy ruidoso de dados de consenso pago.
@@ -261,7 +266,8 @@ class ScoringEngine:
         # Pré-processamento
         df = self._derive_metrics(df)
         df = self._add_momentum_metrics(df, df_prices, ibov_prices)
-        df = self._add_idiosyncratic_momentum(df, df_prices, ibov_prices, sector_map)
+        if ENABLE_IDIO_MOMENTUM:
+            df = self._add_idiosyncratic_momentum(df, df_prices, ibov_prices, sector_map)
         df = self._add_quality_metrics(df, df_prices, ibov_prices)
         df = self._add_pead_signal(df, df_prices, ibov_prices)
         df = self._add_brl_exposure(df, df_prices)

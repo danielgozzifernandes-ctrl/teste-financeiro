@@ -284,6 +284,15 @@ LIQUIDITY_PENALTY_MIN_FACTOR    = 0.50         # piso da penalty (50% do score)
 ENABLE_EWMA_FUNDAMENTALS = True
 EWMA_HALFLIFE_QUARTERS = 6
 
+# Momentum idiossincrático 6m (resíduo de OLS vs IBOV e setor).
+# Desligado: os resíduos de uma regressão com intercepto somam zero na
+# própria janela, então o "fator" era só ruído de ponto flutuante — e
+# não aleatório: os extremos caíam quase sempre em financeiras. Sem ele,
+# o peso se redistribui entre os demais fatores do pilar de momentum.
+# Versão correta (beta estimado fora da janela do resíduo) só depois de
+# validar em histórico longo.
+ENABLE_IDIO_MOMENTUM = False
+
 # PEAD (Post-Earnings Announcement Drift)
 # Janela de surpresa: ±1 dia úteis ao redor do anúncio (CAR vs IBOV).
 # Holding window: 5-60 dias úteis pós-anúncio. Tickers com EAR positivo
