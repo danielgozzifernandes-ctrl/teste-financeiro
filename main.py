@@ -237,6 +237,54 @@ def _fetch_usdbrl_returns(n_days: int):
         return None
 
 
+MIN_PRICE_ROWS_FOR_COVERAGE = 20
+_FUND_COLS = ("pl", "pvp", "roe", "roic", "divida_ebitda", "dividend_yield")
+
+
+def coverage_report(df_fundamentals, df_prices, df_scored, universe_file) -> dict:
+    """
+    Declarado → coletado → pontuado. "Coletado" = tem histórico de preço e o
+    mínimo de fundamentos; o collector cria uma linha por ticker mesmo quando
+    as fontes falham, então contar linhas não diz nada.
+    """
+    import pandas as pd
+    from src.config import MIN_FUNDAMENTALS_REQUIRED
+
+    try:
+        universe = pd.read_csv(universe_file)["ticker"].astype(str).tolist()
+    except Exception:
+        universe = []
+
+    with_prices = set()
+    if df_prices is not None and not df_prices.empty:
+        counts = df_prices.notna().sum()
+        with_prices = {t for t, n in counts.items() if n >= MIN_PRICE_ROWS_FOR_COVERAGE}
+
+    with_funds = set()
+    if df_fundamentals is not None and not df_fundamentals.empty and "ticker" in df_fundamentals:
+        cols = [c for c in _FUND_COLS if c in df_fundamentals.columns]
+        ok = df_fundamentals[cols].notna().sum(axis=1) >= MIN_FUNDAMENTALS_REQUIRED - 1
+        with_funds = set(df_fundamentals.loc[ok, "ticker"].astype(str))
+
+    scored = set()
+    if "ticker" in df_scored.columns:
+        mask = df_scored["total_score"].notna() if "total_score" in df_scored.columns else True
+        scored = set(df_scored.loc[mask, "ticker"].astype(str))
+
+    base = universe or sorted(with_prices | with_funds | scored)
+    collected = [t for t in base if t in with_prices and t in with_funds]
+    declared = len(universe) or None
+    return {
+        "declared_universe": declared,
+        "collected":         len(collected),
+        "scored":            len(scored),
+        "coverage_pct":      round(len(scored) / declared, 3) if declared else None,
+        "no_price_history":  sorted(t for t in base if t not in with_prices),
+        "no_fundamentals":   sorted(t for t in base if t not in with_funds),
+        "filtered_out":      sorted(t for t in collected if t not in scored),
+    }
+
+
 def _detect_regime_binary(ibov_prices, vix_prices) -> str:
     """
     Detector binário legado (fallback). Regras:
@@ -485,22 +533,12 @@ def run(args: argparse.Namespace) -> int:
     # Universo declarado (universe.csv) vs coletado (df_fundamentals) vs
     # efetivamente pontuado (sobreviventes dos hard filters). Tornar o gap
     # VISÍVEL — antes ~60% do universo sumia silenciosamente.
-    try:
-        declared_universe = max(0, sum(1 for _ in open(UNIVERSE_FILE, encoding="utf-8")) - 1)
-    except Exception:
-        declared_universe = None
-    n_collected = len(df_fundamentals)
-    n_scored = (
-        int(df_scored["total_score"].notna().sum())
-        if "total_score" in df_scored.columns else len(df_scored)
-    )
-    coverage = (n_scored / declared_universe) if declared_universe else None
-    df_scored.attrs["data_quality"] = {
-        "declared_universe": declared_universe,
-        "collected":         n_collected,
-        "scored":            n_scored,
-        "coverage_pct":      round(coverage, 3) if coverage is not None else None,
-    }
+    data_quality = coverage_report(df_fundamentals, df_prices, df_scored, UNIVERSE_FILE)
+    df_scored.attrs["data_quality"] = data_quality
+    declared_universe = data_quality["declared_universe"]
+    n_collected = data_quality["collected"]
+    n_scored = data_quality["scored"]
+    coverage = data_quality["coverage_pct"]
     # Preço de entrada = cotação do momento da execução; se o pregão está
     # aberto, não é fechamento — fica registrado na recomendação.
     from src.benchmark import is_intraday, now_brt
