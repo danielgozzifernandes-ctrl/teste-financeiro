@@ -52,7 +52,7 @@ from src.data_collector import load_data
 from src.scoring_engine import compute_scores
 from src.benchmark import BenchmarkManager, get_ibov_prices as _get_ibov_prices
 from src.technical_analyzer import TechnicalAnalyzer
-from src.opportunity_scanner import OpportunityScanner
+from src.opportunity_scanner import OpportunityScanner, append_scan_record, build_scan_record
 from src.opportunity_report_builder import build_opportunity_alerts
 from src.telegram_sender import send_report, TelegramError
 
@@ -189,6 +189,9 @@ def run(args: argparse.Namespace) -> int:
     scanner = OpportunityScanner()
     opportunities = scanner.scan(df_scored, tech_data)
 
+    delivery = "dry_run" if args.dry_run else ("send" if do_send else "print")
+    _persist_scan(run_date, scanner, df_scored, df_prices, tech_data, opportunities, delivery)
+
     if not opportunities:
         logger.info("Nenhuma oportunidade qualificada hoje — sem envio. ✓")
         print(f"[{run_date}] Scanner concluído: 0 oportunidades. Nenhuma mensagem enviada.")
@@ -231,6 +234,35 @@ def run(args: argparse.Namespace) -> int:
 
     logger.info("Scanner concluído: %d alerta(s) enviado(s).", sent)
     return 0
+
+
+def _persist_scan(run_date, scanner, df_scored, df_prices, tech_data,
+                  opportunities, delivery) -> None:
+    """Grava a execução em data/history/scanner_YYYY-MM.jsonl. Falha aqui não derruba o scanner."""
+    try:
+        from src.benchmark import is_intraday, now_brt
+
+        run_at = now_brt()
+        data_as_of = (
+            str(pd.Timestamp(df_prices.index.max()).date())
+            if not df_prices.empty else None
+        )
+        record = build_scan_record(
+            run_date,
+            scanner.evaluate(df_scored, tech_data),
+            opportunities,
+            meta={
+                "run_at_brt":      run_at.isoformat(timespec="seconds"),
+                "prices_intraday": is_intraday(run_at),
+                "data_as_of":      data_as_of,
+                "n_scored":        len(df_scored),
+                "delivery":        delivery,
+            },
+        )
+        path = append_scan_record(record, HISTORY_DIR)
+        logger.info("Execução do scanner registrada em %s", path.name)
+    except Exception as exc:
+        logger.warning("Falha ao registrar execução do scanner: %s", exc, exc_info=True)
 
 
 # Entrypoint

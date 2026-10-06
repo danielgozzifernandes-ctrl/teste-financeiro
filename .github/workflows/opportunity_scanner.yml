@@ -18,6 +18,18 @@ on:
         type: string
         default: ""
 
+# Commita o log do scanner (data/history/scanner_YYYY-MM.jsonl).
+permissions:
+  contents: write
+
+# Grupo próprio, fora do history-writer: o GitHub mantém só um run pendente
+# por grupo e cancela o anterior; com o scanner no mesmo grupo, um weekly ou
+# monthly atrasado podia ser cancelado. O arquivo do scanner não conflita com
+# os outros, e o push faz rebase com retry.
+concurrency:
+  group: scanner-writer
+  cancel-in-progress: false
+
 jobs:
   opportunity-scan:
     runs-on: ubuntu-latest
@@ -80,3 +92,8 @@ jobs:
         with:
           path: cache/
           key: data-cache-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Commit scanner log
+        if: "!cancelled() && steps.gate.outputs.run != 'false'"
+        run: |
+          bash tools/commit_artifacts.sh "chore(data): scanner log [skip ci]"
