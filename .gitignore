@@ -53,3 +53,6 @@ htmlcov/
 # Local tooling
 CLAUDE.md
 .claude/
+
+# Dados licenciados (Bloomberg) — não redistribuir
+bloomberg_data/

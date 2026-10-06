@@ -1,147 +1,90 @@
-# Guia: Download de dados Bloomberg no lab do Insper
+# Download de dados Bloomberg no lab do Insper
 
-**Objetivo:** extrair os dados que destravam o teto do sistema (survivorship
-bias, PEAD real, consenso de analistas) e commitá-los em `bloomberg_data/`
-para o pipeline consumir.
+O que só a Bloomberg dá de forma prática, e o que o sistema mais precisa:
 
-**Tempo estimado:** 45–90 min na primeira vez (inclui descobrir o ambiente).
+1. composição histórica de IBOV/IBX/IBrA → universo sem viés de sobrevivência;
+2. histórico de divulgações de resultado com EPS reportado e esperado → surpresa (PEAD) de verdade;
+3. histórico de consenso (EPS, dispersão, preço-alvo, recomendações) → revisões;
+4. preços e retorno total dos ex-membros, inclusive deslistados.
 
----
+Fundamentos contábeis não entram aqui: a CVM (DFP/ITR com data de entrega)
+dá isso point-in-time e de graça.
 
-## Importante: você NÃO precisa do seu PC de casa
+Tempo: 1–2 h na primeira vez. Licença acadêmica tem cota de dados, então rode
+o piloto primeiro e as etapas em ordem de prioridade.
 
-O projeto vive no GitHub — qualquer máquina acessa. O único requisito é que
-o script rode **na máquina onde o Bloomberg Terminal está instalado e
-logado** (API só funciona localmente). O seu laptop só serve se ele tiver o
-Terminal; senão, use o PC do lab.
+## Antes de ir
 
-**Caminho mais simples (sem git na outra máquina):**
-1. Navegador → `github.com/danielgozzifernandes-ctrl/teste-financeiro`
-   → **Code → Download ZIP** → extrair
-2. `pip install xbbg pandas` → `python tools/bloomberg_download.py`
-3. Voltar os CSVs pelo próprio navegador: GitHub → **Add file → Upload
-   files** → arrastar os CSVs → Commit. (Alternativas: pendrive, e-mail
-   para si mesmo, OneDrive — só precisam chegar à pasta `bloomberg_data/`.)
-4. Em casa, rodar a integração (Passo 4).
+- [ ] Login do Terminal do lab (geralmente conta institucional)
+- [ ] Repositório acessível pelo navegador (Code → Download ZIP) ou um pendrive com `tools/bloomberg_download.py` e `data/universe.csv` na mesma estrutura de pastas
+- [ ] Pendrive ou OneDrive para trazer os CSVs de volta
 
-**Plano B sem internet liberada no lab:** levar no pendrive só
-`tools/bloomberg_download.py` + `data/universe.csv` (na mesma estrutura de
-pastas) e trazer a pasta `bloomberg_data/` de volta no pendrive.
+## Caminho A — script (preferido)
 
-## Antes de ir (checklist)
-
-- [ ] Conta GitHub logável no navegador do lab (ou pendrive como plano B)
-- [ ] Este repositório acessível (clone público: `git clone https://github.com/danielgozzifernandes-ctrl/teste-financeiro.git`)
-- [ ] Saber o login do terminal Bloomberg do lab (geralmente já logado ou via conta institucional Insper)
-
-## Passo 1 — Descobrir o ambiente (5 min, só na primeira vez)
-
-No PC do lab com Bloomberg Terminal aberto, descubra qual caminho usar:
-
-1. Abra o prompt de comando (`Win+R` → `cmd`) e teste:
-   ```
-   python --version
-   pip --version
-   ```
-2. **Se tem Python:** teste `pip install xbbg` (precisa do Terminal logado
-   na mesma máquina). Se instalar, use o **Caminho A** (script pronto).
-3. **Se NÃO tem Python ou pip é bloqueado:** use o **Caminho B** (Excel),
-   que funciona em qualquer máquina com Terminal + Office.
-
-## Caminho A — Script Python (preferido)
-
-1. Clone o repo (ou copie só `tools/bloomberg_download.py` via pendrive):
-   ```
-   git clone https://github.com/danielgozzifernandes-ctrl/teste-financeiro.git
-   cd teste-financeiro
-   pip install xbbg pandas
-   ```
-2. Rode o script (Terminal Bloomberg precisa estar LOGADO na máquina):
-   ```
-   python tools/bloomberg_download.py
-   ```
-   Ele cria `bloomberg_data/*.csv` com data no nome. Cada bloco é
-   independente: se um campo falhar (permissão/limite), os outros seguem.
-3. Commite e suba:
-   ```
-   git add bloomberg_data/
-   git commit -m "data: bloomberg download YYYY-MM-DD"
-   git push
-   ```
-   Sem git no lab? Copie a pasta `bloomberg_data/` para o pendrive/OneDrive
-   e commite de casa.
-
-## Caminho B — Excel (fallback universal)
-
-No Excel do lab (add-in Bloomberg ativo), monte uma planilha por dataset e
-exporte como CSV (`Salvar como → CSV UTF-8`):
-
-### B.1 — Composição histórica do IBX (PRIORIDADE #1)
-
-No Terminal: `IBX Index MEMB <GO>` mostra os membros atuais. Para histórico,
-use no Excel:
-```
-=BDS("IBX Index", "INDX_MWEIGHT_HIST", "END_DATE_OVERRIDE", "20160101")
-```
-Repita para datas trimestrais (jan/abr/jul/out de cada ano, 2016→hoje).
-Salve como `ibx_composition_YYYYMMDD.csv` — uma coluna `date`, uma `ticker`,
-uma `weight`.
-
-### B.2 — Consenso de EPS (PEAD real)
-
-Para cada ticker do universo (lista em `data/universe.csv`):
-```
-=BDP("PETR4 BZ Equity", "BEST_EPS")           ← consenso próximo tri
-=BDP("PETR4 BZ Equity", "IS_EPS")             ← último reportado
-=BDP("PETR4 BZ Equity", "BEST_EPS_NUMEST")    ← nº de estimativas
-```
-Salve como `consensus_eps.csv` com colunas: `ticker, best_eps, reported_eps, n_estimates`.
-
-### B.3 — Preço-alvo com dispersão
+O script precisa rodar na mesma máquina em que o Terminal está logado.
 
 ```
-=BDP("PETR4 BZ Equity", "BEST_TARGET_PRICE")
-=BDP("PETR4 BZ Equity", "BEST_TARGET_HI")
-=BDP("PETR4 BZ Equity", "BEST_TARGET_LO")
-=BDP("PETR4 BZ Equity", "TOT_ANALYST_REC")
-```
-Salve como `analyst_targets.csv`.
-
-### B.4 — Short interest (bônus)
-
-```
-=BDP("PETR4 BZ Equity", "SI_TOT_EQY")
-=BDP("PETR4 BZ Equity", "SHORT_INT_RATIO")
-```
-Salve como `short_interest.csv`.
-
-> Dica: monte a coluna A com os ~97 tickers (formato `XXXX4 BZ Equity`) e
-> arraste as fórmulas — o Excel resolve tudo de uma vez.
-
-## Passo 3 — Formato esperado em `bloomberg_data/`
-
-```
-bloomberg_data/
-├── ibx_composition.csv      # date,ticker,weight  (todas as datas empilhadas)
-├── consensus_eps.csv        # ticker,best_eps,reported_eps,n_estimates,asof_date
-├── analyst_targets.csv      # ticker,target_mean,target_hi,target_lo,n_analysts,asof_date
-└── short_interest.csv       # ticker,si_total,si_ratio,asof_date
+pip install xbbg pandas
+python tools/bloomberg_download.py --pilot
 ```
 
-Sempre inclua uma coluna `asof_date` (data do download) — sem ela o dado
-não é point-in-time e perde metade do valor.
+O piloto baixa 5 tickers, só o IBOV e 2 datas em `bloomberg_data/pilot/`.
+Se algum campo falhar, conferir o nome com `FLDS <GO>` e ajustar a constante
+no topo do script. Depois:
 
-## Passo 4 — De volta em casa
+```
+python tools/bloomberg_download.py --steps comp,earn
+python tools/bloomberg_download.py --steps cons
+python tools/bloomberg_download.py --steps px
+python tools/bloomberg_download.py --steps si      # se sobrar cota
+```
 
-Com os CSVs em `bloomberg_data/`, falta o loader: um módulo
-`src/bloomberg_data.py` que lê esses arquivos e cai para yfinance/brapi
-quando um campo não existe. Ainda não foi escrito.
+`comp` precisa rodar antes das outras: é dela que saem os ex-membros que as
+etapas seguintes incluem.
+
+## Caminho B — Excel (sem Python no lab)
+
+Uma planilha por dataset, exportada como CSV UTF-8.
+
+| Dataset | Fórmula |
+|---|---|
+| Composição | `=BDS("IBOV Index","INDX_MWEIGHT_HIST","END_DATE_OVERRIDE","20260915")` — repetir para o dia 15 de cada mês desde 2010, e para `IBX Index` e `IBRA Index` |
+| Resultados | `=BDS("PETR4 BZ Equity","EARN_ANN_DT_TIME_HIST_WITH_EPS")` |
+| Consenso | `=BDH("PETR4 BZ Equity","BEST_EPS,BEST_EPS_NUMEST,BEST_EPS_STDDEV,BEST_TARGET_PRICE,BEST_ANALYST_RATING","20100101","","Per=W","BEST_FPERIOD_OVERRIDE=1BF")` |
+| Preços | `=BDH("PETR4 BZ Equity","PX_LAST,TOT_RETURN_INDEX_GROSS_DVDS,EQY_SH_OUT,TURNOVER","20100101","")` |
+
+As carteiras do IBOV/IBX mudam na 1ª segunda-feira de janeiro, maio e
+setembro. Amostrar todo dia 15 pega cada carteira nova.
+
+## Formato de saída (`bloomberg_data/`)
+
+```
+index_composition.csv        index, date, membro, peso
+earnings_history.csv        ticker, data de divulgação, EPS reportado/esperado
+consensus_weekly.csv        date, ticker, campos de consenso
+prices_daily.csv            date, ticker, preço, retorno total, ações, giro
+short_interest_weekly.csv   date, ticker, short interest
+```
+
+Todos levam `asof_date`.
+
+## Licença
+
+Dado bruto da Bloomberg não pode ser redistribuído. `bloomberg_data/` está no
+`.gitignore`: os CSVs ficam na máquina local e só derivados agregados entram
+no repositório.
+
+## Depois
+
+Falta o loader (`src/bloomberg_data.py`) que lê esses arquivos e cai para
+COTAHIST/CVM/yfinance quando um campo não existe.
 
 ## Problemas comuns
 
 | Sintoma | Causa provável | Solução |
 |---|---|---|
-| `xbbg` conecta mas retorna vazio | Terminal não logado / sessão expirada | Logar no Terminal e re-rodar |
-| `#N/A Authorization` no Excel | Campo fora da licença do lab | Pular o campo; anotar qual |
-| `INDX_MWEIGHT_HIST` recusa datas antigas | Limite da licença educacional | Pegar o máximo que der (mesmo 5 anos já ajuda) |
-| Limite diário de dados atingido | Licenças edu têm cota | Priorizar B.1 > B.2 > B.3 > B.4; voltar outro dia |
+| `xbbg` conecta mas volta vazio | Terminal não logado ou sessão expirada | Logar e rodar de novo |
+| `#N/A Authorization` | Campo fora da licença do lab | Pular o campo e anotar |
+| `INDX_MWEIGHT_HIST` recusa datas antigas | Limite da licença | Pegar o que der |
+| Cota diária atingida | Licença acadêmica | Seguir a ordem de prioridade; voltar outro dia |
+| Ticker de deslistada não resolve | Código antigo | Usar o ISIN/ID que vem na composição |
