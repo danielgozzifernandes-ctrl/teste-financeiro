@@ -1,28 +1,12 @@
 """
-benchmark.py — Módulo 4
+Benchmarks: IBOV (yfinance ^BVSP), SELIC e CDI (BCB SGS 11 e 12).
 
-Busca e alinha dados de referência para comparação de performance e cálculo de alpha.
+get_returns() devolve retornos diários decimais (não base-100), colunas
+ibovespa/selic/cdi, indexados pelos pregões do IBOV. BCB entra por left
+join com forward-fill curto para lacunas do SGS.
 
-Fontes:
-  IBOVESPA: yfinance (^BVSP)   — calendar anchor (dias de pregão da B3)
-  SELIC:    BCB SGS Série 11   — taxa anualizada % a.a. → retorno decimal diário
-  CDI:      BCB SGS Série 12   — taxa anualizada % a.a. → retorno decimal diário
-
-Nota técnica sobre as séries BCB:
-  Séries 11 e 12 retornam a taxa ANUALIZADA em % (ex: 13.75 = 13,75% a.a.).
-  Para converter para retorno diário composto (convenção DU/252 da B3):
-    r_diário = (1 + taxa_anual/100)^(1/252) - 1
-  Essa convenção é a padrão do mercado brasileiro (ANBIMA, B3).
-
-Output de get_returns():
-  pd.DataFrame — index=DatetimeIndex (dias de pregão), columns=['ibovespa','selic','cdi']
-  Valores em retorno decimal diário (0.01 = 1%). NÃO base-100.
-  A normalização base-100 é feita pelo chart_generator.py conforme a janela.
-
-Calendário:
-  O IBOVESPA é usado como referência de dias úteis (pregão B3).
-  Merge LEFT: todas as datas do IBOV são mantidas; BCB é forward-filled
-  para cobrir dias em que o SGS tem lacunas (feriados municipais, etc.).
+SGS 11 e 12 vêm em % a.d. (ex.: 0,0551). _convert_to_daily_return decide
+o formato pela mediana, então também aceitaria % a.a. se o BCB mudar.
 """
 
 import logging
@@ -50,7 +34,7 @@ _DU_YEAR = 252
 
 # Parâmetros de retry para o SGS/BCB
 _BCB_MAX_RETRIES = 3
-_BCB_BACKOFF_BASE = 2  # segundos (exponencial: 2s, 4s, 8s)
+_BCB_BACKOFF_BASE = 2  # espera = 2**tentativa → 1s, 2s
 
 # Máximo de dias de forward-fill para lacunas do BCB
 # 5 cobre Carnaval (quarta a sexta = 3 pregões) + margem para feriados estaduais
@@ -155,28 +139,17 @@ def period_return_from_close(
     return float(tail.iloc[-1] / base.iloc[-1] - 1)
 
 
+def last_bar_on_or_before(close: pd.Series, d: date) -> Optional[date]:
+    dates = [x for x in close.index.date if x <= d]
+    return max(dates) if dates else None
+
+
 class BenchmarkError(Exception):
     """Falha irrecuperável na coleta de dados de benchmark."""
 
 
 class BenchmarkManager:
-    """
-    Centraliza a coleta e alinhamento dos benchmarks de mercado.
-
-    Uso:
-        bm = BenchmarkManager()
-        df_returns = bm.get_returns(start_date="2024-01-01", end_date="2024-12-31")
-
-        # Retorna DataFrame com retornos diários decimais:
-        #         ibovespa     selic       cdi
-        # date
-        # 2024-01-02  0.00823  0.000476  0.000476
-        # 2024-01-03 -0.00412  0.000476  0.000476
-        # ...
-
-        # Para base-100 (chart_generator):
-        cumulative = (1 + df_returns).cumprod() * 100
-    """
+    """Coleta e alinha IBOV, SELIC e CDI (retornos diários decimais)."""
 
     def __init__(self, cache: Optional[CacheManager] = None):
         self.cache = cache or CacheManager(
@@ -185,36 +158,20 @@ class BenchmarkManager:
         # Estado do último candle do IBOV usado (preenchido em get_returns).
         self.ibov_meta: dict = {}
 
-    # ═══════════════════════════════════════════════════════════════════════
-    # API pública
-    # ═══════════════════════════════════════════════════════════════════════
-
     def get_returns(
         self,
         start_date: str | date | datetime,
         end_date: Optional[str | date | datetime] = None,
     ) -> pd.DataFrame:
         """
-        Retorna DataFrame de retornos diários decimais para o período solicitado.
-
-        Args:
-            start_date: data de início (inclusive). Aceita str "YYYY-MM-DD", date ou datetime.
-            end_date:   data de fim (inclusive). Default: hoje.
-
-        Returns:
-            pd.DataFrame com:
-              - index:   DatetimeIndex (dias de pregão da B3, sem fins de semana)
-              - columns: ['ibovespa', 'selic', 'cdi']
-              - valores: float64, retorno decimal diário (0.01 = 1%)
-              - NaN:     onde não há dado para aquela data/benchmark
-
-        Raises:
-            BenchmarkError: se IBOVESPA falhar (é o anchor do calendário).
+        Retornos diários de start a end (inclusive; end default = hoje).
+        NaN onde a fonte não tem dado. Levanta BenchmarkError se o IBOV
+        falhar, porque ele define o calendário.
         """
         start = _parse_date(start_date)
         end   = _parse_date(end_date) if end_date else date.today()
 
-        # Adiciona margem de 5 dias úteis para garantir lookback completo após pct_change
+        # margem para o pct_change do primeiro dia
         fetch_start = start - timedelta(days=7)
 
         cache_key = f"benchmark_returns_{start}_{end}"
@@ -231,7 +188,6 @@ class BenchmarkManager:
             }
             return df
 
-        # ── Coleta paralela (independente por fonte) ──────────────────────
         ibov_returns = self._fetch_ibov(fetch_start, end)
         if ibov_returns is None or ibov_returns.empty:
             raise BenchmarkError(
@@ -241,7 +197,7 @@ class BenchmarkManager:
 
         bcb_df = self._fetch_bcb_with_retry(fetch_start, end)
 
-        # ── Alinhamento de calendário ─────────────────────────────────────
+        # Alinhamento de calendário
         df = self._align_and_merge(ibov_returns, bcb_df)
 
         # Cortar para a janela solicitada (após pct_change que consome 1 linha)
@@ -266,14 +222,7 @@ class BenchmarkManager:
         end_date: Optional[str | date | datetime] = None,
         base: float = 100.0,
     ) -> pd.DataFrame:
-        """
-        Conveniência: retorna retornos acumulados em base `base` (padrão 100).
-
-        Fórmula: base × ∏(1 + r_t) para cada benchmark.
-        O primeiro dia sempre começa em `base`.
-
-        Usado pelo backtester e pelo chart_generator.
-        """
+        """base × ∏(1 + r_t), com o primeiro dia da janela já aplicado."""
         daily = self.get_returns(start_date, end_date)
         # Inserir linha inicial com retorno zero (t=0, base=100)
         zero_row = pd.DataFrame(
@@ -290,21 +239,11 @@ class BenchmarkManager:
         start_date: str | date | datetime,
         end_date: Optional[str | date | datetime] = None,
     ) -> pd.Series:
-        """
-        Retorno total (decimal) de cada benchmark no período.
-
-        Fórmula: ∏(1 + r_t) - 1.
-
-        Exemplo:
-            {'ibovespa': 0.083, 'selic': 0.064, 'cdi': 0.063}
-            → IBOV +8.3%, SELIC +6.4%, CDI +6.3% no período
-        """
+        """∏(1 + r_t) - 1 por benchmark, com retornos de data >= start."""
         daily = self.get_returns(start_date, end_date)
         return (1 + daily).prod() - 1
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Coleta IBOVESPA
-    # ═══════════════════════════════════════════════════════════════════════
 
     def _fetch_ibov(
         self,
@@ -408,6 +347,13 @@ class BenchmarkManager:
         if etf_ret is None:
             out["error"] = "sem preços do ETF na janela"
             return out
+        # yfinance às vezes fica sem o candle do ETF em um dia que o índice
+        # tem; aí a janela do ETF termina antes e a comparação não vale.
+        etf_last = last_bar_on_or_before(close, end)
+        ibov_last = self.ibov_meta.get("last_bar")
+        if ibov_last and str(etf_last) != ibov_last:
+            out["error"] = f"ETF termina em {etf_last}, IBOV em {ibov_last}"
+            return out
 
         gap = float(ibov_return) - etf_ret
         out.update({
@@ -425,9 +371,7 @@ class BenchmarkManager:
             )
         return out
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Coleta BCB — SELIC e CDI com retry
-    # ═══════════════════════════════════════════════════════════════════════
 
     def _fetch_bcb_with_retry(
         self,
@@ -435,15 +379,8 @@ class BenchmarkManager:
         end: date,
     ) -> pd.DataFrame:
         """
-        Busca as Séries 11 (SELIC) e 12 (CDI) do SGS/BCB com retry exponencial.
-
-        Retry policy:
-          Tentativa 1: imediata
-          Tentativa 2: aguarda 2s
-          Tentativa 3: aguarda 4s
-          Falha final: retorna DataFrame vazio (scores de SELIC/CDI serão NaN)
-
-        Prefere não travar toda a execução por falha do BCB — IBOV continua.
+        SGS 11/12 com até 3 tentativas (esperas de 1s e 2s). Se tudo falhar,
+        devolve DataFrame vazio e SELIC/CDI ficam NaN — o IBOV segue.
         """
         cache_key = f"bcb_sgs_{start}_{end}"
         cached = self.cache.get(cache_key)
@@ -467,7 +404,7 @@ class BenchmarkManager:
 
             except Exception as exc:
                 last_exc = exc
-                wait = _BCB_BACKOFF_BASE ** attempt  # 1s, 2s, 4s
+                wait = _BCB_BACKOFF_BASE ** attempt
                 logger.warning(
                     "BCB SGS falhou (tentativa %d/%d): %s. Aguardando %ds...",
                     attempt + 1, _BCB_MAX_RETRIES, exc, wait,
@@ -483,16 +420,7 @@ class BenchmarkManager:
         return pd.DataFrame(columns=["selic", "cdi"])
 
     def _fetch_bcb_raw(self, start: date, end: date) -> pd.DataFrame:
-        """
-        Chamada à API do SGS via python-bcb e conversão para retornos diários.
-
-        Série 11 e 12 retornam a taxa ANUALIZADA em % (ex: 13.75 = 13,75% a.a.).
-        Conversão DU/252: r_diário = (1 + taxa_anual/100)^(1/252) - 1
-
-        Por que DU/252 e não linear?
-          O mercado brasileiro usa capitalização composta (convenção ANBIMA).
-          Divisão simples por 252 subestima o juro composto de longo prazo.
-        """
+        """SGS via python-bcb, convertido para retorno decimal diário."""
         try:
             from bcb import sgs as bcb_sgs  # import lazy: evita crash se não instalado
         except ImportError:
@@ -517,8 +445,6 @@ class BenchmarkManager:
         raw_df.index = pd.to_datetime(raw_df.index).tz_localize(None)
         raw_df = raw_df.sort_index()
 
-        # ── Detecção automática do formato da taxa ────────────────────────
-        # Heurística robusta: taxa anual do SELIC raramente é < 1% ou > 50%
         for col in ["selic", "cdi"]:
             if col not in raw_df.columns:
                 raw_df[col] = np.nan
@@ -530,24 +456,17 @@ class BenchmarkManager:
     @staticmethod
     def _convert_to_daily_return(series: pd.Series, col_name: str = "") -> pd.Series:
         """
-        Converte taxa do BCB para retorno decimal diário.
-
-        As séries 11 (SELIC) e 12 (CDI) sempre retornam taxa anualizada em %
-        (ex: 13.75 = 13,75% a.a.). A detecção automática de formato existe como
-        salvaguarda caso o BCB mude o formato — mas a lógica primária assume anual.
-
-        Detecção de formato:
-          median > 1.0 → % a.a.  → r = (1 + taxa/100)^(1/252) - 1
-          median ≤ 1.0 → % a.d.  → r = taxa/100
-
-        Após conversão, valida se resultado está em faixa plausível para o Brasil.
-        Se não estiver, tenta o formato alternativo. Se ainda inválido, loga erro crítico.
+        Taxa do BCB → retorno decimal diário. SGS 11/12 hoje vêm em % a.d.;
+        o formato é inferido pela mediana:
+          mediana > 1 → % a.a. → (1 + taxa/100)^(1/252) - 1   (DU/252, composto)
+          mediana ≤ 1 → % a.d. → taxa/100
+        Se o resultado sair da faixa plausível, tenta o outro formato.
         """
         valid = series.dropna()
         if valid.empty:
             return series
 
-        # Usar mediana robusta; outlier único não inverte a interpretação
+        # mediana: um outlier não inverte o formato
         median_val = float(valid.median())
         is_annual = median_val > 1.0
 
@@ -558,7 +477,6 @@ class BenchmarkManager:
 
         daily = _apply_conversion(series, is_annual)
 
-        # Validação de plausibilidade — detectar conversão incorreta
         daily_median = float(daily.dropna().median())
         is_plausible = _BCB_DAILY_RATE_MIN <= daily_median <= _BCB_DAILY_RATE_MAX
 
@@ -571,7 +489,6 @@ class BenchmarkManager:
                 "anual" if is_annual else "diário",
                 _BCB_DAILY_RATE_MIN, _BCB_DAILY_RATE_MAX,
             )
-            # Tentar formato inverso
             alt_daily = _apply_conversion(series, not is_annual)
             alt_median = float(alt_daily.dropna().median())
             if _BCB_DAILY_RATE_MIN <= alt_median <= _BCB_DAILY_RATE_MAX:
@@ -598,36 +515,20 @@ class BenchmarkManager:
         )
         return daily
 
-    # ═══════════════════════════════════════════════════════════════════════
-    # Alinhamento de calendário
-    # ═══════════════════════════════════════════════════════════════════════
-
     def _align_and_merge(
         self,
         ibov_returns: pd.Series,
         bcb_df: pd.DataFrame,
     ) -> pd.DataFrame:
         """
-        Alinha IBOV (anchor) com SELIC/CDI usando LEFT JOIN.
-
-        Estratégia:
-          1. IBOV define o índice de referência (dias de pregão da B3).
-          2. BCB é reindexado para os dias do IBOV.
-          3. NaN do BCB após reindex → forward-fill (≤ 3 dias).
-             Cobertura de: feriados municipais que o BCB não registrou
-             mas a B3 operou normalmente.
-          4. NaN remanescentes (início de série, feriados longos) → mantidos.
-
-        Por que LEFT e não INNER?
-          INNER descartaria dias de pregão onde o BCB tem pequenas lacunas,
-          perdendo retornos reais do mercado. LEFT preserva todos os pregões.
+        Left join no calendário do IBOV; lacunas do BCB (pregão sem dado no
+        SGS) com ffill de até _BCB_FFILL_LIMIT dias. Inner join perderia
+        pregões reais.
         """
-        # Garantir que o índice do IBOV seja DatetimeIndex normalizado
         ibov_idx = pd.to_datetime(ibov_returns.index).normalize()
         ibov_series = ibov_returns.copy()
         ibov_series.index = ibov_idx
 
-        # Criar DataFrame base com o calendário do IBOV
         df = pd.DataFrame({"ibovespa": ibov_series})
 
         if bcb_df.empty:
@@ -636,12 +537,10 @@ class BenchmarkManager:
             logger.warning("BCB DataFrame vazio — SELIC/CDI serão NaN.")
             return df
 
-        # Normalizar índice do BCB
         bcb_idx = pd.to_datetime(bcb_df.index).normalize()
         bcb_aligned = bcb_df.copy()
         bcb_aligned.index = bcb_idx
 
-        # LEFT JOIN: mantém todas as datas do IBOV
         for col in ["selic", "cdi"]:
             if col in bcb_aligned.columns:
                 df[col] = bcb_aligned[col].reindex(df.index)
@@ -686,21 +585,12 @@ class BenchmarkManager:
         )
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# Funções de conveniência para uso em outros módulos
-# ═══════════════════════════════════════════════════════════════════════════
-
 def get_benchmark_returns(
     start_date: str | date | datetime,
     end_date: Optional[str | date | datetime] = None,
     cache: Optional[CacheManager] = None,
 ) -> pd.DataFrame:
-    """
-    Função de conveniência para main.py e backtester.py.
-
-    Returns:
-        pd.DataFrame: retornos diários decimais (ibovespa, selic, cdi).
-    """
+    """Atalho para BenchmarkManager().get_returns()."""
     return BenchmarkManager(cache=cache).get_returns(start_date, end_date)
 
 
@@ -709,13 +599,7 @@ def get_ibov_prices(
     end_date: Optional[str | date | datetime] = None,
     cache: Optional[CacheManager] = None,
 ) -> pd.Series:
-    """
-    Retorna série de PREÇOS (não retornos) do IBOVESPA.
-    Necessário para o scoring_engine.py calcular beta e alpha.
-
-    Returns:
-        pd.Series: preços de fechamento ajustados (^BVSP).
-    """
+    """Fechamentos do ^BVSP (preços, não retornos)."""
     start = _parse_date(start_date)
     end   = _parse_date(end_date) if end_date else date.today()
     cache = cache or CacheManager()
@@ -745,10 +629,6 @@ def get_ibov_prices(
         logger.error("Falha ao baixar preços do IBOV: %s", exc)
         return pd.Series(dtype=float)
 
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Helpers internos
-# ═══════════════════════════════════════════════════════════════════════════
 
 def _parse_date(d: str | date | datetime) -> date:
     """Converte str, date ou datetime para date."""

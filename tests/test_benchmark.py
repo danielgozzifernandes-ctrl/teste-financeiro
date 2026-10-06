@@ -19,6 +19,7 @@ from src.benchmark import (
     BenchmarkManager,
     clean_close,
     is_intraday,
+    last_bar_on_or_before,
     period_return_from_close,
 )
 
@@ -38,9 +39,7 @@ AFTER_CLOSE = datetime(2026, 10, 5, 20, 0, tzinfo=BRT)
 MID_SESSION = datetime(2026, 10, 5, 14, 0, tzinfo=BRT)
 
 
-# ---------------------------------------------------------------------------
 # clean_close
-# ---------------------------------------------------------------------------
 
 def test_trailing_zeroed_bar_is_kept_and_flagged():
     df = _bars({
@@ -92,9 +91,7 @@ def test_period_return_matches_get_period_return_window():
     assert period_return_from_close(close, date(2026, 9, 1), date(2026, 9, 2)) is None
 
 
-# ---------------------------------------------------------------------------
 # check_against_etf
-# ---------------------------------------------------------------------------
 
 _ETF = pd.Series(
     [180.82, 180.18, 190.00],
@@ -133,9 +130,7 @@ def test_etf_check_handles_missing_ibov(manager):
     assert "error" in manager.check_against_etf("2026-09-28", "2026-10-02", None)
 
 
-# ---------------------------------------------------------------------------
 # Metadata no backtest
-# ---------------------------------------------------------------------------
 
 def test_backtest_result_carries_intraday_flag(tmp_path):
     rec = {
@@ -159,9 +154,7 @@ def test_backtest_result_carries_intraday_flag(tmp_path):
     assert res["intraday"] is False
 
 
-# ---------------------------------------------------------------------------
 # Histórico real: IBOV gravado nos backtests x BOVA11 (precisa de rede)
-# ---------------------------------------------------------------------------
 
 def _stored_ibov_windows() -> list[tuple[str, str, str, float]]:
     out = []
@@ -179,31 +172,37 @@ def test_stored_ibov_returns_agree_with_bova11():
         pytest.skip("sem backtests em data/history")
     yf = pytest.importorskip("yfinance")
     start = min(w[1] for w in windows)
-    try:
-        raw = yf.download(IBOV_ETF_TICKER, start=str(pd.Timestamp(start) - pd.Timedelta(days=10))[:10],
-                          progress=False, auto_adjust=True)
-    except Exception as exc:  # pragma: no cover
-        pytest.skip(f"yfinance indisponível: {exc}")
-    if raw is None or raw.empty:
-        pytest.skip("yfinance sem dados do BOVA11")
-    raw.index = pd.to_datetime(raw.index).tz_localize(None)
-    etf, _ = clean_close(raw)
+    since = str(pd.Timestamp(start) - pd.Timedelta(days=10))[:10]
+    series = {}
+    for ticker in (IBOV_ETF_TICKER, "^BVSP"):
+        try:
+            raw = yf.download(ticker, start=since, progress=False, auto_adjust=True)
+        except Exception as exc:  # pragma: no cover
+            pytest.skip(f"yfinance indisponível: {exc}")
+        if raw is None or raw.empty:
+            pytest.skip(f"yfinance sem dados de {ticker}")
+        raw.index = pd.to_datetime(raw.index).tz_localize(None)
+        series[ticker] = clean_close(raw)[0]
+    etf, ibov_ref = series[IBOV_ETF_TICKER], series["^BVSP"]
 
     # Arquivos antigos não registram o horário dos dados: uma execução antes
     # da abertura termina no fechamento anterior, uma no pregão fica perto do
-    # fechamento do dia. Aceita a janela que estiver mais perto.
-    bad = []
+    # fechamento do dia. Aceita a janela que estiver mais perto. Se o yfinance
+    # não tem o candle do ETF num dia que o índice tem, a janela é pulada.
+    bad, checked = [], 0
     for name, s, e, ibov in windows:
         start, end = date.fromisoformat(s), date.fromisoformat(e)
-        candidates = [
-            r for r in (
-                period_return_from_close(etf, start, end),
-                period_return_from_close(etf, start, end - timedelta(days=1)),
-            ) if r is not None
-        ]
+        ends = (end, end - timedelta(days=1))
+        if any(last_bar_on_or_before(etf, c) != last_bar_on_or_before(ibov_ref, c)
+               for c in ends):
+            continue
+        candidates = [r for c in ends
+                      if (r := period_return_from_close(etf, start, c)) is not None]
         if not candidates:
             continue
+        checked += 1
         etf_ret = min(candidates, key=lambda r: abs(ibov - r))
         if abs(ibov - etf_ret) > IBOV_ETF_TOLERANCE:
             bad.append(f"{name}: IBOV {ibov:+.4f} vs BOVA11 {etf_ret:+.4f}")
+    assert checked >= len(windows) // 2, f"só {checked} de {len(windows)} janelas verificáveis"
     assert not bad, "IBOV inconsistente com BOVA11:\n" + "\n".join(bad)
