@@ -64,6 +64,10 @@ jobs:
 
           python main_daily.py --mode closing $DATE_ARG $DRY_FLAG $SEND_FLAG
 
+      - name: Archive B3 index portfolios
+        if: always()
+        run: python tools/archive_index_portfolios.py
+
       # Persiste eventuais snapshots de fechamento gerados (ver weekly_report.yml).
       - name: Commit history artifacts
         if: always()
