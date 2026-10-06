@@ -87,7 +87,7 @@ class OpportunityReportBuilder:
 
         lines = []
 
-        # ── Header ────────────────────────────────────────────────────────────
+        # Header
         lines.append(_SEP)
         sig_label = escape(_SIGNAL_LABEL.get(signal, "Compra"))
         lines.append(f"🚨 {bold('ALERTA DE OPORTUNIDADE')}")
@@ -95,7 +95,7 @@ class OpportunityReportBuilder:
         if nome and nome != ticker:
             lines.append(italic(nome))
 
-        # ── Price & entry ─────────────────────────────────────────────────────
+        # Price & entry
         lines.append("")
         if price is not None:
             price_str = fmt_float(price, 2)
@@ -106,7 +106,7 @@ class OpportunityReportBuilder:
             hi_str = fmt_float(e_high, 2)
             lines.append(f"🎯 Entrada sugerida: R\\$ {lo_str} – R\\$ {hi_str}")
 
-        # ── Targets ───────────────────────────────────────────────────────────
+        # Targets
         for i, tgt in enumerate(targets[:2], 1):
             level    = tgt.get("level")
             lbl      = escape(str(tgt.get("label", "")))
@@ -116,13 +116,13 @@ class OpportunityReportBuilder:
                 ups_str = fmt_pct(upside, 1, sign=True)
                 lines.append(f"🏹 Alvo {i}: R\\$ {lvl_str} \\({lbl}\\)  {bold_pre(ups_str)}")
 
-        # ── Stop-loss ─────────────────────────────────────────────────────────
+        # Stop-loss
         if stop is not None and price is not None:
             stop_str  = fmt_float(stop, 2)
             stop_down = fmt_pct((stop - price) / price, 1, sign=True)
             lines.append(f"🛑 Stop\\-loss: R\\$ {stop_str}  \\({stop_down}\\)")
 
-        # ── Horizon + risk ────────────────────────────────────────────────────
+        # Horizon + risk
         if horizon:
             lines.append(f"⏱ Horizonte: {escape(horizon)}")
 
@@ -130,14 +130,14 @@ class OpportunityReportBuilder:
         risk_emoji = _RISK_EMOJI.get(risk, "🟡")
         lines.append(f"⚡ Risco: {risk_emoji} {risk_e}")
 
-        # ── Reasons ───────────────────────────────────────────────────────────
+        # Reasons
         if reasons:
             lines.append("")
             lines.append(bold("Por que agora:"))
             for reason in reasons:
                 lines.append(f"• {escape(reason)}")
 
-        # ── Score + sector footer ─────────────────────────────────────────────
+        # Score + sector footer
         lines.append("")
         footer_parts = []
         if score is not None:
@@ -177,7 +177,7 @@ class OpportunityReportBuilder:
         return None
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# Helpers
 
 def italic_safe(text: str) -> str:
     """Italic without re-escaping — use when text is already escaped."""
@@ -191,7 +191,7 @@ def _format_date(run_date: Optional[str]) -> str:
     return run_date or date.today().strftime("%d/%m/%Y")
 
 
-# ─── Convenience ─────────────────────────────────────────────────────────────
+# Convenience
 
 def build_opportunity_alerts(
     opportunities: list[dict],

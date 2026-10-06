@@ -1,8 +1,8 @@
 """
 tests/test_backtester.py
 
-Testes do bug crítico corrigido: o backtester NÃO pode comparar uma
-recomendação contra os preços do próprio dia em que foi gerada.
+O backtester não pode comparar uma recomendação contra os preços do
+próprio dia em que foi gerada.
 
 Cobertura:
   1. load_latest_recommendation(before_date) ignora recs na mesma data/futuras
@@ -22,9 +22,7 @@ from src.backtester import Backtester, BacktestStatus
 from src.snapshot_manager import SnapshotManager
 
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 def _write_rec(history_dir: Path, date_str: str, entry: dict, mode: str = "weekly") -> Path:
     """Escreve um JSON de recomendação mínimo porém válido para o backtester."""
@@ -56,9 +54,7 @@ def _write_backtest(history_dir: Path, date_str: str, period_days: int,
     }), encoding="utf-8")
 
 
-# ---------------------------------------------------------------------------
 # 1. load_latest_recommendation(before_date)
-# ---------------------------------------------------------------------------
 
 def test_load_latest_before_date(tmp_path):
     snap = SnapshotManager(history_dir=tmp_path)
@@ -76,9 +72,7 @@ def test_load_latest_before_date(tmp_path):
     assert snap.load_latest_recommendation("weekly", before_date="2026-01-05") is None
 
 
-# ---------------------------------------------------------------------------
 # 2. Backtester usa a recomendação anterior real — NÃO a do próprio dia
-# ---------------------------------------------------------------------------
 
 def test_backtest_uses_previous_not_self(tmp_path):
     snap = SnapshotManager(history_dir=tmp_path)
@@ -103,9 +97,7 @@ def test_backtest_uses_previous_not_self(tmp_path):
     assert result["portfolio_return"] > 0.05
 
 
-# ---------------------------------------------------------------------------
 # 3. Sem recomendação estritamente anterior → NO_HISTORY (não backtesta a si)
-# ---------------------------------------------------------------------------
 
 def test_backtest_first_run_has_no_prior(tmp_path):
     snap = SnapshotManager(history_dir=tmp_path)
@@ -121,9 +113,7 @@ def test_backtest_first_run_has_no_prior(tmp_path):
     assert result["status"] == BacktestStatus.NO_HISTORY
 
 
-# ---------------------------------------------------------------------------
 # 4. compute_track_record exclui backtests degenerados (period_days == 0)
-# ---------------------------------------------------------------------------
 
 def test_track_record_excludes_zero_period(tmp_path):
     bt = Backtester(history_dir=tmp_path)
@@ -137,9 +127,7 @@ def test_track_record_excludes_zero_period(tmp_path):
     assert tr["avg_alpha_ibov"] == pytest.approx(0.02)
 
 
-# ---------------------------------------------------------------------------
 # 5. Gating estatístico — amostra insuficiente é sinalizada, não mascarada
-# ---------------------------------------------------------------------------
 
 def test_factor_analysis_flags_insufficient_data(tmp_path):
     from src.factor_analysis import analyze_factors

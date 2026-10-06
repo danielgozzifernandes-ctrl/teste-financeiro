@@ -8,8 +8,7 @@ Decide o split de capital entre 4 sleeves ANTES do stock-picking:
     global_usd   → IVVB11 (S&P 500 sem hedge — protege contra risco-Brasil)
     inflation    → IMAB11 (NTN-B — carrega juro real)
 
-Sinais (deliberadamente simples — cada um tem literatura robusta própria,
-nenhum foi "tunado" em dados internos):
+Sinais simples, tirados da literatura e não calibrados nos nossos dados:
 
     1. Regime HMM (bull/bear/range) — já detectado pelo pipeline semanal.
        Define a alocação-base (ALLOCATION_BASE).
@@ -77,7 +76,7 @@ def compute_allocation(
           "rationale":   [linhas humano-legíveis],
         }
         Sinais indisponíveis (dado faltante) entram com tilt 0 e são
-        declarados no rationale — degradação honesta, nunca silenciosa.
+        aparecem no rationale.
     """
     base = ALLOCATION_BASE.get(regime)
     rationale: list[str] = []
@@ -90,7 +89,7 @@ def compute_allocation(
             f"Regime {regime}: base bolsa {base['equities_br']:.0%}"
         )
 
-    # ── Sinal 1: ERP implícito ────────────────────────────────────────────
+    # Sinal 1: ERP implícito
     erp: Optional[float] = None
     erp_tilt = 0.0
     if portfolio_earnings_yield is not None and selic_annual is not None:
@@ -112,7 +111,7 @@ def compute_allocation(
     else:
         rationale.append("ERP indisponível (EY ou Selic faltando) → tilt 0")
 
-    # ── Sinal 2: TS momentum 12-1 do IBOV vs CDI ──────────────────────────
+    # Sinal 2: TS momentum 12-1 do IBOV vs CDI
     tsmom: Optional[float] = None
     tsmom_tilt = 0.0
     ibov_excess = _tsmom_excess_return(ibov_prices, cdi_daily_returns)
@@ -126,7 +125,7 @@ def compute_allocation(
     else:
         rationale.append("TSMOM indisponível (histórico IBOV/CDI curto) → tilt 0")
 
-    # ── Compor: tilts movem bolsa ↔ CDI, bounds duros ─────────────────────
+    # Compor: tilts movem bolsa ↔ CDI, bounds duros
     equities = float(np.clip(
         base["equities_br"] + erp_tilt + tsmom_tilt,
         EQUITIES_SLEEVE_MIN, EQUITIES_SLEEVE_MAX,
@@ -141,7 +140,7 @@ def compute_allocation(
         "inflation":   base["inflation"],
     }
 
-    # ── Vol-targeting: gross < 1 reduz bolsa, caixa vai pro CDI ──────────
+    # Vol-targeting: gross < 1 reduz bolsa, caixa vai pro CDI
     gross = float(np.clip(gross_exposure, 0.0, 1.0))
     if gross < 1.0:
         freed = sleeves["equities_br"] * (1.0 - gross)

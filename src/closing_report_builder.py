@@ -125,7 +125,7 @@ class ClosingReportBuilder:
         sections.append(self._disclaimer())
         return "\n\n".join(filter(None, sections))
 
-    # ─── Sections ─────────────────────────────────────────────────────────────
+    # Sections
 
     @staticmethod
     def _header(run_date: Optional[str]) -> str:
@@ -376,7 +376,7 @@ class ClosingReportBuilder:
         )
 
 
-# ─── Convenience function ─────────────────────────────────────────────────────
+# Convenience function
 
 def build_closing_report(
     ticker_returns: dict[str, float],
@@ -412,7 +412,7 @@ def build_closing_report(
     )
 
 
-# ─── Helper ───────────────────────────────────────────────────────────────────
+# Helper
 
 def _format_date(run_date: Optional[str]) -> str:
     if run_date and len(run_date) == 10 and "-" in run_date:

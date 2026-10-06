@@ -1,17 +1,9 @@
 """
-data_collector.py — Módulo 2
-
-Estratégia de coleta em camadas:
-  1. brapi.dev  (PRIMARY)  — quotes em batch de 10 tickers: preço, P/L, DY, volume
-  2. yfinance   (FALLBACK) — fundamentais profundos (ROE, ROIC, Dívida/EBITDA, P/VP)
-                           — histórico OHLCV 1 ano completo
-  3. Cache JSON local      — TTL 24h por chave; evita re-fetch e respeita rate limits
-
-Por que dois sources?
-  brapi free tier retorna: regularMarketPrice, priceEarningsRatio, dividendYield,
-  averageDailyVolume3Month, marketCap, beta, fiftyTwoWeekHigh/Low.
-  NÃO retorna: priceToBook, ROE, ROIC, Dívida/EBITDA.
-  yfinance preenche o gap com Ticker.info (Yahoo Finance CVM data).
+Coleta:
+  1. brapi.dev — quotes em batch de 10: preço, P/L, DY, volume
+  2. yfinance  — o que o plano free da brapi não dá (P/VP, ROE, ROIC,
+                 Dívida/EBITDA) e o histórico OHLCV de 1 ano
+  3. cache JSON local, TTL 24h por chave
 
 Output público:
   load_data() → (df_fundamentals: pd.DataFrame, df_prices: pd.DataFrame)
@@ -68,9 +60,7 @@ class DataCollectionError(Exception):
     """Falha irrecuperável na coleta de dados."""
 
 
-# ---------------------------------------------------------------------------
 # CacheManager — leitura/escrita de JSON com TTL
-# ---------------------------------------------------------------------------
 class CacheManager:
     """
     Cache de arquivos JSON em disco com TTL configurável.
@@ -124,9 +114,7 @@ class CacheManager:
             p.unlink(missing_ok=True)
 
 
-# ---------------------------------------------------------------------------
 # BrapiClient — wrapper HTTP com retry e batch
-# ---------------------------------------------------------------------------
 class BrapiClient:
     """
     Acessa brapi.dev para quotes em lote e histórico de preços.
@@ -291,9 +279,7 @@ class BrapiClient:
             return None
 
 
-# ---------------------------------------------------------------------------
 # YFinanceClient — fallback para fundamentais e histórico
-# ---------------------------------------------------------------------------
 class YFinanceClient:
     """
     Usa yfinance como fonte secundária.
@@ -414,7 +400,7 @@ class YFinanceClient:
         try:
             yticker = yf.Ticker(f"{ticker}.SA")
 
-            # ── Income statement (annual, last ~4 years) ─────────────────
+            # Income statement (annual, last ~4 years)
             inc = getattr(yticker, "income_stmt", None)
             if inc is not None and not inc.empty:
                 # yfinance retorna colunas mais novas → mais antigas (DataFrames TTM-first)
@@ -451,7 +437,7 @@ class YFinanceClient:
                                 cagr = (r_recent / r_old) ** (1/3) - 1
                                 result["revenue_growth_3y"] = float(max(-1.0, min(5.0, cagr)))
 
-            # ── Balance sheet (asset growth YoY) ─────────────────────────
+            # Balance sheet (asset growth YoY)
             bs = getattr(yticker, "balance_sheet", None)
             if bs is not None and not bs.empty:
                 ta_row = _find_row(bs, ["Total Assets", "TotalAssets"])
@@ -461,7 +447,7 @@ class YFinanceClient:
                     if ta_recent is not None and ta_prev is not None and ta_prev > 0:
                         result["asset_growth_yoy"] = float((ta_recent / ta_prev) - 1.0)
 
-            # ── Cash flow (FCF + dividends paid) ─────────────────────────
+            # Cash flow (FCF + dividends paid)
             cf = getattr(yticker, "cashflow", None)
             if cf is not None and not cf.empty:
                 fcf_row = _find_row(cf, ["Free Cash Flow", "FreeCashFlow"])
@@ -480,7 +466,7 @@ class YFinanceClient:
                                 if payout < 5.0:
                                     result["fcf_payout_ratio"] = float(payout)
 
-            # ── Analyst recommendations ──────────────────────────────────
+            # Analyst recommendations
             try:
                 rec = getattr(yticker, "recommendations", None)
                 if rec is not None and not rec.empty:
@@ -495,12 +481,10 @@ class YFinanceClient:
             except Exception as exc:
                 logger.debug("Analyst rec fetch %s: %s", ticker, exc)
 
-            # ── Analyst price targets (forward-looking sinal) ────────────
-            # IMPORTANTE: literatura (Brav-Lehavy 2003, Da-Schaumburg 2011)
-            # mostra que upside ABSOLUTO tem IC fraco (~0.02-0.04) e viés
-            # otimista crônico em EM (média ~+25%). O sinal investível é o
-            # RANK cross-sectional do upside — feito no scoring_engine.
-            # Aqui só capturamos o nível bruto + qualidade do dado.
+            # Analyst price targets (forward-looking sinal)
+            # Upside absoluto tem IC fraco (~0.02-0.04) e viés otimista em EM
+            # (~+25%) (Brav-Lehavy 2003, Da-Schaumburg 2011); o que se usa é o
+            # rank cross-sectional, feito no scoring_engine. Aqui só o bruto.
             try:
                 apt = getattr(yticker, "analyst_price_targets", None)
                 if isinstance(apt, dict) and apt:
@@ -522,7 +506,7 @@ class YFinanceClient:
             except Exception as exc:
                 logger.debug("Analyst price target %s: %s", ticker, exc)
 
-            # ── PEAD: Earnings dates + EAR proxy ──────────────────────────
+            # PEAD: Earnings dates + EAR proxy
             # Sinal: tickers em janela 5-60 dias úteis APÓS resultado com
             # surpresa positiva (CAR -1/+1 vs IBOV) tendem a continuar subindo.
             # Filtramos earnings_dates com cuidado para evitar look-ahead
@@ -560,9 +544,7 @@ class YFinanceClient:
         return result
 
 
-# ---------------------------------------------------------------------------
 # Helpers de parsing e normalização de dados brapi
-# ---------------------------------------------------------------------------
 def _compute_yz_vol(df_ohlc: pd.DataFrame) -> Optional[float]:
     """
     Yang-Zhang volatility anualizada estimada de OHLC.
@@ -727,16 +709,10 @@ def _merge_sources(brapi_parsed: dict, yf_info: dict) -> dict:
     return merged
 
 
-# ---------------------------------------------------------------------------
 # DataCollector — orquestrador principal
-# ---------------------------------------------------------------------------
 class DataCollector:
     """
-    Orquestra a coleta completa de dados para o universo de ações.
-
-    Uso:
-        collector = DataCollector()
-        df_fund, df_prices = collector.collect()
+    Coleta fundamentos e preços do universo inteiro.
     """
 
     def __init__(
@@ -795,9 +771,7 @@ class DataCollector:
 
         return df.reset_index(drop=True)
 
-    # ------------------------------------------------------------------
     # Ponto de entrada público
-    # ------------------------------------------------------------------
     def collect(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Executa a coleta completa com cache.
@@ -889,11 +863,9 @@ class DataCollector:
         Average Daily Volume em R$ = mediana de (Close × Volume) nos últimos
         `window` pregões. Mediana (não média) para robustez a dias de pico.
 
-        Por que recalcular em vez de usar averageDailyVolume3Month da brapi?
-        Esse campo vinha em escala inconsistente entre tickers (ora número de
-        ações, ora valores espúrios), fazendo o filtro de liquidez excluir
-        ações líquidas (VIVT3, EGIE3, TAEE11, SANB11...) — ~40% do universo.
-        Close×Volume garante R$ reais e comparáveis ao threshold de liquidez.
+        Não usar averageDailyVolume3Month da brapi: vem em escala inconsistente
+        entre tickers e derrubava ações líquidas (VIVT3, EGIE3, TAEE11...) no
+        filtro de liquidez. Close×Volume dá R$ comparáveis ao threshold.
         """
         if df_ohlc is None or df_ohlc.empty:
             return None
@@ -910,9 +882,7 @@ class DataCollector:
             logger.debug("ADV R$ falhou: %s", exc)
             return None
 
-    # ------------------------------------------------------------------
     # Coleta de Fundamentais
-    # ------------------------------------------------------------------
     def _collect_fundamentals(self) -> pd.DataFrame:
         tickers = self.universe["ticker"].tolist()
         logger.info("Coletando fundamentais para %d tickers", len(tickers))
@@ -1021,7 +991,7 @@ class DataCollector:
         """
         today = datetime.now().strftime("%Y-%m-%d")
 
-        # ── Info (básico)
+        # Info (básico)
         info_key = f"yf_info_{ticker}_{today}"
         info = self.cache.get(info_key)
         if info is None:
@@ -1032,7 +1002,7 @@ class DataCollector:
         if info.get("_source") == "failed":
             return info, {}
 
-        # ── Advanced (3y growth, FCF, analyst recs)
+        # Advanced (3y growth, FCF, analyst recs)
         adv_key = f"yf_advanced_{ticker}_{today}"
         adv = self.cache.get(adv_key)
         if adv is None:
@@ -1041,9 +1011,7 @@ class DataCollector:
 
         return info, adv
 
-    # ------------------------------------------------------------------
     # Coleta de Preços Históricos (12 meses)
-    # ------------------------------------------------------------------
     def _collect_prices(self, tickers: list[str]) -> pd.DataFrame:
         """
         Retorna DataFrame wide: index=date (DatetimeIndex), columns=tickers.
@@ -1092,10 +1060,9 @@ class DataCollector:
             # Yang-Zhang vol nos últimos 180 dias (com OHLC do mesmo df_hist)
             yz = _compute_yz_vol(df_hist.tail(180))
 
-            # ADV em R$ = mediana(Close × Volume, 21d). Calculado AQUI, no
-            # caminho de coleta que de fato roda — a tentativa anterior wirou
-            # num método inexistente e virou código morto (avg_volume_30d
-            # continuava vindo da brapi em escala errada, excluindo líquidas).
+            # ADV em R$ = mediana(Close × Volume, 21d). Tem que ser calculado
+            # neste caminho de coleta; senão avg_volume_30d fica com o valor da
+            # brapi, em escala errada.
             adv = self._adv_brl_from_ohlc(df_hist)
 
             self.cache.set(cache_key, {
@@ -1148,9 +1115,7 @@ class DataCollector:
         )
         return df_prices
 
-    # ------------------------------------------------------------------
     # Limpeza e tipagem do DataFrame de fundamentais
-    # ------------------------------------------------------------------
     @staticmethod
     def _cast_and_clean(df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -1229,9 +1194,7 @@ class DataCollector:
 
         return df
 
-    # ------------------------------------------------------------------
     # Relatório de cobertura de dados (log apenas)
-    # ------------------------------------------------------------------
     @staticmethod
     def _log_coverage_report(df: pd.DataFrame) -> None:
         metrics = ["pl", "pvp", "roe", "roic", "divida_ebitda", "dividend_yield", "beta"]
@@ -1246,9 +1209,7 @@ class DataCollector:
             logger.warning("  FAILED: %d tickers sem dados de nenhuma fonte", failed)
 
 
-# ---------------------------------------------------------------------------
 # Função de conveniência para uso em main.py e outros módulos
-# ---------------------------------------------------------------------------
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Ponto de entrada público do módulo.

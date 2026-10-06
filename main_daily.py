@@ -58,7 +58,7 @@ from src.telegram_sender import send_report, TelegramError
 logger = logging.getLogger(__name__)
 
 
-# ─── CLI ─────────────────────────────────────────────────────────────────────
+# CLI
 
 def _parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -103,7 +103,7 @@ def _ensure_dirs() -> None:
         Path(d).mkdir(parents=True, exist_ok=True)
 
 
-# ─── Fetch today's prices ─────────────────────────────────────────────────────
+# Fetch today's prices
 
 def _fetch_daily_prices(
     tickers: list[str],
@@ -353,7 +353,7 @@ def _fetch_ibov_cumulative(rec_date: str) -> Optional[float]:
         return None
 
 
-# ─── Fetch historical prices for technical analysis ──────────────────────────
+# Fetch historical prices for technical analysis
 
 def _fetch_hist_prices(tickers: list[str], lookback_days: int = 300) -> pd.DataFrame:
     """
@@ -393,7 +393,7 @@ def _fetch_hist_prices(tickers: list[str], lookback_days: int = 300) -> pd.DataF
         return pd.DataFrame()
 
 
-# ─── Morning pipeline ─────────────────────────────────────────────────────────
+# Morning pipeline
 
 def run_morning(run_date: str, do_send: bool, dry_run: bool) -> int:
     logger.info("=== MORNING REPORT | %s ===", run_date)
@@ -478,7 +478,7 @@ def run_morning(run_date: str, do_send: bool, dry_run: bool) -> int:
     return 0
 
 
-# ─── Closing pipeline ─────────────────────────────────────────────────────────
+# Closing pipeline
 
 def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
     logger.info("=== CLOSING REPORT | %s ===", run_date)
@@ -636,7 +636,7 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
     return 0
 
 
-# ─── Entrypoint ───────────────────────────────────────────────────────────────
+# Entrypoint
 
 def main(argv: Optional[list] = None) -> int:
     args = _parse_args(argv)

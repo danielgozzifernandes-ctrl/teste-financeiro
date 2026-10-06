@@ -1,6 +1,6 @@
 """
 Testes da camada "investidor absoluto":
-  - allocator (sleeves, tilts, bounds, gross exposure, degradação honesta)
+  - allocator (sleeves, tilts, bounds, gross exposure, dado faltante)
   - stop_monitor (stop_hit/near/target, recomendações antigas sem trade_advice)
   - equity_curve (encadeamento de NAV, dedup por data, banda de ruído)
   - order_sheet (quantidades fracionárias, sobra → CDI, nota de IR)
@@ -34,7 +34,7 @@ from src.order_sheet import build_order_sheet
 from src.stop_monitor import check_levels
 
 
-# ─── Fixtures ────────────────────────────────────────────────────────────────
+# Fixtures
 
 def _ibov_series(n: int = 300, trend: float = 0.001) -> pd.Series:
     idx = pd.date_range("2025-01-01", periods=n, freq="B")
@@ -46,7 +46,7 @@ def _cdi_series(n: int = 300, daily: float = 0.00055) -> pd.Series:
     return pd.Series(np.full(n, daily), index=idx)
 
 
-# ─── Allocator ───────────────────────────────────────────────────────────────
+# Allocator
 
 def test_allocation_sums_to_one_all_regimes():
     for regime in ("risk_on", "mean_rev", "bear"):
@@ -90,7 +90,7 @@ def test_negative_tsmom_reduces_equity():
         cdi_daily_returns=_cdi_series(),
     )
     assert out["signals"]["tsmom_tilt"] == -ALLOCATION_TILT_PP
-    assert out["signals"]["erp_tilt"] == 0.0  # degradação honesta
+    assert out["signals"]["erp_tilt"] == 0.0  # sem dado → tilt 0
 
 
 def test_missing_data_degrades_to_base():
@@ -133,7 +133,7 @@ def test_portfolio_earnings_yield_requires_majority():
     assert portfolio_earnings_yield(df_sparse) is None
 
 
-# ─── Stop monitor ────────────────────────────────────────────────────────────
+# Stop monitor
 
 _REC = {
     "trade_advice": {
@@ -165,7 +165,7 @@ def test_old_recommendation_without_trade_advice():
     assert check_levels(None, {}) == []
 
 
-# ─── Equity curve ────────────────────────────────────────────────────────────
+# Equity curve
 
 def test_equity_curve_chains_nav(tmp_path):
     path = tmp_path / "curve.json"
@@ -244,7 +244,7 @@ def test_weighted_portfolio_return_uses_real_weights():
     assert _weighted_portfolio_return(rets, {"C": 1.0}) == pytest.approx(0.0)
 
 
-# ─── Order sheet ─────────────────────────────────────────────────────────────
+# Order sheet
 
 _ALLOC = {"sleeves": {"equities_br": 0.40, "cdi": 0.30,
                       "global_usd": 0.15, "inflation": 0.15}}

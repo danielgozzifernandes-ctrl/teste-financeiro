@@ -1,28 +1,12 @@
 """
-backtester.py — Módulo 7
+Backtest da recomendação anterior: preço de entrada gravado vs preço atual.
 
-Audita o desempenho das recomendações anteriores comparando o preço
-de entrada registrado no snapshot com o preço atual de mercado.
+R = Σ w_i × (P_atual_i / P_entrada_i − 1), com os pesos gravados na
+recomendação (equal-weight se não houver) e fricção por perna.
+Ticker sem preço sai do cálculo e o peso é redistribuído.
+Sem recomendação anterior → status "no_history".
 
-Fórmula do retorno da carteira (briefing, pesos iguais 20%):
-    R_total = Σ 0.20 × (P_atual_i / P_entrada_i − 1)  para i=1..N
-
-Por que essa fórmula?
-  É equivalente à média aritmética dos retornos individuais com pesos iguais.
-  Corresponde a uma carteira rebalanceada diariamente (simplificação conservadora
-  — subestima ligeiramente o retorno real, que seria geométrico com rebalanceamento
-  mensal). Para janelas curtas (1-4 semanas) a diferença é desprezível (<0.1pp).
-
-Tratamento de "primeira execução":
-  Se não há recomendação anterior gravada → retorna status "no_history"
-  sem lançar exceção. O main.py trata esse caso graciosamente.
-
-Tratamento de ticker indisponível (delisting, erro de dado):
-  Se um ticker da recomendação anterior não tem preço atual → excluído
-  do cálculo e os pesos são redistribuídos proporcionalmente.
-  Ex: 4 de 5 tickers disponíveis → peso efetivo de 25% cada.
-
-Output salvo em data/history/backtest_YYYY-MM-DD_{mode}.json.
+Saída: data/history/backtest_YYYY-MM-DD_{mode}.json.
 """
 
 import json
@@ -60,8 +44,6 @@ def _adv_adjusted_friction(adv_brl: Optional[float]) -> float:
     return _FRICTION * scale
 
 
-# ─── Tipos de resultado ───────────────────────────────────────────────────────
-
 class BacktestStatus:
     SUCCESS      = "success"
     NO_HISTORY   = "no_history"       # primeira execução
@@ -69,20 +51,8 @@ class BacktestStatus:
     ERROR        = "error"
 
 
-# ─── Backtester ───────────────────────────────────────────────────────────────
-
 class Backtester:
-    """
-    Calcula e persiste o resultado do backtesting da carteira anterior.
-
-    Uso:
-        bt = Backtester()
-        result = bt.run(
-            mode="weekly",
-            current_prices={"PETR4": 41.55, "VALE3": 72.10, ...},
-            benchmark_period_returns={"ibovespa": 0.051, "cdi": 0.016, "selic": 0.016},
-        )
-    """
+    """Calcula e grava o backtest da carteira anterior."""
 
     def __init__(
         self,
@@ -93,9 +63,7 @@ class Backtester:
         self.history = Path(history_dir)
         self.history.mkdir(parents=True, exist_ok=True)
 
-    # ═══════════════════════════════════════════════════════════════════════
     # API pública
-    # ═══════════════════════════════════════════════════════════════════════
 
     def run(
         self,
@@ -280,9 +248,7 @@ class Backtester:
             market_data=market_data,
         )
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Cálculo de retorno
-    # ═══════════════════════════════════════════════════════════════════════
 
     def _calc_portfolio_return(
         self,
@@ -400,9 +366,7 @@ class Backtester:
 
         return float(portfolio_return), holdings, status
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Persistência
-    # ═══════════════════════════════════════════════════════════════════════
 
     def _save(self, result: dict, run_date_str: str, mode: str) -> Path:
         """Salva o resultado do backtest em JSON atômico."""
@@ -500,9 +464,7 @@ class Backtester:
             "last_6_periods":         backtests[-6:],
         }
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Helpers
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _first_run_result(run_date_str: str, mode: str) -> dict:
@@ -575,9 +537,8 @@ class Backtester:
         Per-sector aggregation:  Σ_i∈sector w_i × R_i + total weight no setor
         Vs IBOV: cada setor é comparado com retorno médio do IBOV (proxy).
 
-        Limitação honesta: Brinson completo requer composição setorial do
-        IBOV (free data parcial — i Ibovespa por setor está em CSV BVMF, mas
-        peso por setor varia mensalmente). Usamos IBOV total como proxy.
+        Brinson completo precisaria do peso setorial do IBOV a cada período;
+        aqui o IBOV total serve de proxy para todos os setores.
 
         Returns dict com:
           per_ticker:  [{ticker, sector, weight, return, contribution}]
@@ -676,7 +637,7 @@ class Backtester:
             return None
 
 
-# ─── Helpers de serialização ─────────────────────────────────────────────────
+# Helpers de serialização
 
 def _safe_serialize(obj):
     """Garante que todos os floats NaN/inf sejam None antes de serializar."""
@@ -689,7 +650,7 @@ def _safe_serialize(obj):
     return obj
 
 
-# ─── Função de conveniência ───────────────────────────────────────────────────
+# Função de conveniência
 
 def run_backtest(
     mode: str,

@@ -66,7 +66,7 @@ from src.technical_analyzer import TechnicalAnalyzer
 from src.trade_advisor import TradeAdvisor
 from src.telegram_sender import send_report, TelegramError
 
-# ─── Logging ─────────────────────────────────────────────────────────────────
+# Logging
 
 def _setup_logging(debug: bool = False) -> None:
     level = logging.DEBUG if debug else getattr(logging, LOG_LEVEL, logging.INFO)
@@ -75,7 +75,7 @@ def _setup_logging(debug: bool = False) -> None:
 
 logger = logging.getLogger(__name__)
 
-# ─── CLI ─────────────────────────────────────────────────────────────────────
+# CLI
 
 def _parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -131,7 +131,7 @@ def _parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-# ─── Validação de token ───────────────────────────────────────────────────────
+# Validação de token
 
 def _validate_token() -> int:
     from src.telegram_sender import TelegramSender
@@ -146,14 +146,14 @@ def _validate_token() -> int:
         return 2
 
 
-# ─── Preparação de diretórios ─────────────────────────────────────────────────
+# Preparação de diretórios
 
 def _ensure_dirs() -> None:
     for d in (OUTPUT_DIR, HISTORY_DIR, CACHE_DIR):
         Path(d).mkdir(parents=True, exist_ok=True)
 
 
-# ─── Parsing de data ──────────────────────────────────────────────────────────
+# Parsing de data
 
 def _resolve_date(date_arg: Optional[str]) -> str:
     if date_arg:
@@ -166,7 +166,7 @@ def _resolve_date(date_arg: Optional[str]) -> str:
     return date.today().strftime("%Y-%m-%d")
 
 
-# ─── Regime de mercado ───────────────────────────────────────────────────────
+# Regime de mercado
 
 def _fetch_vix_prices(start_date: str):
     """Download VIX from yfinance. Returns empty Series on failure."""
@@ -392,7 +392,7 @@ def _detect_regime(ibov_prices, vix_prices) -> str:
     return _detect_regime_binary(ibov_prices, vix_prices)
 
 
-# ─── Pipeline principal ───────────────────────────────────────────────────────
+# Pipeline principal
 
 def run(args: argparse.Namespace) -> int:
     run_date = _resolve_date(args.date)
@@ -405,7 +405,7 @@ def run(args: argparse.Namespace) -> int:
 
     _ensure_dirs()
 
-    # ── 1. Coleta de dados ─────────────────────────────────────────────────
+    # 1. Coleta de dados
     logger.info("Etapa 1/7 — Coletando dados fundamentais e de preços...")
     try:
         df_fundamentals, df_prices = load_data()
@@ -423,7 +423,7 @@ def run(args: argparse.Namespace) -> int:
         len(df_prices.columns) if not df_prices.empty else 0,
     )
 
-    # ── 2. Benchmarks ─────────────────────────────────────────────────────
+    # 2. Benchmarks
     logger.info("Etapa 2/7 — Buscando benchmarks...")
     import pandas as pd
     from datetime import timedelta
@@ -438,14 +438,14 @@ def run(args: argparse.Namespace) -> int:
     except Exception as exc:
         logger.warning("Benchmarks falhou (não crítico): %s", exc)
 
-    # ── 2b. Regime de mercado ─────────────────────────────────────────────
+    # 2b. Regime de mercado
     vix_prices = _fetch_vix_prices(
         (date.today() - timedelta(days=365)).strftime("%Y-%m-%d")
     )
     market_regime = _detect_regime(ibov_prices, vix_prices)
     logger.info("Regime de mercado detectado: %s", market_regime)
 
-    # ── 3. Scoring ────────────────────────────────────────────────────────
+    # 3. Scoring
     logger.info("Etapa 3/7 — Calculando scores...")
     try:
         df_scored = compute_scores(
@@ -481,7 +481,7 @@ def run(args: argparse.Namespace) -> int:
     top_ticker = df_scored.iloc[0]["ticker"] if "ticker" in df_scored.columns else "?"
     logger.info("Scoring concluído: %d tickers pontuados. Top: %s", len(df_scored), top_ticker)
 
-    # ── 3b. Observabilidade de cobertura ──────────────────────────────────
+    # 3b. Observabilidade de cobertura
     # Universo declarado (universe.csv) vs coletado (df_fundamentals) vs
     # efetivamente pontuado (sobreviventes dos hard filters). Tornar o gap
     # VISÍVEL — antes ~60% do universo sumia silenciosamente.
@@ -523,7 +523,7 @@ def run(args: argparse.Namespace) -> int:
             declared_universe or -1, n_collected, n_scored,
         )
 
-    # ── 3c. Asset allocation (camada "investidor absoluto") ──────────────
+    # 3c. Asset allocation (camada "investidor absoluto")
     # Decide QUANTO estar em bolsa antes de QUAL ação — a decisão dominante
     # com Selic alta. Sinais: regime HMM + ERP implícito + TSMOM 12-1.
     allocation = None
@@ -552,7 +552,7 @@ def run(args: argparse.Namespace) -> int:
         except Exception as exc:
             logger.warning("Asset allocation falhou (não crítico): %s", exc, exc_info=True)
 
-    # ── 4. Snapshot de preços ─────────────────────────────────────────────
+    # 4. Snapshot de preços
     # A recomendação é salva DEPOIS do trade advice (etapa 4b) para persistir
     # stops/targets no JSON — o stop-monitor do closing diário depende disso.
     logger.info("Etapa 4/7 — Salvando snapshot de preços...")
@@ -562,7 +562,7 @@ def run(args: argparse.Namespace) -> int:
     except Exception as exc:
         logger.warning("Snapshot de preços falhou (não crítico): %s", exc)
 
-    # ── 4b. Análise técnica + trade advice para o top 5 ──────────────────
+    # 4b. Análise técnica + trade advice para o top 5
     logger.info("Etapa 4b/7 — Análise técnica e trade advice do top 5...")
     trade_advice: dict = {}
     try:
@@ -596,7 +596,7 @@ def run(args: argparse.Namespace) -> int:
     except Exception as exc:
         logger.warning("Trade advice falhou (não crítico): %s", exc, exc_info=True)
 
-    # ── 4c. Salvar recomendação (com allocation + stops persistidos) ─────
+    # 4c. Salvar recomendação (com allocation + stops persistidos)
     try:
         rec_path = snap.save_recommendation(
             df_scored=df_scored, df_prices=df_prices,
@@ -617,7 +617,7 @@ def run(args: argparse.Namespace) -> int:
         logger.warning("Snapshot de recomendação falhou (não crítico): %s", exc)
         saved_rec = {}
 
-    # ── 4d. Order sheet: pesos → ordens executáveis para o capital real ──
+    # 4d. Order sheet: pesos → ordens executáveis para o capital real
     order_sheet = None
     if args.capital and args.capital > 0:
         try:
@@ -640,7 +640,7 @@ def run(args: argparse.Namespace) -> int:
         except Exception as exc:
             logger.warning("Order sheet falhou (não crítico): %s", exc, exc_info=True)
 
-    # ── 5. Backtesting ────────────────────────────────────────────────────
+    # 5. Backtesting
     logger.info("Etapa 5/7 — Executando backtesting...")
     backtest_result = None
     try:
@@ -660,7 +660,7 @@ def run(args: argparse.Namespace) -> int:
         logger.warning("Backtesting falhou (não crítico): %s", exc, exc_info=True)
         backtest_result = {"status": "error", "message": str(exc)}
 
-    # ── 6. Gráfico ────────────────────────────────────────────────────────
+    # 6. Gráfico
     chart_path: Optional[Path] = None
     if not args.no_chart:
         logger.info("Etapa 6/7 — Gerando gráfico...")
@@ -688,7 +688,7 @@ def run(args: argparse.Namespace) -> int:
         df_scored = df_scored.copy()
         df_scored["current_price"] = df_scored["ticker"].map(last_prices)
 
-    # ── 6b. Análises retroativas (rodam SEMPRE, inclusive em dry-run) ────
+    # 6b. Análises retroativas (rodam também em dry-run)
     # Factor IC, walk-forward e risk model decomposition. Estes ficam ANTES
     # do dry-run return para acumular histórico estatístico em toda execução.
     try:
@@ -732,7 +732,7 @@ def run(args: argparse.Namespace) -> int:
     except Exception as exc:
         logger.debug("Risk model falhou (%s)", exc)
 
-    # ── 7. Relatório de texto ─────────────────────────────────────────────
+    # 7. Relatório de texto
     logger.info("Etapa 7/7 — Construindo relatório de texto...")
     try:
         report_text = build_report(
@@ -750,7 +750,7 @@ def run(args: argparse.Namespace) -> int:
         logger.error("Falha ao construir relatório: %s", exc, exc_info=True)
         return 1
 
-    # ── Dry-run: imprimir e encerrar ──────────────────────────────────────
+    # Dry-run: imprimir e encerrar
     if dry_run:
         logger.info("=== DRY RUN — relatório não enviado ao Telegram ===")
         print("\n" + "-" * 60)
@@ -762,7 +762,7 @@ def run(args: argparse.Namespace) -> int:
         _print_summary(df_scored, backtest_result)
         return 0
 
-    # ── Sem --send: encerrar sem enviar ───────────────────────────────────
+    # Sem --send: encerrar sem enviar
     if not do_send:
         logger.info(
             "Envio ao Telegram DESATIVADO. Use --send para enviar "
@@ -771,7 +771,7 @@ def run(args: argparse.Namespace) -> int:
         _print_summary(df_scored, backtest_result)
         return 0
 
-    # ── Envio ao Telegram ─────────────────────────────────────────────────
+    # Envio ao Telegram
     logger.info("Enviando ao Telegram...")
     try:
         send_report(
@@ -787,7 +787,7 @@ def run(args: argparse.Namespace) -> int:
     return 0
 
 
-# ─── Resumo em stdout ─────────────────────────────────────────────────────────
+# Resumo em stdout
 
 def _print_summary(df_scored, backtest_result: Optional[dict]) -> None:
     print("\n=== RESUMO ===")
@@ -811,7 +811,7 @@ def _print_summary(df_scored, backtest_result: Optional[dict]) -> None:
     print("==============\n")
 
 
-# ─── Entrypoint ───────────────────────────────────────────────────────────────
+# Entrypoint
 
 def main(argv: Optional[list] = None) -> int:
     args = _parse_args(argv)

@@ -58,7 +58,7 @@ from src.telegram_sender import send_report, TelegramError
 logger = logging.getLogger(__name__)
 
 
-# ─── CLI ─────────────────────────────────────────────────────────────────────
+# CLI
 
 def _parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -98,7 +98,7 @@ def _ensure_dirs() -> None:
         Path(d).mkdir(parents=True, exist_ok=True)
 
 
-# ─── Pipeline ─────────────────────────────────────────────────────────────────
+# Pipeline
 
 def run(args: argparse.Namespace) -> int:
     run_date = _resolve_date(args.date)
@@ -107,7 +107,7 @@ def run(args: argparse.Namespace) -> int:
     logger.info("=== OPPORTUNITY SCANNER | %s ===", run_date)
     _ensure_dirs()
 
-    # ── 1. Coleta de dados ────────────────────────────────────────────────────
+    # 1. Coleta de dados
     logger.info("Etapa 1/5 — Coletando dados do universo...")
     try:
         df_fundamentals, df_prices = load_data()
@@ -121,7 +121,7 @@ def run(args: argparse.Namespace) -> int:
 
     logger.info("Dados: %d tickers fundamentais", len(df_fundamentals))
 
-    # ── 2. Benchmarks ─────────────────────────────────────────────────────────
+    # 2. Benchmarks
     logger.info("Etapa 2/5 — Buscando benchmarks...")
     ibov_prices = pd.Series(dtype=float)
     try:
@@ -130,7 +130,7 @@ def run(args: argparse.Namespace) -> int:
     except Exception as exc:
         logger.warning("Benchmarks falhou (não crítico): %s", exc)
 
-    # ── 3. Scoring ────────────────────────────────────────────────────────────
+    # 3. Scoring
     logger.info("Etapa 3/5 — Calculando scores do universo...")
     try:
         df_scored = compute_scores(
@@ -154,7 +154,7 @@ def run(args: argparse.Namespace) -> int:
 
     logger.info("Scoring: %d tickers pontuados", len(df_scored))
 
-    # ── 4. Análise técnica de todos os tickers ────────────────────────────────
+    # 4. Análise técnica de todos os tickers
     logger.info("Etapa 4/5 — Análise técnica do universo completo...")
     tech_data: dict = {}
     try:
@@ -177,7 +177,7 @@ def run(args: argparse.Namespace) -> int:
         logger.error("Análise técnica falhou: %s", exc, exc_info=True)
         return 1
 
-    # ── 5. Scanner de oportunidades ───────────────────────────────────────────
+    # 5. Scanner de oportunidades
     logger.info("Etapa 5/5 — Aplicando filtro de oportunidades...")
     scanner = OpportunityScanner()
     opportunities = scanner.scan(df_scored, tech_data)
@@ -191,7 +191,7 @@ def run(args: argparse.Namespace) -> int:
                 len(opportunities),
                 [o["ticker"] for o in opportunities])
 
-    # ── Construir mensagens ───────────────────────────────────────────────────
+    # Construir mensagens
     messages = build_opportunity_alerts(opportunities, run_date)
 
     if args.dry_run:
@@ -209,7 +209,7 @@ def run(args: argparse.Namespace) -> int:
             print(msg)
         return 0
 
-    # ── Envio ao Telegram ─────────────────────────────────────────────────────
+    # Envio ao Telegram
     sent = 0
     for msg in messages:
         try:
@@ -226,7 +226,7 @@ def run(args: argparse.Namespace) -> int:
     return 0
 
 
-# ─── Entrypoint ───────────────────────────────────────────────────────────────
+# Entrypoint
 
 def main(argv: Optional[list] = None) -> int:
     args = _parse_args(argv)

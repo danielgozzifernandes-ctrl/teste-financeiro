@@ -51,7 +51,7 @@ from src.config import (
 logger = logging.getLogger(__name__)
 
 
-# ─── Carregamento de histórico ────────────────────────────────────────────────
+# Carregamento de histórico
 
 def _list_recommendations(
     history_dir: Path,
@@ -86,7 +86,7 @@ def _list_snapshots(history_dir: Path) -> dict[str, dict[str, float]]:
     return out
 
 
-# ─── Cálculo de retornos forward ──────────────────────────────────────────────
+# Cálculo de retornos forward
 
 def _find_forward_snapshot(
     snapshots: dict[str, dict[str, float]],
@@ -132,7 +132,7 @@ def _forward_returns(
     return out
 
 
-# ─── Cálculo de IC ────────────────────────────────────────────────────────────
+# Cálculo de IC
 
 def _spearman_ic(
     factor_scores: dict[str, float],
@@ -171,7 +171,7 @@ def _extract_factor_scores(
 
     Selection bias do top10: ao medir IC apenas sobre tickers que já passaram
     pelo filtro do scoring, estamos correlacionando fator com retorno entre
-    ações que o próprio fator já selecionou. IC honesto requer o universo
+    ações que o próprio fator já selecionou. O IC precisa do universo
     inteiro como amostra cross-sectional.
     """
     # Caminho 1: full_universe_scores (formato novo, sem bias)
@@ -196,7 +196,7 @@ def _extract_factor_scores(
     return out
 
 
-# ─── Pipeline principal ───────────────────────────────────────────────────────
+# Pipeline principal
 
 def analyze_factors(
     history_dir: Path = HISTORY_DIR,
@@ -327,12 +327,12 @@ def analyze_factors(
                 "significant": n_obs >= MIN_OBS_FOR_SIGNIFICANCE,
             }
 
-    # ── Decay analysis: ajustar curva exponencial IC(τ) = IC₀ × exp(-λτ)
+    # Decay analysis: ajustar curva exponencial IC(τ) = IC₀ × exp(-λτ)
     # Half-life = ln(2) / λ — em dias úteis. Fatores com half-life longa
     # (>40d) são duráveis; <10d são noise-driven.
     decay_summary = _compute_decay(factors_summary, IC_FORWARD_WINDOWS)
 
-    # ── Banner de suficiência estatística ──────────────────────────────────
+    # Banner de suficiência estatística
     # max_obs = maior n_obs entre todos os fatores/janelas. Se nem o melhor
     # fator atinge o mínimo, NENHUMA métrica abaixo é confiável.
     max_obs = max(
@@ -510,7 +510,7 @@ def _safe_print(text: str) -> None:
         sys.stdout.buffer.flush()
 
 
-# ─── CLI ──────────────────────────────────────────────────────────────────────
+# CLI
 
 def _setup_logging():
     logging.basicConfig(

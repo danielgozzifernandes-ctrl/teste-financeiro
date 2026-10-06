@@ -82,10 +82,8 @@ jobs:
           path: cache/
           key: data-cache-${{ runner.os }}-${{ github.run_id }}
 
-      # Persiste o histórico e as análises COMMITANDO no repositório.
-      # Sem isso, data/history nunca acumula entre runs e o IC/backtest/walk-forward
-      # ficam permanentemente sem amostra (cache do Actions expira em ~7 dias e
-      # nunca volta ao git). Este é o mecanismo que faz o sistema "aprender".
+      # data/history só acumula entre runs se for commitado — o cache do
+      # Actions expira em ~7 dias. IC, backtest e walk-forward dependem disso.
       - name: Commit history artifacts
         if: always()
         run: |

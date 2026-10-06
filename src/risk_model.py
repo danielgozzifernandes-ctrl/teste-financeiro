@@ -22,7 +22,7 @@ Uso primário:
   um fator (ex.: betas altos em Size = bet em small caps). Compara com
   HRP que olha covariância empírica direta.
 
-Limitações honestas (vs Barra real):
+Diferenças para um Barra de verdade:
   - Fatores observáveis (não estimados via PCA); Barra usa estimação iterativa
   - Cross-section por dia em vez de painel completo
   - Sem shrinkage Bayesiano em exposições
@@ -83,7 +83,7 @@ def build_risk_model(
         logger.debug("risk_model: dados de preço vazios")
         return None
 
-    # ── 1. Retornos diários log
+    # 1. Retornos diários log
     stock_log_ret = np.log(df_prices / df_prices.shift(1)).dropna(how="all").tail(lookback_days)
     ibov_log_ret  = np.log(ibov_prices / ibov_prices.shift(1)).dropna().tail(lookback_days)
 
@@ -101,14 +101,14 @@ def build_risk_model(
     lower = -sigma * 3
     stock_log_ret = stock_log_ret.clip(lower=lower, upper=upper, axis=1)
 
-    # ── 2. Construir fatores estilísticos por dia (Fama-French style)
+    # 2. Construir fatores estilísticos por dia (Fama-French style)
     factors_daily = _build_style_factors(
         stock_log_ret, df_fundamentals, ibov_log_ret,
     )
     if factors_daily is None or factors_daily.empty:
         return None
 
-    # ── 3. Setor dummies (baseline = primeiro setor encontrado)
+    # 3. Setor dummies (baseline = primeiro setor encontrado)
     sector_factors = _build_sector_returns(
         stock_log_ret, df_fundamentals[sector_col],
     )
@@ -118,7 +118,7 @@ def build_risk_model(
     if len(factor_returns) < 30:
         return None
 
-    # ── Ortogonalização Gram-Schmidt: MKT → SMB → HML → UMD → setores
+    # Ortogonalização Gram-Schmidt: MKT → SMB → HML → UMD → setores
     # Cada fator subsequente é projetado no resíduo dos anteriores. Remove
     # multicolinearidade que vinha do mesmo universo nas construções
     # long-short (tickers aparecem em múltiplas legs).
@@ -129,12 +129,12 @@ def build_risk_model(
         order=["MKT", "SMB", "HML", "UMD"],
     )
 
-    # ── 4. Estimar exposições por ticker via OLS individual
+    # 4. Estimar exposições por ticker via OLS individual
     exposures, specific_risk, r_squared = _estimate_exposures(
         stock_log_ret, factor_returns,
     )
 
-    # ── 5. Covariância dos fatores (anualizada)
+    # 5. Covariância dos fatores (anualizada)
     factor_cov = factor_returns.cov() * 252
 
     logger.info(
@@ -164,10 +164,8 @@ def _gram_schmidt_orthogonalize(
     resíduo. Após o processo, todos os fatores são ortogonais entre si —
     correlação cross-time = 0.
 
-    Por que essa ordem? CAPM diz que MKT é o fator principal; SMB/HML/UMD
-    são style premiums INCREMENTAIS além do mercado. Fazer MKT primeiro
-    isola style alphas puros (sem confundir com beta). Setores são
-    ortogonalizados depois — capturam só o spread setorial idiossincrático.
+    MKT primeiro para que SMB/HML/UMD fiquem livres de beta; setores por
+    último, só com o spread setorial que sobra.
 
     Fatores não listados em `order` (ex.: setores) são ortogonalizados por
     último contra todos os anteriores.

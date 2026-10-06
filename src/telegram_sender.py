@@ -1,26 +1,12 @@
 """
-telegram_sender.py — Módulo 8
-
 Envia a mensagem de texto e o gráfico PNG para o Telegram via Bot API.
 
-Por que requests e não python-telegram-bot?
-  python-telegram-bot é ótimo para bots interativos, mas adiciona ~15 deps
-  para um caso de uso de envio único. requests é suficiente, já é dependência
-  de data_collector.py e mantém o container mais leve no GitHub Actions.
+requests direto em vez de python-telegram-bot: só enviamos, não precisa
+de bot interativo.
 
-Fluxo:
-  1. send_message() — POST /sendMessage com MarkdownV2
-  2. send_photo()   — POST /sendPhoto com chart PNG e caption
-
-Retry:
-  3 tentativas com backoff exponencial (2, 4, 8 s) para erros de rede
-  ou rate-limit 429 do Telegram.
-
-Configuração:
-  TELEGRAM_BOT_TOKEN — token do @BotFather
-  TELEGRAM_CHAT_ID   — ID do canal/grupo (negativo para grupos/canais)
-
-Ambos são lidos de variáveis de ambiente (via .env ou GitHub Secrets).
+send_message() → /sendMessage (MarkdownV2); send_photo() → /sendPhoto.
+Retry com backoff em erro de rede e 429.
+Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (negativo para grupos/canais).
 """
 
 import logging
@@ -75,10 +61,6 @@ class TelegramError(Exception):
 class TelegramSender:
     """
     Envia mensagens e fotos para um canal/grupo do Telegram.
-
-    Uso:
-        sender = TelegramSender()  # lê env vars automaticamente
-        sender.send_report(text=report_text, chart_path=chart_png)
     """
 
     def __init__(
@@ -100,7 +82,7 @@ class TelegramSender:
                 "Configure a variável de ambiente ou passe chat_id= no construtor."
             )
 
-    # ─── API pública ──────────────────────────────────────────────────────────
+    # API pública
 
     def send_report(
         self,
@@ -190,7 +172,7 @@ class TelegramSender:
         with open(photo_path, "rb") as f:
             return self._post("sendPhoto", data=data, files={"photo": f})
 
-    # ─── Estratégia de envio foto+caption ────────────────────────────────────
+    # Estratégia de envio foto+caption
 
     def _send_photo_with_caption(
         self,
@@ -224,7 +206,7 @@ class TelegramSender:
             )
             self.send_message(text=text, disable_notification=disable_notification)
 
-    # ─── HTTP com retry ───────────────────────────────────────────────────────
+    # HTTP com retry
 
     def _post(
         self,
@@ -307,14 +289,14 @@ class TelegramSender:
         # Nunca deve chegar aqui (loop garante raise antes)
         raise TelegramError("Retries esgotados sem resultado.")
 
-    # ─── Diagnóstico ─────────────────────────────────────────────────────────
+    # Diagnóstico
 
     def get_me(self) -> dict:
         """Chama /getMe para validar o token. Útil em testes e dry-run."""
         return self._post("getMe", data={})
 
 
-# ─── Função de conveniência ───────────────────────────────────────────────────
+# Função de conveniência
 
 def send_report(
     text: str,

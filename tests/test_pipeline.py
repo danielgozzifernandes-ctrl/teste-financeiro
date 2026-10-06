@@ -1,12 +1,10 @@
 """
 tests/test_pipeline.py
 
-Smoke test de INTEGRAÇÃO da cadeia de decisão:
-    scoring → diversificação → persistência → backtest
-
-Cobre a orquestração (não só unidades isoladas) — teria pego tanto o bug de
-ordem do backtest (comparava a rec contra si mesma) quanto a regressão das
-colunas de convicção. Sem rede: dados sintéticos + tmp history dir.
+Smoke test de integração: scoring → diversificação → persistência → backtest.
+Pega erro de orquestração que os testes unitários não veem (ex.: backtest
+comparando a recomendação contra ela mesma). Sem rede: dados sintéticos e
+history dir temporário.
 """
 
 import numpy as np

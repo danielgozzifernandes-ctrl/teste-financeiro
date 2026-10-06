@@ -1,29 +1,10 @@
 """
-chart_generator.py — Módulo 5
-
 Gera o gráfico comparativo de retorno acumulado (base-100) da carteira
 recomendada vs IBOVESPA, SELIC e CDI.
 
-Design visual:
-  - Fundo escuro (dark mode — compatível com Telegram)
-  - Carteira: Terracota (#B5593A) — cor obrigatória, linha mais espessa
-  - IBOVESPA:  Cinza claro (#B8B8B8) — linha sólida
-  - SELIC:     Âmbar/Dourado (#D4A017) — linha tracejada
-  - CDI:       Cinza médio (#888888) — linha pontilhada
-  - fill_between entre Carteira e IBOV:
-      Alpha positivo (Carteira > IBOV): terracota semi-transparente
-      Alpha negativo (Carteira < IBOV): vermelho semi-transparente
-  - Output: 1200×800px PNG (figsize=12×8 @ dpi=100), otimizado para Telegram
-
-Uso:
-    gen = ChartGenerator()
-    chart_path = gen.generate(
-        portfolio_returns=port_series,    # pd.Series, retornos decimais diários
-        benchmark_returns=df_bench,       # DataFrame ibovespa/selic/cdi
-        mode="weekly",
-        output_path=Path("output_chart.png"),
-        top5_tickers=["PETR4", "VALE3", "ITUB4", "WEGE3", "EGIE3"],
-    )
+Fundo escuro; carteira em terracota (#B5593A, linha grossa), IBOV cinza
+claro, SELIC âmbar tracejada, CDI cinza pontilhada. Área entre carteira e
+IBOV pintada pelo sinal do alpha. PNG 1200×800.
 """
 
 import logging
@@ -45,7 +26,7 @@ from src.config import CHART_OUTPUT_PATH, TOP_N_RECOMMENDATIONS
 
 logger = logging.getLogger(__name__)
 
-# ─── Paleta de cores ─────────────────────────────────────────────────────────
+# Paleta de cores
 
 PALETTE = {
     # Fundos
@@ -120,19 +101,13 @@ DATE_LOCATORS = {
 
 class ChartGenerator:
     """
-    Gera gráficos profissionais de retorno acumulado para o relatório.
-
-    Uso:
-        gen = ChartGenerator()
-        path = gen.generate(portfolio_returns, benchmark_returns, "weekly")
+    Gráfico de retorno acumulado para o relatório.
     """
 
     def __init__(self, output_path: Path = CHART_OUTPUT_PATH):
         self.default_output = Path(output_path)
 
-    # ═══════════════════════════════════════════════════════════════════════
     # API pública
-    # ═══════════════════════════════════════════════════════════════════════
 
     def generate(
         self,
@@ -237,9 +212,7 @@ class ChartGenerator:
         portfolio = daily_returns.mean(axis=1).rename("portfolio")
         return portfolio
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Construção dos dados
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _build_cumulative(
@@ -289,9 +262,7 @@ class ChartGenerator:
         )
         return df_cum
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Plotagem
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _create_figure() -> tuple[plt.Figure, plt.Axes]:
@@ -352,9 +323,8 @@ class ChartGenerator:
         Área positiva (Carteira > IBOV): Terracota semi-transparente
         Área negativa (Carteira < IBOV): vermelho semi-transparente
 
-        Por que dois fill_between?
-          Um único fill_between com where= cria artefatos nas cruzadas de linha.
-          Usar dois (positivo e negativo) garante transições limpas.
+        Dois fill_between (positivo/negativo): um só com where= deixa
+        artefatos onde as linhas se cruzam.
         """
         # Alinhar índices
         common_idx = portfolio.dropna().index.intersection(ibov.dropna().index)
@@ -386,9 +356,7 @@ class ChartGenerator:
             label="_nolegend_",
         )
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Formatação e estilo
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _format_xaxis(ax: plt.Axes, df_cum: pd.DataFrame, mode: str) -> None:
@@ -573,9 +541,7 @@ class ChartGenerator:
         ax.margins(x=0.02)
         fig.tight_layout(rect=[0, 0.04, 1, 1])  # reservar espaço para disclaimer
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Utilitários
-    # ═══════════════════════════════════════════════════════════════════════
 
     def generate_from_scored(
         self,

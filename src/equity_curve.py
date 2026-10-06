@@ -179,7 +179,7 @@ def alpha_noise_band_pp(series: Optional[list[dict]] = None,
     return float(np.std(alphas, ddof=1))
 
 
-# ─── IO ──────────────────────────────────────────────────────────────────────
+# IO
 
 def _load(path: Path) -> list[dict]:
     try:

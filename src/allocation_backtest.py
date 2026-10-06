@@ -3,20 +3,17 @@ Backtest standalone da camada de Asset Allocation.
 
     python -m src.allocation_backtest [--years 10] [--rebalance 21]
 
-Por que este backtest é DIFERENTE dos demais do projeto: a camada de
-allocation opera sobre ETFs líquidos (BOVA11/IVVB11/IMAB11) + CDI, com
-10+ anos de preços diários disponíveis no yfinance — dá para validar as
-regras com amostra estatisticamente significativa HOJE, ao contrário do
-stock-picking (que precisa acumular snapshots semanais por meses).
+A allocation roda sobre ETFs líquidos (BOVA11/IVVB11/IMAB11) + CDI, que têm
+10+ anos de diário no yfinance — dá para testar as regras já, ao contrário
+do stock-picking, que depende de snapshots semanais acumulados.
 
 Metodologia (anti-lookahead):
   - Rebalanceamento a cada REBALANCE_DAYS pregões.
-  - Em cada data de rebalance, os sinais usam SOMENTE dados até aquela data:
+  - Em cada rebalance, os sinais usam só dados até aquela data:
       * Regime proxy: vol realizada 21d do BOVA11 vs mediana expansiva
-        (proxy honesto — o HMM do pipeline precisa de features que não
-        existem em todo o histórico; declarar a aproximação > fingir).
+        (o HMM do pipeline usa features que não existem no histórico todo).
       * TSMOM 12-1 do BOVA11 vs CDI acumulado (mesma regra do allocator).
-      * ERP NÃO entra (não há earnings yield histórico da carteira aqui)
+      * ERP não entra (não há earnings yield histórico da carteira aqui)
         — o backtest valida regime+TSMOM; o ERP é tilt adicional não testado.
   - Custos: 10 bps por lado sobre o turnover (ETFs líquidos, sem imposto —
     documentado como limitação).
@@ -58,7 +55,7 @@ VOL_REGIME_WINDOW = 21          # vol realizada para proxy de regime
 STATIC_MIX = {"equities_br": 0.40, "cdi": 0.30, "global_usd": 0.15, "inflation": 0.15}
 
 
-# ─── Dados ───────────────────────────────────────────────────────────────────
+# Dados
 
 def _fetch_etf_prices(years: int) -> pd.DataFrame:
     """Preços ajustados dos ETFs (colunas = sleeves)."""
@@ -105,7 +102,7 @@ def _fetch_cdi_daily(start: str) -> pd.Series:
     return pd.Series(dtype=float)
 
 
-# ─── Sinais point-in-time ────────────────────────────────────────────────────
+# Sinais point-in-time
 
 def _regime_proxy(equity_prices: pd.Series, asof_idx: int) -> str:
     """
@@ -168,7 +165,7 @@ def _weights_at(equity_prices: pd.Series, cdi: pd.Series, asof_idx: int) -> dict
     return {k: v / total for k, v in w.items()}
 
 
-# ─── Simulação ───────────────────────────────────────────────────────────────
+# Simulação
 
 def _simulate(
     prices: pd.DataFrame,
@@ -237,7 +234,7 @@ def _metrics(curve: pd.Series, cdi: pd.Series) -> dict:
     }
 
 
-# ─── Entrypoint ──────────────────────────────────────────────────────────────
+# Entrypoint
 
 def run_allocation_backtest(years: int = 10, rebalance_days: int = 21,
                             verbose: bool = True) -> dict:

@@ -38,7 +38,7 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# ─── Thresholds ───────────────────────────────────────────────────────────────
+# Thresholds
 
 _MIN_SCORE       = 72.0    # total_score mínimo
 _RSI_MIN         = 28.0    # RSI mínimo (não em colapso)
@@ -116,7 +116,7 @@ class OpportunityScanner:
         )
         return opportunities
 
-    # ─── Filter criteria ──────────────────────────────────────────────────────
+    # Filter criteria
 
     @staticmethod
     def _passes_primary(row: pd.Series, tech: dict) -> bool:
@@ -164,7 +164,7 @@ class OpportunityScanner:
 
         return hits
 
-    # ─── Opportunity builder ──────────────────────────────────────────────────
+    # Opportunity builder
 
     def _build_opportunity(
         self,
@@ -216,7 +216,7 @@ class OpportunityScanner:
             "pvp":               _safe_float(row.get("pvp")),
         }
 
-    # ─── Price targets ────────────────────────────────────────────────────────
+    # Price targets
 
     @staticmethod
     def _compute_targets(price: Optional[float], tech: dict) -> list[dict]:
@@ -263,7 +263,7 @@ class OpportunityScanner:
 
         return candidates[:2]
 
-    # ─── Supporting helpers ───────────────────────────────────────────────────
+    # Supporting helpers
 
     @staticmethod
     def _risk_level(volatility: Optional[float], beta: Optional[float]) -> str:
@@ -330,7 +330,7 @@ class OpportunityScanner:
         return reasons[:5]
 
 
-# ─── Helper ───────────────────────────────────────────────────────────────────
+# Helper
 
 def _safe_float(v) -> Optional[float]:
     try:

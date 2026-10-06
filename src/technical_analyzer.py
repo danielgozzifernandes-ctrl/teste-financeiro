@@ -28,7 +28,7 @@ import yfinance as yf
 logger = logging.getLogger(__name__)
 
 
-# ─── Indicator functions ──────────────────────────────────────────────────────
+# Indicator functions
 
 def _rsi(series: pd.Series, period: int = 14) -> float:
     """
@@ -231,7 +231,7 @@ def _signal(data: dict) -> str:
     return "neutral"
 
 
-# ─── TechnicalAnalyzer ────────────────────────────────────────────────────────
+# TechnicalAnalyzer
 
 class TechnicalAnalyzer:
     """
@@ -279,7 +279,7 @@ class TechnicalAnalyzer:
             result["price_prev"] = prev
             result["change_1d"] = (price - prev) / prev if prev != 0 else 0.0
 
-        # ── Indicadores de momentum ─────────────────────────────────────────
+        # Indicadores de momentum
         if len(series) >= 20:
             result["rsi"] = _rsi(series)
 
@@ -291,7 +291,7 @@ class TechnicalAnalyzer:
             result["macd_crossover"] = macd_data["crossover"]
             result["macd_above_signal"] = macd_data["above_signal"]
 
-        # ── Bandas de Bollinger ─────────────────────────────────────────────
+        # Bandas de Bollinger
         if len(series) >= 20:
             bb = _bollinger(series)
             result["bb_upper"]     = bb["upper"]
@@ -300,12 +300,12 @@ class TechnicalAnalyzer:
             result["bb_position"]  = bb["position"]
             result["bb_bandwidth"] = bb["bandwidth"]
 
-        # ── Médias móveis ───────────────────────────────────────────────────
+        # Médias móveis
         result["ma20"]  = _sma(series, 20)
         result["ma50"]  = _sma(series, 50)
         result["ma200"] = _sma(series, 200)
 
-        # ── ATR(14) — Average True Range ────────────────────────────────────
+        # ATR(14) — Average True Range
         atr = _atr(series)
         result["atr"] = atr
         result["atr_pct"] = round(atr / price, 4) if atr and price else None
@@ -317,7 +317,7 @@ class TechnicalAnalyzer:
             result.get("ma200"),
         )
 
-        # ── 52 semanas ──────────────────────────────────────────────────────
+        # 52 semanas
         w52 = series.tail(252) if len(series) >= 252 else series
         high52 = float(w52.max())
         low52  = float(w52.min())
@@ -328,7 +328,7 @@ class TechnicalAnalyzer:
         result["near_52w_high"]     = abs(result["pct_from_52w_high"]) < 0.03
         result["near_52w_low"]      = result["pct_from_52w_low"] < 0.05
 
-        # ── Dados intraday (gap, volume) ────────────────────────────────────
+        # Dados intraday (gap, volume)
         if intraday and ticker in intraday:
             day = intraday[ticker]
             result["gap_pct"]      = day.get("gap_pct")
@@ -338,7 +338,7 @@ class TechnicalAnalyzer:
             if day.get("change_1d") is not None:
                 result["change_1d"] = day["change_1d"]
 
-        # ── Sinal composto ──────────────────────────────────────────────────
+        # Sinal composto
         result["signal"] = _signal(result)
 
         return result

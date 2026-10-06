@@ -1,9 +1,6 @@
 """
-snapshot_manager.py — Módulo Eixo
-
-Responsável pela persistência auditável de cada execução do sistema.
-Sem esse módulo, não há backtesting — não sabemos quais preços
-valiam quando a recomendação foi feita.
+Persistência de cada execução — é daqui que o backtester tira os preços
+de entrada.
 
 Três artefatos por execução:
   1. snapshot_YYYY-MM-DD.json  — preços de fechamento de todos os tickers
@@ -18,10 +15,8 @@ Estrutura de diretórios esperada:
     universe_2025-01-06.json
     ...
 
-Por que snapshot separado das recomendações?
-  As recomendações mudam semanalmente, mas o backtester precisa dos preços
-  de TODOS os tickers (não só top 5) para recalcular hipóteses alternativas.
-  Manter os dois artefatos separados permite análises post-hoc.
+O snapshot guarda preços de todo o universo (não só o top 5) para
+análises post-hoc.
 """
 
 import json
@@ -54,11 +49,11 @@ from src.config import (
 logger = logging.getLogger(__name__)
 
 
-# ─── Tipos de retorno estruturados ───────────────────────────────────────────
+# Tipos de retorno estruturados
 
 @dataclass
 class TickerRecommendation:
-    """Recomendação individual — espelha a estrutura do briefing."""
+    """Uma linha do top-N."""
     ticker:               str
     nome:                 str
     score:                float
@@ -85,7 +80,7 @@ class RecommendationRecord:
     execution_metadata:       dict[str, Any] = field(default_factory=dict)
 
 
-# ─── Helpers de serialização ──────────────────────────────────────────────────
+# Helpers de serialização
 
 def _safe_float(v: Any) -> Optional[float]:
     """Converte para float, retorna None em caso de NaN/inf."""
@@ -111,7 +106,7 @@ def _to_json_safe(obj: Any) -> Any:
     return obj
 
 
-# ─── SnapshotManager ─────────────────────────────────────────────────────────
+# SnapshotManager
 
 class SnapshotManager:
     """
@@ -132,9 +127,7 @@ class SnapshotManager:
         self.history_dir = Path(history_dir)
         self.history_dir.mkdir(parents=True, exist_ok=True)
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Escrita
-    # ═══════════════════════════════════════════════════════════════════════
 
     def save_price_snapshot(
         self,
@@ -304,7 +297,7 @@ class SnapshotManager:
         top5  = top_recs[:5]
         top10 = top_recs[:top_n]
 
-        # Full universe factor scores — crítico para Factor IC honesto.
+        # Scores do universo inteiro — o IC precisa deles, não só do top 10.
         # Sem isso, IC é medido apenas sobre top10 → selection bias enorme
         # (correlaciona fator com retorno SÓ entre ações que o fator já
         # selecionou). Salvar TODOS os tickers com seus scores normalizados
@@ -349,9 +342,7 @@ class SnapshotManager:
         )
         return path
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Leitura — usada pelo backtester.py
-    # ═══════════════════════════════════════════════════════════════════════
 
     def load_recommendation(
         self,
@@ -470,7 +461,7 @@ class SnapshotManager:
         return {t: entry_prices[t] for t in top5_tickers if t in entry_prices}
 
 
-# ─── Helpers privados ─────────────────────────────────────────────────────────
+# Helpers privados
 
 def _date_str(d: Optional[str | date | datetime]) -> str:
     """Normaliza para string ISO 8601 'YYYY-MM-DD'."""
