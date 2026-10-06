@@ -28,9 +28,11 @@ A multifactor stock-selection and asset-allocation system for Brazilian equities
 
 ### Allocation layer
 
-- A two-state Gaussian HMM (calm vs. high-volatility) is fitted on Ibovespa returns; the posterior probability of the high-volatility state maps to risk-on, mean-reverting (no clear state) or bear. A simple Ibovespa/VIX rule is the fallback.
-- Each regime has a base split across four sleeves: B3 equities (the top-5 portfolio), CDI, IVVB11 (S&P 500, unhedged) and IMAB11 (NTN-B real yield). Equities get 60% / 40% / 20% of capital by regime.
-- Two signals tilt equities by up to ±10pp each: the implied equity risk premium (portfolio earnings yield minus Selic) and 12-1 time-series momentum of the Ibovespa vs. CDI. The equity sleeve is bounded to 10%–70%.
+Capital is split across four sleeves: B3 equities (the top-5 portfolio), CDI, IVVB11 (S&P 500, unhedged) and IMAB11 (NTN-B real yield).
+
+- **Live rule:** a static 40/30/15/15 mix.
+- **Tested alternative (`ALLOCATION_MODE = "dynamic"`):** a two-state Gaussian HMM on Ibovespa returns (calm vs. high volatility) sets a regime-dependent base (60% / 40% / 20% in equities). Two signals then tilt equities by up to ±10pp each: the implied equity risk premium (portfolio earnings yield minus Selic) and 12-1 time-series momentum of the Ibovespa vs. CDI.
+- The dynamic rule lost to the static mix in every backtest window and start date (see Results), so its signals are still computed and reported but no longer move capital.
 
 ## Results
 
