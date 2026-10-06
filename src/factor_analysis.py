@@ -1,43 +1,38 @@
 """
-factor_analysis.py — Information Coefficient (IC) framework
+IC (Information Coefficient) dos fatores sobre as recomendações salvas.
 
-Mede o poder preditivo dos fatores do sistema sobre o histórico de
-recomendações salvas em data/history/.
+IC = Spearman entre o score do fator em T0 e o retorno forward, no universo
+pontuado inteiro (full_universe_scores). Medir só no top-10 correlaciona o
+fator com ações que ele mesmo escolheu.
 
-Conceitos:
-  IC (Information Coefficient): correlação de Spearman entre o score de
-    um fator em T0 e o retorno realizado de T0 a T0+N. IC ≈ 0.05 já é
-    considerado bom em quant; IC > 0.10 é excelente. IC negativo significa
-    que o fator está prevendo ao contrário (problema).
+Retorno forward: fechamentos ajustados (mesma série nas duas pontas). Entrada
+no primeiro fechamento depois da execução; saída h pregões depois.
 
-  IR (Information Ratio): mean(IC) / std(IC) ao longo de múltiplos períodos.
-    Mede consistência da previsão. IR > 0.5 é geralmente investível.
+Significância: t de Newey-West sobre a série de IC (lag = sobreposição das
+janelas, recomendações semanais) e Benjamini-Hochberg sobre todos os pares
+fator × horizonte. Com a amostra ao vivo o IC é monitor, não gatilho para
+mudar pesos — a análise de poder vai no JSON.
 
-  Hit rate: % de períodos em que IC > 0 — indica robustez.
-
-Uso:
   CLI:  python -m src.factor_analysis
   Lib:  from src.factor_analysis import analyze_factors
-        result = analyze_factors()
 
-Output:
-  data/factor_ic.json (tabela completa)
-  stdout (tabela formatada)
+Saída: data/factor_ic.json + tabela no stdout.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import math
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 import pandas as pd
 
 try:
-    from scipy.stats import spearmanr
+    from scipy.stats import norm, spearmanr, t as student_t
 except ImportError:
     spearmanr = None
 
@@ -50,104 +45,85 @@ from src.config import (
 
 logger = logging.getLogger(__name__)
 
+MIN_TICKERS_PER_IC = 10
+FDR_LEVEL = 0.05
+SESSION_CLOSE_BRT_HOUR = 17
+RECS_PER_WEEK = 1   # recomendações semanais → sobreposição = ceil(h/5) - 1
 
-# Carregamento de histórico
+PriceLoader = Callable[[list[str], str, str], pd.DataFrame]
 
-def _list_recommendations(
-    history_dir: Path,
-    mode: str = "weekly",
-) -> list[dict]:
-    """Carrega recomendações em ordem cronológica."""
-    files = sorted(history_dir.glob(f"recommendations_*_{mode}.json"))
+
+# Histórico
+
+def _list_recommendations(history_dir: Path, mode: str = "weekly") -> list[dict]:
+    """Recomendações em ordem cronológica, sem duplicatas de fim de semana."""
     out: list[dict] = []
-    for f in files:
+    for f in sorted(history_dir.glob(f"recommendations_*_{mode}.json")):
         try:
             with open(f, encoding="utf-8") as fh:
-                out.append(json.load(fh))
+                rec = json.load(fh)
         except (json.JSONDecodeError, OSError) as exc:
             logger.warning("Falha ao ler %s: %s", f, exc)
-    return out
-
-
-def _list_snapshots(history_dir: Path) -> dict[str, dict[str, float]]:
-    """Carrega snapshots de preço por data: {date_str: {ticker: price}}."""
-    files = sorted(history_dir.glob("snapshot_*.json"))
-    out: dict[str, dict[str, float]] = {}
-    for f in files:
-        try:
-            with open(f, encoding="utf-8") as fh:
-                data = json.load(fh)
-                d = data.get("date") or f.stem.replace("snapshot_", "")
-                prices = data.get("prices") or {}
-                # Filtrar preços nulos
-                out[d] = {k: float(v) for k, v in prices.items() if v is not None}
-        except (json.JSONDecodeError, OSError) as exc:
-            logger.warning("Falha ao ler %s: %s", f, exc)
-    return out
-
-
-# Cálculo de retornos forward
-
-def _find_forward_snapshot(
-    snapshots: dict[str, dict[str, float]],
-    start_date: str,
-    target_days: int,
-) -> Optional[tuple[str, dict[str, float]]]:
-    """
-    Acha o snapshot mais próximo de start_date + target_days úteis.
-
-    Como os snapshots não são diários, busca o que está mais próximo dentro
-    de uma janela de tolerância de ±5 dias corridos.
-    """
-    if not snapshots:
-        return None
-    start_ts = pd.Timestamp(start_date)
-    target_ts = start_ts + pd.Timedelta(days=int(target_days * 1.45))  # úteis→corridos aprox
-
-    best: Optional[tuple[str, dict[str, float]]] = None
-    best_diff = float("inf")
-    for d, prices in snapshots.items():
-        d_ts = pd.Timestamp(d)
-        if d_ts <= start_ts:
             continue
-        diff = abs((d_ts - target_ts).days)
-        # Janela de tolerância: ±5d corridos
-        if diff <= 5 and diff < best_diff:
-            best = (d, prices)
-            best_diff = diff
-
-    return best
-
-
-def _forward_returns(
-    start_prices: dict[str, float],
-    end_prices: dict[str, float],
-) -> dict[str, float]:
-    """Retorna {ticker: return} para tickers presentes em ambos."""
-    out: dict[str, float] = {}
-    for t, p0 in start_prices.items():
-        p1 = end_prices.get(t)
-        if p0 and p1 and p0 > 0:
-            out[t] = (p1 / p0) - 1.0
+        # Duas recomendações a 2 dias uma da outra (ex.: sexta e sábado)
+        # são a mesma carteira; contar as duas infla a amostra.
+        if out and rec.get("date") and out[-1].get("date"):
+            gap = (pd.Timestamp(rec["date"]) - pd.Timestamp(out[-1]["date"])).days
+            if gap <= 2:
+                continue
+        out.append(rec)
     return out
 
 
-# Cálculo de IC
+def _run_time_brt(rec: dict) -> pd.Timestamp:
+    """Horário da execução em BRT. Arquivos antigos só têm generated_at do runner (UTC)."""
+    md = (rec.get("execution_metadata") or {}).get("market_data") or {}
+    if md.get("run_at_brt"):
+        return pd.Timestamp(md["run_at_brt"]).tz_localize(None)
+    gen = (rec.get("execution_metadata") or {}).get("generated_at")
+    if gen:
+        return pd.Timestamp(gen) - pd.Timedelta(hours=3)
+    return pd.Timestamp(rec["date"]) + pd.Timedelta(hours=12)
 
-def _spearman_ic(
-    factor_scores: dict[str, float],
-    forward_returns: dict[str, float],
-) -> Optional[tuple[float, int]]:
-    """
-    Computa Spearman IC entre fator e retorno forward (cross-sectional).
 
-    Returns:
-        (ic, n) — IC e tamanho efetivo. None se N < 5 ou variância zero.
-    """
-    if spearmanr is None:
+def _entry_index(dates: pd.DatetimeIndex, run_at: pd.Timestamp) -> Optional[int]:
+    """Primeiro fechamento posterior à execução."""
+    day = run_at.normalize()
+    pos = int(dates.searchsorted(day))
+    if pos >= len(dates):
         return None
-    common = sorted(set(factor_scores.keys()) & set(forward_returns.keys()))
-    if len(common) < 5:
+    if dates[pos] == day and run_at.hour >= SESSION_CLOSE_BRT_HOUR:
+        pos += 1
+    return pos if pos < len(dates) else None
+
+
+def _load_prices_yf(tickers: list[str], start: str, end: str) -> pd.DataFrame:
+    """Fechamentos ajustados (.SA), sem candle incompleto nem pregão em aberto."""
+    import yfinance as yf
+
+    from src.benchmark import is_intraday, now_brt
+
+    raw = yf.download([f"{t}.SA" for t in tickers], start=start, end=end,
+                      auto_adjust=True, progress=False, threads=True)
+    if raw is None or raw.empty:
+        return pd.DataFrame()
+    raw.index = pd.to_datetime(raw.index).tz_localize(None)
+    close = raw["Close"].copy()
+    for c in ("Open", "Volume"):
+        if c in raw.columns.get_level_values(0):
+            close = close.where(raw[c].reindex(columns=close.columns).fillna(0) > 0)
+    now = now_brt()
+    if is_intraday(now):
+        close = close[close.index.date < now.date()]
+    close.columns = [c.replace(".SA", "") for c in close.columns]
+    return close.dropna(how="all")
+
+
+# Estatística
+
+def _spearman_ic(factor_scores: dict[str, float], forward_returns: dict[str, float]) -> Optional[tuple[float, int]]:
+    common = sorted(set(factor_scores) & set(forward_returns))
+    if len(common) < MIN_TICKERS_PER_IC:
         return None
     f = np.array([factor_scores[t] for t in common])
     r = np.array([forward_returns[t] for t in common])
@@ -159,279 +135,262 @@ def _spearman_ic(
     return float(rho), len(common)
 
 
-def _extract_factor_scores(
-    rec: dict,
-    factor: str,
-) -> dict[str, float]:
-    """
-    Extrai {ticker: factor_score} de uma recomendação.
+def newey_west_t(x: np.ndarray, lag: int) -> Optional[float]:
+    """t da média com erro-padrão Newey-West (kernel de Bartlett)."""
+    x = np.asarray(x, dtype=float)
+    n = len(x)
+    if n < 3:
+        return None
+    d = x - x.mean()
+    var = float(d @ d) / n
+    for k in range(1, min(lag, n - 1) + 1):
+        var += 2 * (1 - k / (lag + 1)) * float(d[k:] @ d[:-k]) / n
+    if var <= 0:
+        return None
+    return float(x.mean() / math.sqrt(var / n))
 
-    Preferência: `full_universe_scores` (sem selection bias, todo o universo
-    pontuado). Fallback: top10 com norm_details (formato antigo — viesado).
 
-    Selection bias do top10: ao medir IC apenas sobre tickers que já passaram
-    pelo filtro do scoring, estamos correlacionando fator com retorno entre
-    ações que o próprio fator já selecionou. O IC precisa do universo
-    inteiro como amostra cross-sectional.
-    """
-    # Caminho 1: full_universe_scores (formato novo, sem bias)
-    full = rec.get("full_universe_scores") or {}
-    if full:
-        out: dict[str, float] = {}
-        for ticker, scores in full.items():
-            if factor in scores and scores[factor] is not None:
-                out[ticker] = float(scores[factor])
-        if out:
-            return out
+def benjamini_hochberg(pvalues: list[float]) -> list[float]:
+    """q-values de Benjamini-Hochberg na ordem de entrada."""
+    m = len(pvalues)
+    if m == 0:
+        return []
+    order = np.argsort(pvalues)
+    q = np.empty(m)
+    prev = 1.0
+    for rank in range(m, 0, -1):
+        i = order[rank - 1]
+        prev = min(prev, pvalues[i] * m / rank)
+        q[i] = prev
+    return [float(v) for v in q]
 
-    # Caminho 2 (fallback legacy): só top10
+
+def _extract_factor_scores(rec: dict, factor: str) -> dict[str, float]:
     out: dict[str, float] = {}
-    for r in rec.get("top10", []):
-        ticker = r.get("ticker")
-        nd = (r.get("norm_details") or {})
-        if factor in nd:
-            score = nd[factor].get("score")
-            if score is not None:
-                out[ticker] = float(score)
+    for ticker, scores in (rec.get("full_universe_scores") or {}).items():
+        v = scores.get(factor)
+        if v is not None:
+            out[ticker] = float(v)
     return out
 
 
-# Pipeline principal
+# Pipeline
 
 def analyze_factors(
     history_dir: Path = HISTORY_DIR,
     mode: str = "weekly",
-    output_path: Path = IC_OUTPUT_PATH,
+    output_path: Optional[Path] = IC_OUTPUT_PATH,
     verbose: bool = True,
+    price_loader: Optional[PriceLoader] = None,
+    exclude_from: Optional[str] = None,
 ) -> dict[str, Any]:
     """
-    Analisa IC e IR de todos os fatores sobre o histórico disponível.
+    IC por fator e horizonte.
 
-    Para cada (recomendação T0, janela forward), busca o snapshot futuro e
-    computa Spearman IC entre o score do fator e o retorno realizado.
-
-    Returns:
-        dict com estrutura:
-          {
-            "analysis_date": "YYYY-MM-DD",
-            "n_snapshots": int,
-            "n_recommendations": int,
-            "factors": {
-              "earnings_yield": {
-                "1w": {"mean_ic": 0.05, "ir": 0.5, "hit_rate": 0.6, "n_obs": 12},
-                "4w": {...}, "12w": {...}
-              }, ...
-            }
-          }
+    exclude_from: descarta observações cuja janela termina nessa data ou depois
+    (para separar uma janela atípica).
     """
     if spearmanr is None:
-        logger.error("scipy.stats.spearmanr indisponível — abortando")
+        logger.error("scipy indisponível — abortando")
         return {}
 
     history_dir = Path(history_dir)
-    recs = _list_recommendations(history_dir, mode)
-    snaps = _list_snapshots(history_dir)
+    recs_all = _list_recommendations(history_dir, mode)
+    recs = [r for r in recs_all if r.get("full_universe_scores") and r.get("date")]
 
-    if len(recs) < 1 or len(snaps) < 2:
-        logger.warning(
-            "Histórico insuficiente: %d recomendações, %d snapshots "
-            "(mínimo 1 + 2 para qualquer cálculo)", len(recs), len(snaps)
-        )
-        result = {
-            "analysis_date": datetime.now().isoformat(),
-            "n_snapshots": len(snaps),
-            "n_recommendations": len(recs),
-            "data_sufficiency": {
-                "min_obs_required":  MIN_OBS_FOR_SIGNIFICANCE,
-                "max_obs_available": 0,
-                "is_significant":    False,
-                "warning": "Histórico insuficiente — precisa >=2 snapshots e "
-                           ">=1 recomendação para qualquer cálculo de IC.",
-            },
-            "factors": {},
-            "note": "Histórico insuficiente — precisa >=2 snapshots e >=1 recomendação",
+    result: dict[str, Any] = {
+        "analysis_date": datetime.now().isoformat(),
+        "n_recommendations": len(recs_all),
+        "n_recommendations_full_universe": len(recs),
+        "forward_windows_days": IC_FORWARD_WINDOWS,
+        "usage": "monitor",
+        "usage_note": (
+            "IC ao vivo é monitor de saúde do modelo, não gatilho para mudar "
+            "pesos: a amostra não tem poder para detectar IC realista (ver "
+            "power). Decisão de pesos só com backtest histórico point-in-time."
+        ),
+        "factors": {},
+    }
+
+    if not recs:
+        result["data_sufficiency"] = {
+            "min_obs_required": MIN_OBS_FOR_SIGNIFICANCE,
+            "max_obs_available": 0,
+            "is_significant": False,
+            "warning": "Sem recomendações com full_universe_scores para medir IC.",
         }
-        _save_result(result, output_path)
-        if verbose:
-            _print_table(result)
+        result["note"] = "Histórico insuficiente"
+        _finish(result, output_path, verbose)
         return result
 
-    # Descobrir todos os fatores presentes
-    # Prefere full_universe_scores (formato novo); fallback top10
-    all_factors: set[str] = set()
-    for rec in recs:
-        full = rec.get("full_universe_scores") or {}
-        if full:
-            for ticker_scores in full.values():
-                all_factors.update(ticker_scores.keys())
-        else:
-            for r in rec.get("top10", []):
-                for f in (r.get("norm_details") or {}).keys():
-                    all_factors.add(f)
+    tickers = sorted({t for r in recs for t in r["full_universe_scores"]})
+    start = (pd.Timestamp(recs[0]["date"]) - pd.Timedelta(days=5)).strftime("%Y-%m-%d")
+    end = (pd.Timestamp.today() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    loader = price_loader or _load_prices_yf
+    try:
+        prices = loader(tickers, start, end)
+    except Exception as exc:
+        logger.warning("Preços para o IC indisponíveis: %s", exc)
+        prices = pd.DataFrame()
+    if prices.empty:
+        result["data_sufficiency"] = {
+            "min_obs_required": MIN_OBS_FOR_SIGNIFICANCE,
+            "max_obs_available": 0,
+            "is_significant": False,
+            "warning": "Sem preços para calcular retornos forward.",
+        }
+        _finish(result, output_path, verbose)
+        return result
+    prices = prices.sort_index()
+    dates = prices.index
+    cutoff = pd.Timestamp(exclude_from) if exclude_from else None
 
-    # Para cada (rec, factor, window): coletar IC
-    # Estrutura intermediária: ic_buckets[factor][window] = [(ic, n, date), ...]
-    ic_buckets: dict[str, dict[str, list[tuple[float, int, str]]]] = {
+    all_factors = sorted({f for r in recs for s in r["full_universe_scores"].values() for f in s})
+    obs: dict[str, dict[str, list[tuple[float, int, str]]]] = {
         f: {w: [] for w in IC_FORWARD_WINDOWS} for f in all_factors
     }
 
     for rec in recs:
-        rec_date = rec.get("date")
-        if not rec_date:
+        i0 = _entry_index(dates, _run_time_brt(rec))
+        if i0 is None:
             continue
-        # Preço inicial: usar entry_prices da recomendação (capturado no momento)
-        start_prices = rec.get("entry_prices") or {}
-        if not start_prices:
-            continue
-
-        for window_name, window_days in IC_FORWARD_WINDOWS.items():
-            forward = _find_forward_snapshot(snaps, rec_date, window_days)
-            if forward is None:
+        p0 = prices.iloc[i0]
+        for w, h in IC_FORWARD_WINDOWS.items():
+            i1 = i0 + h
+            if i1 >= len(dates):
                 continue
-            end_date, end_prices = forward
-            fwd_returns = _forward_returns(start_prices, end_prices)
-            if len(fwd_returns) < 5:
+            if cutoff is not None and dates[i1] >= cutoff:
                 continue
+            fwd = (prices.iloc[i1] / p0 - 1).dropna()
+            fwd = {t: float(v) for t, v in fwd.items() if np.isfinite(v)}
+            for f in all_factors:
+                ic = _spearman_ic(_extract_factor_scores(rec, f), fwd)
+                if ic is not None:
+                    obs[f][w].append((ic[0], ic[1], rec["date"]))
 
-            for factor in all_factors:
-                fs = _extract_factor_scores(rec, factor)
-                ic_result = _spearman_ic(fs, fwd_returns)
-                if ic_result is not None:
-                    ic, n = ic_result
-                    ic_buckets[factor][window_name].append((ic, n, rec_date))
-
-    # Agregar
-    factors_summary: dict[str, dict[str, dict[str, Any]]] = {}
-    for factor, by_window in ic_buckets.items():
-        factors_summary[factor] = {}
-        for window_name, observations in by_window.items():
-            if not observations:
-                factors_summary[factor][window_name] = {
-                    "mean_ic": None, "ir": None, "hit_rate": None,
-                    "n_obs": 0, "significant": False,
-                }
+    # Agregação + testes
+    tests: list[tuple[str, str, float]] = []
+    summary: dict[str, dict[str, dict]] = {}
+    for f, by_w in obs.items():
+        summary[f] = {}
+        for w, o in by_w.items():
+            h = IC_FORWARD_WINDOWS[w]
+            if not o:
+                summary[f][w] = {"mean_ic": None, "ir": None, "hit_rate": None,
+                                 "n_obs": 0, "significant": False}
                 continue
-            ics = np.array([o[0] for o in observations])
-            mean_ic = float(np.mean(ics))
-            std_ic = float(np.std(ics, ddof=1)) if len(ics) > 1 else 0.0
-            ir = float(mean_ic / std_ic) if std_ic > 0 else None
-            hit_rate = float((ics > 0).sum() / len(ics))
-            n_obs = len(observations)
-            factors_summary[factor][window_name] = {
-                "mean_ic":  round(mean_ic, 4),
-                "ir":       round(ir, 4) if ir is not None else None,
-                "hit_rate": round(hit_rate, 4),
-                "n_obs":    n_obs,
-                # Sinal vs ruído: abaixo do mínimo, NÃO interpretar como
-                # poder preditivo. Um IC de 0.50 sobre n=2 é aleatório.
-                "significant": n_obs >= MIN_OBS_FOR_SIGNIFICANCE,
+            ics = np.array([x[0] for x in o])
+            lag = max(0, math.ceil(h / 5) * RECS_PER_WEEK - 1)
+            std = float(np.std(ics, ddof=1)) if len(ics) > 1 else None
+            n_eff = len(ics) / (lag + 1)
+            # Com poucas janelas independentes o Newey-West degenera (janelas
+            # quase idênticas → variância ~0 → t absurdo). Aí não há teste.
+            t_nw = newey_west_t(ics, lag) if n_eff >= MIN_OBS_FOR_SIGNIFICANCE else None
+            p = (float(2 * student_t.sf(abs(t_nw), df=max(n_eff - 1, 1)))
+                 if t_nw is not None else None)
+            summary[f][w] = {
+                "mean_ic":   round(float(ics.mean()), 4),
+                "ir":        round(float(ics.mean() / std), 4) if std else None,
+                "hit_rate":  round(float((ics > 0).mean()), 4),
+                "n_obs":     len(ics),
+                "n_eff":     round(n_eff, 1),
+                "testable":  t_nw is not None,
+                "nw_lag":    lag,
+                "t_nw":      round(t_nw, 3) if t_nw is not None else None,
+                "p_value":   round(p, 4) if p is not None else None,
+                "mean_n_tickers": round(float(np.mean([x[1] for x in o])), 1),
+                "significant": False,
             }
+            if p is not None:
+                tests.append((f, w, p))
 
-    # Decay analysis: ajustar curva exponencial IC(τ) = IC₀ × exp(-λτ)
-    # Half-life = ln(2) / λ — em dias úteis. Fatores com half-life longa
-    # (>40d) são duráveis; <10d são noise-driven.
-    decay_summary = _compute_decay(factors_summary, IC_FORWARD_WINDOWS)
+    qs = benjamini_hochberg([t[2] for t in tests])
+    for (f, w, _), q in zip(tests, qs):
+        e = summary[f][w]
+        e["q_value"] = round(q, 4)
+        e["significant"] = bool(q <= FDR_LEVEL and e["n_obs"] >= MIN_OBS_FOR_SIGNIFICANCE)
 
-    # Banner de suficiência estatística
-    # max_obs = maior n_obs entre todos os fatores/janelas. Se nem o melhor
-    # fator atinge o mínimo, NENHUMA métrica abaixo é confiável.
-    max_obs = max(
-        (w.get("n_obs", 0) for f in factors_summary.values() for w in f.values()),
-        default=0,
-    )
-    is_significant = max_obs >= MIN_OBS_FOR_SIGNIFICANCE
-    data_sufficiency = {
-        "min_obs_required":  MIN_OBS_FOR_SIGNIFICANCE,
+    n_sig = sum(e.get("significant", False) for by_w in summary.values() for e in by_w.values())
+    max_obs = max((e.get("n_obs", 0) for by_w in summary.values() for e in by_w.values()), default=0)
+    result["factors"] = summary
+    result["decay"] = _compute_decay(summary, IC_FORWARD_WINDOWS)
+    result["n_tests"] = len(tests)
+    result["power"] = _power(obs)
+    result["data_sufficiency"] = {
+        "min_obs_required": MIN_OBS_FOR_SIGNIFICANCE,
         "max_obs_available": max_obs,
-        "is_significant":    is_significant,
-        "warning": None if is_significant else (
-            f"AMOSTRA INSUFICIENTE: no máximo {max_obs} observações por fator "
-            f"(mínimo {MIN_OBS_FOR_SIGNIFICANCE} para significância). "
-            f"Os valores de IC/IR/hit-rate abaixo são RUÍDO, não sinal — "
-            f"não use para decisão. Acumule mais snapshots semanais reais."
+        "test": f"Newey-West + Benjamini-Hochberg (FDR {FDR_LEVEL:.0%}) sobre {len(tests)} testes",
+        "n_significant": n_sig,
+        "is_significant": n_sig > 0,
+        "warning": None if n_sig else (
+            f"Nenhum fator significativo após correção para {len(tests)} testes "
+            f"(máx. {max_obs} observações). IC/IR/hit-rate abaixo são ruído."
         ),
     }
+    if exclude_from:
+        result["excluded_windows_ending_from"] = exclude_from
+    result["price_source"] = "yfinance auto_adjust" if price_loader is None else "custom"
 
-    result = {
-        "analysis_date":      datetime.now().isoformat(),
-        "n_snapshots":        len(snaps),
-        "n_recommendations":  len(recs),
-        "forward_windows_days": IC_FORWARD_WINDOWS,
-        "data_sufficiency":   data_sufficiency,
-        "factors":            factors_summary,
-        "decay":              decay_summary,
-        "interpretation": {
-            "mean_ic":  "Correlação de Spearman média entre score do fator e retorno forward. "
-                        "IC > 0.05 é bom; > 0.10 excelente. IC < 0 é vermelho — fator prevê ao contrário.",
-            "ir":       "Information Ratio = mean(IC)/std(IC). > 0.5 sugere fator robusto.",
-            "hit_rate": "% de períodos com IC > 0. > 0.55 é desejável.",
-            "half_life": "Dias úteis para IC cair pela metade. > 40d = durável; < 10d = ruidoso.",
-        },
-    }
-
-    _save_result(result, output_path)
-    if verbose:
-        _print_table(result)
+    _finish(result, output_path, verbose)
     return result
 
 
-def _compute_decay(
-    factors_summary: dict,
-    forward_windows: dict,
-) -> dict:
-    """
-    Ajusta IC(τ) = IC₀ × exp(-λτ) e calcula half-life.
+def _power(obs: dict) -> dict:
+    """Semanas necessárias para detectar IC de 0,03/0,05 (80% de poder, 5% bilateral)."""
+    sds = [np.std([x[0] for x in by_w["1w"]], ddof=1)
+           for by_w in obs.values() if len(by_w.get("1w", [])) > 2]
+    if not sds:
+        return {}
+    sd = float(np.median(sds))
+    z = norm.ppf(0.975) + norm.ppf(0.8)
+    return {
+        "ic_std_1w_median": round(sd, 4),
+        "weeks_needed_ic_0.05": int(math.ceil((z * sd / 0.05) ** 2)),
+        "weeks_needed_ic_0.03": int(math.ceil((z * sd / 0.03) ** 2)),
+    }
 
-    Usa pelo menos 2 pontos (janelas com n_obs > 0 e mean_ic > 0). Se < 2
-    pontos válidos, retorna half_life=None.
 
-    OLS em log-space: log|IC| = log|IC₀| - λτ
-    λ = -slope, half_life = ln(2) / λ.
-
-    Aceita só IC positivo (interpretação de decay só faz sentido se fator
-    está predizendo). Fatores com IC negativo recebem half_life=None.
-    """
+def _compute_decay(factors_summary: dict, forward_windows: dict) -> dict:
+    """IC(τ) = IC₀·exp(−λτ) em log-space; só com IC médio positivo em ≥ 2 horizontes."""
     out: dict[str, dict] = {}
     for factor, by_window in factors_summary.items():
-        points: list[tuple[float, float]] = []  # (τ, IC)
-        for window_name, days in forward_windows.items():
-            entry = by_window.get(window_name, {})
-            ic = entry.get("mean_ic")
-            n = entry.get("n_obs", 0)
-            if ic is None or n == 0 or ic <= 0:
-                continue
-            points.append((float(days), float(ic)))
-
+        points = [
+            (float(days), float(by_window[w]["mean_ic"]))
+            for w, days in forward_windows.items()
+            if by_window.get(w, {}).get("mean_ic") is not None
+            and by_window[w].get("n_obs", 0) > 0 and by_window[w]["mean_ic"] > 0
+        ]
         if len(points) < 2:
             out[factor] = {"half_life_days": None, "n_points": len(points)}
             continue
-
-        # OLS em log-space
         tau = np.array([p[0] for p in points])
         log_ic = np.log(np.array([p[1] for p in points]))
         try:
             slope, intercept = np.polyfit(tau, log_ic, 1)
-            if slope >= 0:  # sem decaimento — IC constante ou crescendo
-                out[factor] = {"half_life_days": None, "n_points": len(points), "trend": "stable_or_growing"}
-                continue
-            lambda_ = -slope
-            half_life = float(np.log(2) / lambda_)
-            # IC inicial extrapolado
-            ic_zero = float(np.exp(intercept))
-            out[factor] = {
-                "half_life_days":   round(half_life, 1),
-                "ic_zero":          round(ic_zero, 4),
-                "decay_rate":       round(lambda_, 5),
-                "n_points":         len(points),
-            }
         except (np.linalg.LinAlgError, ValueError):
             out[factor] = {"half_life_days": None, "n_points": len(points)}
-
+            continue
+        if slope >= 0:
+            out[factor] = {"half_life_days": None, "n_points": len(points),
+                           "trend": "stable_or_growing"}
+            continue
+        out[factor] = {
+            "half_life_days": round(float(np.log(2) / -slope), 1),
+            "ic_zero":        round(float(np.exp(intercept)), 4),
+            "decay_rate":     round(float(-slope), 5),
+            "n_points":       len(points),
+        }
     return out
 
 
+def _finish(result: dict, output_path: Optional[Path], verbose: bool) -> None:
+    if output_path is not None:
+        _save_result(result, output_path)
+    if verbose:
+        _print_table(result)
+
+
 def _save_result(result: dict, output_path: Path) -> None:
-    """Salva o resultado em JSON com escrita atômica."""
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = output_path.with_suffix(".tmp")
@@ -446,83 +405,53 @@ def _save_result(result: dict, output_path: Path) -> None:
 
 
 def _print_table(result: dict) -> None:
-    """Imprime tabela de IC formatada no stdout."""
     print()
-    print("=" * 72)
-    _safe_print(f"  Factor IC Analysis — {result['analysis_date'][:10]}")
-    _safe_print(f"  Snapshots: {result['n_snapshots']} | Recomendacoes: {result['n_recommendations']}")
-    print("=" * 72)
-
-    # Aviso de suficiência estatística — em destaque, antes da tabela.
+    print("=" * 84)
+    _safe_print(f"  Factor IC — {result['analysis_date'][:10]} | "
+                f"recomendações com universo completo: {result.get('n_recommendations_full_universe', 0)}")
+    print("=" * 84)
     ds = result.get("data_sufficiency", {})
     if ds and not ds.get("is_significant", True):
         _safe_print(f"  [!] {ds.get('warning', 'Amostra insuficiente.')}")
-        print("=" * 72)
+        print("=" * 84)
 
     factors = result.get("factors", {})
     if not factors:
-        note = result.get("note", "Sem dados.")
-        print(f"  {note}")
-        print("=" * 72)
+        print(f"  {result.get('note', 'Sem dados.')}")
+        print("=" * 84)
         return
 
     windows = list(IC_FORWARD_WINDOWS.keys())
-    header = f"  {'Factor':<24}" + "".join(f"  {w:>16}" for w in windows)
-    print(header)
-    print("  " + "-" * (len(header) - 2))
-
-    # Ordenar por mean_ic do primeiro window disponível (descrescente)
-    def _sort_key(item):
-        f, by_w = item
-        for w in windows:
-            mi = by_w.get(w, {}).get("mean_ic")
-            if mi is not None:
-                return -mi
-        return 0
-
-    for factor, by_window in sorted(factors.items(), key=_sort_key):
+    print(f"  {'Factor':<24}" + "".join(f"  {w:>18}" for w in windows))
+    for factor, by_window in sorted(factors.items()):
         row = f"  {factor:<24}"
         for w in windows:
-            entry = by_window.get(w, {})
-            ic = entry.get("mean_ic")
-            n = entry.get("n_obs", 0)
-            if ic is None or n == 0:
-                row += f"  {'-':>16}"
+            e = by_window.get(w, {})
+            if not e.get("n_obs"):
+                row += f"  {'-':>18}"
             else:
-                marker = "++" if ic > 0.05 else (" +" if ic > 0 else "--")
-                row += f"  {marker} {ic:+.3f} (n={n:>2})"
+                mark = "*" if e.get("significant") else " "
+                t = e.get("t_nw")
+                row += f"  {e['mean_ic']:+.3f} t={t if t is not None else float('nan'):+.1f}{mark}(n={e['n_obs']:>2})"
         _safe_print(row)
-
-    print("=" * 72)
-    _safe_print("  ++ IC > 0.05 (bom)   + IC > 0 (marginal)   -- IC < 0 (prevê ao contrário)")
-    print("=" * 72)
+    print("=" * 84)
+    _safe_print("  * significativo após Newey-West + Benjamini-Hochberg")
     print()
 
 
 def _safe_print(text: str) -> None:
-    """Print resiliente a cp1252 (Windows): substitui chars não encodáveis."""
     try:
         print(text)
     except UnicodeEncodeError:
-        # Fallback: usa stdout.buffer com utf-8 e replace
         import sys
         sys.stdout.buffer.write((text + "\n").encode("utf-8", errors="replace"))
         sys.stdout.buffer.flush()
 
 
-# CLI
-
-def _setup_logging():
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-
 def main():
-    """Entry point CLI: python -m src.factor_analysis"""
-    _setup_logging()
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+                        datefmt="%Y-%m-%d %H:%M:%S")
     analyze_factors()
 
 

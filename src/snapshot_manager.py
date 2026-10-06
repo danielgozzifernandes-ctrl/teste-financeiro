@@ -956,6 +956,8 @@ def _row_to_recommendation(row: pd.Series, entry_price: Optional[float]) -> dict
         "alpha_6m":      _safe_float(row.get("alpha_6m")),
         "volatility":    _safe_float(row.get("volatility_180d")),
         "beta":          _safe_float(row.get("beta")),
+        # ADV em R$ (mediana 21d de close×volume); o backtester usa na fricção.
+        "adv_brl":       _safe_float(row.get("avg_volume_30d")),
     }
 
     fund_score = _safe_float(row.get("fundamental_score")) or 0.0
