@@ -56,6 +56,7 @@ from src.config import (
     USE_HMM_REGIME,
 )
 from src.data_collector import load_data
+from src.b3_calendar import today_brt
 from src.scoring_engine import apply_turnover_band, compute_scores, select_diverse_portfolio
 from src.backtester import run_backtest
 from src.benchmark import BenchmarkManager, get_ibov_prices as _get_ibov_prices
@@ -163,7 +164,7 @@ def _resolve_date(date_arg: Optional[str]) -> str:
         except ValueError:
             logger.error("Formato de data inválido: %s (esperado YYYY-MM-DD)", date_arg)
             sys.exit(2)
-    return date.today().strftime("%Y-%m-%d")
+    return today_brt().isoformat()
 
 
 # Regime de mercado
@@ -201,7 +202,7 @@ def _fetch_usdbrl_returns(n_days: int):
     # Primary: BCB PTAX
     try:
         from bcb import sgs
-        start = (date.today() - timedelta(days=max(n_days + 30, 400))).strftime("%Y-%m-%d")
+        start = (today_brt() - timedelta(days=max(n_days + 30, 400))).strftime("%Y-%m-%d")
         df = sgs.get({"USDBRL": 1}, start=start)
         if df is not None and not df.empty:
             s = df["USDBRL"].dropna().astype(float)
@@ -431,7 +432,7 @@ def run(args: argparse.Namespace) -> int:
     ibov_prices = pd.Series(dtype=float)
     benchmark_returns = pd.DataFrame()
     try:
-        start_bench = (date.today() - timedelta(days=365)).strftime("%Y-%m-%d")
+        start_bench = (today_brt() - timedelta(days=365)).strftime("%Y-%m-%d")
         benchmark_returns = benchmark_mgr.get_returns(start_bench)
         ibov_prices = _get_ibov_prices(start_bench)
         logger.info("Benchmarks obtidos: %d dias.", len(benchmark_returns))
@@ -440,7 +441,7 @@ def run(args: argparse.Namespace) -> int:
 
     # 2b. Regime de mercado
     vix_prices = _fetch_vix_prices(
-        (date.today() - timedelta(days=365)).strftime("%Y-%m-%d")
+        (today_brt() - timedelta(days=365)).strftime("%Y-%m-%d")
     )
     market_regime = _detect_regime(ibov_prices, vix_prices)
     logger.info("Regime de mercado detectado: %s", market_regime)

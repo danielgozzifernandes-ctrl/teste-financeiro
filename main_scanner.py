@@ -24,7 +24,7 @@ Flags CLI:
   --dry-run             Executa tudo mas não envia ao Telegram
   --send                Envia ao Telegram
   --debug               Logging DEBUG
-  --force               Ignora cache de 24h (força re-scan)
+  --force               Roda mesmo em dia sem pregão
 
 Exit codes:
   0  Sucesso (com ou sem oportunidades)
@@ -47,6 +47,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import pandas as pd
 
 from src.config import OUTPUT_DIR, HISTORY_DIR, CACHE_DIR
+from src.b3_calendar import holiday_name, is_trading_day, today_brt
 from src.data_collector import load_data
 from src.scoring_engine import compute_scores
 from src.benchmark import BenchmarkManager, get_ibov_prices as _get_ibov_prices
@@ -69,7 +70,7 @@ def _parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     parser.add_argument("--send",    action="store_true")
     parser.add_argument("--debug",   action="store_true")
     parser.add_argument("--force",   action="store_true",
-                        help="Ignora cache e força re-coleta de dados")
+                        help="Roda mesmo em dia sem pregão na B3")
     return parser.parse_args(argv)
 
 
@@ -90,7 +91,7 @@ def _resolve_date(date_arg: Optional[str]) -> str:
         except ValueError:
             logger.error("Formato inválido: %s", date_arg)
             sys.exit(2)
-    return date.today().strftime("%Y-%m-%d")
+    return today_brt().isoformat()
 
 
 def _ensure_dirs() -> None:
@@ -105,6 +106,12 @@ def run(args: argparse.Namespace) -> int:
     do_send  = args.send and not args.dry_run
 
     logger.info("=== OPPORTUNITY SCANNER | %s ===", run_date)
+    if not args.force and not is_trading_day(run_date):
+        logger.info(
+            "%s não tem pregão na B3 (%s) — nada a fazer.",
+            run_date, holiday_name(run_date) or "fim de semana",
+        )
+        return 0
     _ensure_dirs()
 
     # 1. Coleta de dados
@@ -125,7 +132,7 @@ def run(args: argparse.Namespace) -> int:
     logger.info("Etapa 2/5 — Buscando benchmarks...")
     ibov_prices = pd.Series(dtype=float)
     try:
-        start_bench = (date.today() - timedelta(days=365)).strftime("%Y-%m-%d")
+        start_bench = (today_brt() - timedelta(days=365)).strftime("%Y-%m-%d")
         ibov_prices = _get_ibov_prices(start_bench)
     except Exception as exc:
         logger.warning("Benchmarks falhou (não crítico): %s", exc)

@@ -23,6 +23,7 @@ Flags CLI:
   --dry-run                   Executa tudo mas não envia ao Telegram
   --send                      Envia ao Telegram
   --debug                     Logging DEBUG
+  --force                     Roda mesmo em dia sem pregão
 
 Exit codes:
   0  Sucesso
@@ -47,6 +48,7 @@ import pandas as pd
 import yfinance as yf
 
 from src.config import OUTPUT_DIR, HISTORY_DIR, CACHE_DIR
+from src.b3_calendar import holiday_name, is_trading_day, today_brt
 from src.snapshot_manager import SnapshotManager
 from src.macro_fetcher import MacroFetcher
 from src.technical_analyzer import TechnicalAnalyzer
@@ -75,6 +77,8 @@ def _parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--send",    action="store_true")
     parser.add_argument("--debug",   action="store_true")
+    parser.add_argument("--force",   action="store_true",
+                        help="Roda mesmo em dia sem pregão na B3")
     return parser.parse_args(argv)
 
 
@@ -95,7 +99,7 @@ def _resolve_date(date_arg: Optional[str]) -> str:
         except ValueError:
             logger.error("Formato inválido: %s (esperado YYYY-MM-DD)", date_arg)
             sys.exit(2)
-    return date.today().strftime("%Y-%m-%d")
+    return today_brt().isoformat()
 
 
 def _ensure_dirs() -> None:
@@ -313,7 +317,7 @@ def _fetch_cdi_daily() -> Optional[float]:
     """
     try:
         from src.benchmark import BenchmarkManager
-        start = (date.today() - timedelta(days=15)).strftime("%Y-%m-%d")
+        start = (today_brt() - timedelta(days=15)).strftime("%Y-%m-%d")
         df = BenchmarkManager().get_returns(start)
         if "cdi" in df.columns:
             clean = df["cdi"].dropna()
@@ -360,7 +364,7 @@ def _fetch_hist_prices(tickers: list[str], lookback_days: int = 300) -> pd.DataF
     Fetches historical adjusted-close prices for technical indicator computation.
     Returns wide DataFrame (date × ticker).
     """
-    start = (date.today() - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+    start = (today_brt() - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
     yf_symbols = [f"{t}.SA" for t in tickers]
 
     try:
@@ -644,6 +648,13 @@ def main(argv: Optional[list] = None) -> int:
 
     run_date = _resolve_date(args.date)
     do_send  = args.send and not args.dry_run
+
+    if not args.force and not is_trading_day(run_date):
+        logger.info(
+            "%s não tem pregão na B3 (%s) — nada a fazer.",
+            run_date, holiday_name(run_date) or "fim de semana",
+        )
+        return 0
 
     _ensure_dirs()
 

@@ -32,6 +32,7 @@ import pandas as pd
 import requests
 import yfinance as yf
 
+from src.b3_calendar import today_brt
 from src.config import (
     BRAPI_BASE_URL,
     BRAPI_RATE_LIMIT,
@@ -178,7 +179,7 @@ class BrapiClient:
         batches = [tickers[i : i + BATCH_SIZE] for i in range(0, len(tickers), BATCH_SIZE)]
 
         for batch_idx, batch in enumerate(batches):
-            cache_key = f"brapi_batch_{'_'.join(sorted(batch))}"
+            cache_key = f"brapi_batch_{today_brt()}_{'_'.join(sorted(batch))}"
             cached = cache.get(cache_key)
             if cached:
                 all_data.update(cached)
@@ -217,7 +218,7 @@ class BrapiClient:
         cache: CacheManager,
     ) -> None:
         for ticker in tickers:
-            cache_key = f"brapi_single_{ticker}"
+            cache_key = f"brapi_single_{ticker}_{today_brt()}"
             cached = cache.get(cache_key)
             if cached:
                 all_data[ticker] = cached
@@ -780,7 +781,7 @@ class DataCollector:
             df_fundamentals: uma linha por ticker, colunas tipadas float64
             df_prices:       wide DataFrame (date × ticker, preço ajustado)
         """
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = today_brt().isoformat()
         fund_key  = f"fundamentals_{today}"
         price_key = f"prices_wide_{today}"
 
@@ -989,7 +990,7 @@ class DataCollector:
         Returns:
             (info, advanced) — dois dicts; info pode ter "_source": "failed"
         """
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = today_brt().isoformat()
 
         # Info (básico)
         info_key = f"yf_info_{ticker}_{today}"
@@ -1027,7 +1028,7 @@ class DataCollector:
         series: dict[str, pd.Series] = {}
         yz_vols: dict[str, float] = {}
         adv_brl: dict[str, float] = {}
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = today_brt().isoformat()
 
         def _fetch_one(ticker: str) -> tuple[Optional[pd.Series], Optional[float], Optional[float]]:
             cache_key = f"prices_{ticker}_{today}"

@@ -30,6 +30,7 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
+from src.b3_calendar import today_brt
 from src.config import (
     ENABLE_VOLATILITY_TARGETING,
     EWMA_LAMBDA,
@@ -466,7 +467,7 @@ class SnapshotManager:
 def _date_str(d: Optional[str | date | datetime]) -> str:
     """Normaliza para string ISO 8601 'YYYY-MM-DD'."""
     if d is None:
-        return date.today().isoformat()
+        return today_brt().isoformat()
     if isinstance(d, datetime):
         return d.date().isoformat()
     if isinstance(d, date):
