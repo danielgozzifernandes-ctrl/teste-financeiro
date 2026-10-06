@@ -22,12 +22,12 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.history import corporate, cotahist  # noqa: E402
-from src.history.adjust import build_series  # noqa: E402
+from src.history.adjust import BIG_MOVE, build_series, patch_big_moves  # noqa: E402
 from src.history.paths import CORP_DIR, DERIVED_DIR, RAW_DIR  # noqa: E402
 from src.history.renames import detect_renames, security_ids  # noqa: E402
 from src.history.universe import universe_history  # noqa: E402
 
-STEPS = ["download", "parse", "renames", "universe", "corp", "series"]
+STEPS = ["download", "parse", "renames", "universe", "corp", "series", "patch"]
 log = logging.getLogger("build_price_history")
 
 
@@ -75,6 +75,33 @@ def main() -> int:
         log.info("séries: %d papéis, %d linhas; saltos sem evento: %d (%d aceitos)",
                  series["sid"].nunique(), len(series), len(jumps),
                  int(jumps["accepted"].sum()) if len(jumps) else 0)
+    if "patch" in steps:
+        import yfinance as yf
+
+        from src.benchmark import clean_close
+
+        series = pd.read_parquet(DERIVED_DIR / "prices_daily.parquet")
+        for c in ("ret_total", "ret_price"):
+            if f"{c}_raw" not in series.columns:
+                series[f"{c}_raw"] = series[c]
+            else:
+                series[c] = series[f"{c}_raw"]
+        flagged = sorted(series.loc[series["ret_total"].abs() > BIG_MOVE, "ticker"].unique())
+        reference = {}
+        for t in flagged:
+            try:
+                raw = yf.download(f"{t}.SA", start="2009-12-01", progress=False, auto_adjust=True)
+            except Exception as exc:
+                log.warning("%s: yfinance falhou (%s)", t, exc)
+                continue
+            if raw is None or raw.empty:
+                continue
+            raw.index = pd.to_datetime(raw.index).tz_localize(None)
+            reference[t] = clean_close(raw)[0].pct_change()
+        series, plog = patch_big_moves(series, reference)
+        series.to_parquet(DERIVED_DIR / "prices_daily.parquet", index=False)
+        plog.to_csv(DERIVED_DIR / "big_moves_review.csv", index=False)
+        log.info("dias > %.0f%%: %s", BIG_MOVE * 100, plog["action"].value_counts().to_dict())
     return 0
 
 

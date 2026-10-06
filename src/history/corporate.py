@@ -14,6 +14,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import re
 import time
 from datetime import datetime
 from typing import Optional
@@ -27,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 BASE = "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/CompanyCall"
 SLEEP = 0.4
+# Emissores cujo nome de pregão atual não acha o histórico de proventos.
+NAME_ALIASES = {"JBSS": ["JBS"], "EMBR": ["EMBRAER"]}
 
 
 def _call(session: requests.Session, fn: str, payload: dict):
@@ -56,12 +59,19 @@ def fetch_issuer(root: str, session: Optional[requests.Session] = None,
     info = sup[0] if isinstance(sup, list) and sup else {}
     trading_name = (info.get("tradingName") or "").strip()
     cash = []
-    if trading_name:
+    # A busca por nome de pregão falha com "/" (AMBEV S/A); sem pontuação funciona.
+    names = []
+    for n in (trading_name, re.sub(r"[^A-Z0-9 ]", "", trading_name),
+              re.sub(r"[^A-Z0-9]", "", trading_name)):
+        if n and n not in names:
+            names.append(n)
+    names += NAME_ALIASES.get(root, [])
+    for name in names:
         page = 1
         while True:
             res = _call(session, "GetListedCashDividends",
                         {"language": "pt-br", "pageNumber": page,
-                         "pageSize": 120, "tradingName": trading_name})
+                         "pageSize": 120, "tradingName": name})
             time.sleep(SLEEP)
             if not res or not res.get("results"):
                 break
@@ -69,6 +79,8 @@ def fetch_issuer(root: str, session: Optional[requests.Session] = None,
             if page >= (res.get("page") or {}).get("totalPages", 1):
                 break
             page += 1
+        if cash:
+            break
     out = {"root": root, "trading_name": trading_name,
            "stock_events": info.get("stockDividends") or [],
            "cash": cash, "fetched_at": datetime.now().isoformat(timespec="seconds")}
