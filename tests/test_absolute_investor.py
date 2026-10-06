@@ -240,8 +240,8 @@ def test_weighted_portfolio_return_uses_real_weights():
         pytest.approx(0.06)
     # sem pesos → fallback equal-weight
     assert _weighted_portfolio_return(rets, None) == pytest.approx(0.0)
-    # pesos não cobrem nenhum ticker válido → fallback
-    assert _weighted_portfolio_return(rets, {"C": 1.0}) == pytest.approx(0.0)
+    # nenhuma posição da carteira tem retorno → sem dado
+    assert _weighted_portfolio_return(rets, {"C": 1.0}) is None
 
 
 # Order sheet
