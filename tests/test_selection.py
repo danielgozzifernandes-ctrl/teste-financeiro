@@ -46,3 +46,63 @@ def test_idio_column_has_no_effect_on_momentum_pillar():
     df["idio_alpha_6m"] = np.linspace(1e-16, -1e-16, 8)
     with_idio, _ = eng._score_momentum(df)
     pd.testing.assert_series_equal(base, with_idio)
+
+
+# ---------------------------------------------------------------------------
+# Preço congelado
+# ---------------------------------------------------------------------------
+
+from src.scoring_engine import detect_stale_prices
+from src.snapshot_manager import _compute_inv_vol_weights, _compute_portfolio_weights
+
+
+def _frozen_tail(prices: pd.DataFrame, col: str, n: int, value: float) -> pd.DataFrame:
+    p = prices.copy()
+    p.iloc[-n:, p.columns.get_loc(col)] = value
+    return p
+
+
+def test_detects_frozen_series_like_neoe3():
+    p = _frozen_tail(_prices(), "AAA3", 5, 33.799999)
+    assert set(detect_stale_prices(p)) == {"AAA3"}
+
+
+def test_low_price_tick_noise_is_not_stale():
+    # RAIZ4 a R$0,42 teve 5 fechamentos iguais negociando normalmente
+    p = _frozen_tail(_prices(), "AAA3", 5, 0.42)
+    assert detect_stale_prices(p) == {}
+    p = _frozen_tail(_prices(), "AAA3", 10, 0.42)
+    assert "AAA3" in detect_stale_prices(p)
+
+
+def test_series_that_stopped_updating_is_stale():
+    p = _prices()
+    p.iloc[-4:, p.columns.get_loc("BBB3")] = np.nan
+    assert "BBB3" in detect_stale_prices(p)
+    p = _prices()
+    p.iloc[-3:, p.columns.get_loc("BBB3")] = np.nan
+    assert detect_stale_prices(p) == {}
+
+
+def test_live_series_are_not_stale():
+    assert detect_stale_prices(_prices()) == {}
+
+
+def _scored(tickers, vols):
+    return pd.DataFrame({"ticker": tickers, "volatility_180d": vols,
+                         "total_score": np.linspace(90, 70, len(tickers))})
+
+
+def test_frozen_ticker_gets_zero_weight():
+    tickers = ["AAA3", "BBB3", "CCC3", "DDD3"]
+    p = _frozen_tail(_prices(tickers=tickers), "AAA3", 30, 33.8)
+    w, _ = _compute_portfolio_weights(_scored(tickers, [0.01, 0.3, 0.3, 0.3]), p, n=4)
+    assert w["AAA3"] == 0.0
+    assert sum(v for t, v in w.items() if t != "AAA3") == pytest.approx(1.0, abs=1e-4)
+
+
+def test_inverse_vol_floor_limits_near_zero_vol():
+    w = _compute_inv_vol_weights(_scored(["A", "B", "C", "D", "E"], [0.001, 0.15, 0.15, 0.15, 0.15]))
+    # sem piso, A teria ~97% e pararia no cap de 30%; com piso de 10% fica em 10/(10+4×6,67)
+    assert w["A"] == pytest.approx(10 / (10 + 4 / 0.15), abs=0.005)
+    assert w["A"] < 0.30

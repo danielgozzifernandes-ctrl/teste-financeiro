@@ -109,6 +109,20 @@ QUALITY_FACTORS = {
 
 # Thresholds e filtros
 MIN_DAILY_VOLUME_BRL  = 5_000_000   # R$ 5M/dia — filtro de liquidez mínima
+
+# Preço congelado (OPA, suspensão, delisting): a série para de andar, a vol
+# vai a zero e o papel vira "low vol" com peso alto — foi o caso de NEOE3 a
+# 33,799999 por 7 semanas em 2026. Em 3 anos de papéis vivos com ADV ≥ R$5M,
+# a maior sequência de fechamentos idênticos foi 4 (preço ≥ R$2) e 5 (preço
+# < R$2, onde o tick de R$0,01 pesa); daí 5 e 10. O coletor faz ffill de até
+# 3 pregões, então último preço mais de 3 pregões atrás do painel = parado.
+STALE_PRICE_RUN = 5
+STALE_PRICE_RUN_LOW_PRICE = 10
+STALE_PRICE_LOW_PRICE_BRL = 2.0
+STALE_PRICE_MAX_LAG = 3
+# Piso de vol no inverse-vol: menor vol 6m de papel líquido em 3 anos foi
+# 11,8% (TAEE11), então o piso só morde em série quebrada.
+MIN_VOL_FOR_WEIGHTING = 0.10
 MAX_DIVIDA_EBITDA     = 5.0         # piso de alavancagem (abaixo disso nunca exclui)
 # Filtro de alavancagem SETOR-RELATIVO. O flat 5x excluía nomes legitimamente
 # alavancados em setores capital-intensivos (leasing/RENT3, utilities, real
