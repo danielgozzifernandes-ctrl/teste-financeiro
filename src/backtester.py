@@ -103,6 +103,7 @@ class Backtester:
         current_prices: dict[str, float],
         benchmark_period_returns: dict[str, float],
         run_date: Optional[str | date] = None,
+        market_data: Optional[dict] = None,
     ) -> dict:
         """
         Executa o backtest comparando a recomendação anterior com os preços atuais.
@@ -114,6 +115,8 @@ class Backtester:
             benchmark_period_returns:  {"ibovespa": 0.051, "cdi": 0.016, "selic": 0.016}
                                        retornos acumulados do período (de BenchmarkManager).
             run_date:                  Data de referência; default = hoje.
+            market_data:               Horário da execução, estado do candle do
+                                       IBOV e checagem contra o BOVA11.
 
         Returns:
             dict com o resultado completo (veja _build_result).
@@ -190,6 +193,7 @@ class Backtester:
                 period_days=period_days,
                 previous_top5=[r.get("ticker") for r in previous.get("top5", [])],
                 attribution=attribution,
+                market_data=market_data,
             )
 
             self._save(result, run_date_str, mode)
@@ -241,20 +245,30 @@ class Backtester:
         previous = self.snap.load_latest_recommendation(
             mode=mode, before_date=_date_str(run_date),
         )
+        from src.benchmark import BenchmarkManager, is_intraday, now_brt  # import lazy
+
         bench_returns: dict[str, float] = {}
+        run_at = now_brt()
+        market_data: dict = {
+            "run_at_brt": run_at.isoformat(timespec="seconds"),
+            "prices_intraday": is_intraday(run_at),
+        }
 
         if previous:
             rec_date = previous.get("date")
             if rec_date:
                 try:
-                    from src.benchmark import BenchmarkManager  # import lazy
                     if not isinstance(benchmark_manager, BenchmarkManager):
                         benchmark_manager = BenchmarkManager()
+                    end = run_date or date.today()
                     period_ret = benchmark_manager.get_period_return(
-                        start_date=rec_date,
-                        end_date=run_date or date.today(),
+                        start_date=rec_date, end_date=end,
                     )
                     bench_returns = period_ret.to_dict()
+                    market_data["ibovespa"] = dict(benchmark_manager.ibov_meta)
+                    market_data["ibov_vs_etf"] = benchmark_manager.check_against_etf(
+                        rec_date, end, bench_returns.get("ibovespa"),
+                    )
                 except Exception as exc:
                     logger.warning("Falha ao buscar retornos do benchmark para backtest: %s", exc)
 
@@ -263,6 +277,7 @@ class Backtester:
             current_prices=current_prices,
             benchmark_period_returns=bench_returns,
             run_date=run_date,
+            market_data=market_data,
         )
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -513,8 +528,14 @@ class Backtester:
         period_days: Optional[int],
         previous_top5: list[str],
         attribution: Optional[dict] = None,
+        market_data: Optional[dict] = None,
     ) -> dict:
         """Constrói o dict de resultado normalizado."""
+        market_data = market_data or {}
+        intraday = bool(
+            market_data.get("prices_intraday")
+            or (market_data.get("ibovespa") or {}).get("intraday")
+        )
         return {
             "status":              status,
             "backtest_date":       backtest_date,
@@ -534,6 +555,9 @@ class Backtester:
             "holdings":            holdings,
             "previous_top5":       previous_top5,
             "attribution":         attribution,
+            # True = preços e/ou IBOV vieram de pregão aberto, não de fechamento.
+            "intraday":            intraday,
+            "market_data":         market_data,
             "generated_at":        datetime.now().isoformat(),
         }
 

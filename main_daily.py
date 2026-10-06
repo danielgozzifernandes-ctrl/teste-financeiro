@@ -105,18 +105,24 @@ def _ensure_dirs() -> None:
 
 # ─── Fetch today's prices ─────────────────────────────────────────────────────
 
-def _fetch_daily_prices(tickers: list[str]) -> tuple[dict[str, float], dict[str, float], float]:
+def _fetch_daily_prices(
+    tickers: list[str],
+) -> tuple[dict[str, float], dict[str, float], float, dict]:
     """
     Fetches today's close prices and returns for a list of B3 tickers + IBOV.
 
     Returns:
-        (ticker_returns, ticker_prices, ibov_return)
-        All returns are decimal (0.01 = 1%).
+        (ticker_returns, ticker_prices, ibov_return, ibov_meta)
+        All returns are decimal (0.01 = 1%). ibov_meta = last bar date and
+        whether it is an unsettled intraday print.
     """
+    from src.benchmark import clean_close, now_brt
+
     yf_symbols = [f"{t}.SA" for t in tickers] + ["^BVSP"]
     ticker_returns: dict[str, float] = {}
     ticker_prices:  dict[str, float] = {}
     ibov_return: float = 0.0
+    ibov_meta: dict = {}
 
     try:
         raw = yf.download(
@@ -128,41 +134,51 @@ def _fetch_daily_prices(tickers: list[str]) -> tuple[dict[str, float], dict[str,
         )
     except Exception as exc:
         logger.error("_fetch_daily_prices: download falhou: %s", exc)
-        return ticker_returns, ticker_prices, ibov_return
+        return ticker_returns, ticker_prices, ibov_return, ibov_meta
 
     if raw is None or raw.empty:
         logger.error("_fetch_daily_prices: dados vazios")
-        return ticker_returns, ticker_prices, ibov_return
+        return ticker_returns, ticker_prices, ibov_return, ibov_meta
 
-    def _extract(symbol: str) -> tuple[Optional[float], Optional[float]]:
+    def _extract(symbol: str) -> tuple[Optional[float], Optional[float], dict]:
         try:
             if isinstance(raw.columns, pd.MultiIndex):
-                level1 = raw.columns.get_level_values(1)
-                if symbol not in level1:
-                    return None, None
-                close = raw["Close"][symbol].dropna()
+                if symbol not in raw.columns.get_level_values(1):
+                    return None, None, {}
+                sub = raw.xs(symbol, axis=1, level=1)
             else:
-                close = raw["Close"].dropna()
+                sub = raw
+            close, meta = clean_close(sub)
 
             if len(close) < 2:
-                return None, None
+                return None, None, meta
 
             today_close = float(close.iloc[-1])
             prev_close  = float(close.iloc[-2])
             ret = (today_close - prev_close) / prev_close if prev_close else 0.0
-            return ret, today_close
+            return ret, today_close, meta
         except Exception as exc:
             logger.debug("_extract %s: %s", symbol, exc)
-            return None, None
+            return None, None, {}
 
     # IBOV
-    ibov_ret, _ = _extract("^BVSP")
+    ibov_ret, _, ibov_meta = _extract("^BVSP")
     if ibov_ret is not None:
         ibov_return = ibov_ret
+    today = now_brt().date().isoformat()
+    if ibov_meta.get("last_bar") and ibov_meta["last_bar"] != today:
+        # Candle de hoje ainda não saiu: o "retorno do dia" seria o de ontem.
+        ibov_meta["stale"] = True
+        logger.warning(
+            "IBOV: último candle é de %s, não de hoje (%s).",
+            ibov_meta["last_bar"], today,
+        )
+    if ibov_meta.get("intraday"):
+        logger.warning("IBOV: candle de hoje ainda é intradiário (não consolidado).")
 
     # Tickers
     for ticker in tickers:
-        ret, price = _extract(f"{ticker}.SA")
+        ret, price, _ = _extract(f"{ticker}.SA")
         if ret is not None:
             ticker_returns[ticker] = ret
         if price is not None:
@@ -172,7 +188,7 @@ def _fetch_daily_prices(tickers: list[str]) -> tuple[dict[str, float], dict[str,
         "Preços do dia: %d/%d tickers, IBOV %.2f%%",
         len(ticker_returns), len(tickers), ibov_return * 100,
     )
-    return ticker_returns, ticker_prices, ibov_return
+    return ticker_returns, ticker_prices, ibov_return, ibov_meta
 
 
 def _portfolio_return(ticker_returns: dict[str, float]) -> float:
@@ -482,7 +498,7 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
     # Step 1: Fetch today's prices
     logger.info("Etapa 1/3 — Buscando preços do dia...")
     try:
-        ticker_returns, ticker_prices, ibov_return = _fetch_daily_prices(top5_tickers)
+        ticker_returns, ticker_prices, ibov_return, ibov_meta = _fetch_daily_prices(top5_tickers)
     except Exception as exc:
         logger.error("Falha ao buscar preços do dia: %s", exc, exc_info=True)
         return 1
@@ -535,6 +551,7 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
             ibov_daily_return=ibov_return,
             cdi_daily_return=cdi_daily,
             blended_daily_return=blended_return,
+            market_data={"ibovespa": ibov_meta} if ibov_meta else None,
         )
         noise_band_pp = alpha_noise_band_pp()
     except Exception as exc:

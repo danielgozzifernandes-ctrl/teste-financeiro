@@ -501,6 +501,15 @@ def run(args: argparse.Namespace) -> int:
         "scored":            n_scored,
         "coverage_pct":      round(coverage, 3) if coverage is not None else None,
     }
+    # Preço de entrada = cotação do momento da execução; se o pregão está
+    # aberto, não é fechamento — fica registrado na recomendação.
+    from src.benchmark import is_intraday, now_brt
+    _run_at = now_brt()
+    df_scored.attrs["market_data"] = {
+        "run_at_brt":      _run_at.isoformat(timespec="seconds"),
+        "prices_intraday": is_intraday(_run_at),
+        "ibovespa":        dict(benchmark_mgr.ibov_meta),
+    }
     if coverage is not None and coverage < MIN_UNIVERSE_COVERAGE:
         logger.warning(
             "COBERTURA BAIXA: %d/%d tickers pontuados (%.0f%% < %.0f%% mínimo). "

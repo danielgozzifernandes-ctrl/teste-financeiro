@@ -50,6 +50,7 @@ def update_equity_curve(
     cdi_daily_return: Optional[float] = None,
     blended_daily_return: Optional[float] = None,
     path: Optional[Path] = None,
+    market_data: Optional[dict] = None,
 ) -> dict[str, Any]:
     """
     Acrescenta (ou sobrescreve) o ponto do dia e persiste.
@@ -99,6 +100,8 @@ def update_equity_curve(
         "cdi_nav":     round(prev_cdi * (1.0 + (cdi_daily_return_eff or 0.0)), 6),
         "blended_nav": round(prev_blend * (1.0 + (blended_daily_return or 0.0)), 6),
     }
+    if market_data:
+        point["market_data"] = market_data
     series.append(point)
     series.sort(key=lambda p: p["date"])
 

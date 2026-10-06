@@ -328,6 +328,7 @@ class SnapshotManager:
                 "tickers_scored":     int(df_scored["total_score"].notna().sum()),
                 # Cobertura declarado→coletado→pontuado (de main.py via attrs).
                 "data_quality":       getattr(df_scored, "attrs", {}).get("data_quality"),
+                "market_data":        getattr(df_scored, "attrs", {}).get("market_data"),
                 "generated_at":       datetime.now().isoformat(),
                 "portfolio_weights_method": weights_method,
                 "risk_metrics":             risk_metrics,
