@@ -207,3 +207,35 @@ def test_stored_ibov_returns_agree_with_bova11():
             bad.append(f"{name}: IBOV {ibov:+.4f} vs BOVA11 {etf_ret:+.4f}")
     assert checked >= len(windows) // 2, f"só {checked} de {len(windows)} janelas verificáveis"
     assert not bad, "IBOV inconsistente com BOVA11:\n" + "\n".join(bad)
+
+
+# ---------------------------------------------------------------------------
+# IBOV medido a partir do nível na entrada
+# ---------------------------------------------------------------------------
+
+def _prices(level):
+    return pd.Series([192115.0, level], index=pd.to_datetime(["2026-10-02", "2026-10-06"]))
+
+
+def test_ibov_measured_from_entry_level():
+    # Entrada às 16h28 de 05/10 com o IBOV já em ~209k; a janela de
+    # fechamentos começaria em 02/10 e somaria o rali do dia ao benchmark.
+    prev = {"execution_metadata": {"market_data": {"ibov_level": 209000.0}}}
+    bench, md = {"ibovespa": 0.077}, {}
+    Backtester._align_ibov_to_entry(
+        prev, "2026-10-05", date(2026, 10, 6), bench, md,
+        price_fetcher=lambda s, e: _prices(206912.0),
+    )
+    assert bench["ibovespa"] == pytest.approx(206912 / 209000 - 1)
+    assert md["ibov_basis"] == "entry_level"
+    assert md["ibov_daily_closes"] == 0.077
+
+
+def test_ibov_falls_back_to_closes_without_entry_level():
+    bench, md = {"ibovespa": 0.077}, {}
+    Backtester._align_ibov_to_entry(
+        {}, "2026-10-05", date(2026, 10, 6), bench, md,
+        price_fetcher=lambda s, e: _prices(206912.0),
+    )
+    assert bench["ibovespa"] == 0.077
+    assert md["ibov_basis"] == "daily_closes"

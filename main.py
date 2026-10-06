@@ -549,6 +549,11 @@ def run(args: argparse.Namespace) -> int:
         "prices_intraday": is_intraday(_run_at),
         "ibovespa":        dict(benchmark_mgr.ibov_meta),
     }
+    # Nível do IBOV no mesmo instante dos preços de entrada; o backtest da
+    # próxima execução mede o índice a partir daqui, não do fechamento.
+    if not ibov_prices.empty:
+        df_scored.attrs["market_data"]["ibov_level"] = round(float(ibov_prices.iloc[-1]), 2)
+        df_scored.attrs["market_data"]["ibov_level_bar"] = str(ibov_prices.index[-1].date())
     if coverage is not None and coverage < MIN_UNIVERSE_COVERAGE:
         logger.warning(
             "COBERTURA BAIXA: %d/%d tickers pontuados (%.0f%% < %.0f%% mínimo). "

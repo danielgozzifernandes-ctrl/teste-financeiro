@@ -16,7 +16,7 @@ Saída: data/history/backtest_YYYY-MM-DD_{mode}.json.
 import json
 import logging
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -350,6 +350,41 @@ class Backtester:
             self._save(result, run_date_str, mode)
             return result
 
+    @staticmethod
+    def _align_ibov_to_entry(
+        previous: dict, rec_date: str, end, bench_returns: dict, market_data: dict,
+        price_fetcher=None,
+    ) -> None:
+        """
+        Mede o IBOV a partir do nível gravado no instante da entrada.
+
+        Sem isso a janela começa no fechamento anterior a rec_date: se a
+        recomendação rodou no meio do pregão, o movimento do dia antes da
+        entrada entra no benchmark e não na carteira. Recomendações antigas
+        não têm o nível — ficam com a janela de fechamentos.
+        """
+        entry_level = (
+            (previous.get("execution_metadata") or {}).get("market_data") or {}
+        ).get("ibov_level")
+        market_data["ibov_basis"] = "daily_closes"
+        if not entry_level or bench_returns.get("ibovespa") is None:
+            return
+        if price_fetcher is None:
+            from src.benchmark import get_ibov_prices as price_fetcher
+        try:
+            start = date.fromisoformat(rec_date) - timedelta(days=10)
+            prices = price_fetcher(start, end)
+        except Exception as exc:
+            logger.warning("Nível atual do IBOV indisponível: %s", exc)
+            return
+        if prices is None or len(prices) == 0:
+            return
+        market_data["ibov_daily_closes"] = bench_returns["ibovespa"]
+        market_data["ibov_entry_level"] = float(entry_level)
+        market_data["ibov_current_level"] = round(float(prices.iloc[-1]), 2)
+        market_data["ibov_basis"] = "entry_level"
+        bench_returns["ibovespa"] = float(prices.iloc[-1]) / float(entry_level) - 1
+
     def run_from_df(
         self,
         mode: str,
@@ -403,6 +438,7 @@ class Backtester:
                     market_data["ibov_vs_etf"] = benchmark_manager.check_against_etf(
                         rec_date, end, bench_returns.get("ibovespa"),
                     )
+                    self._align_ibov_to_entry(previous, rec_date, end, bench_returns, market_data)
                 except Exception as exc:
                     logger.warning("Falha ao buscar retornos do benchmark para backtest: %s", exc)
 
