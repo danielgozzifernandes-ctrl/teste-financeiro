@@ -11,7 +11,7 @@ o formato pela mediana, então também aceitaria % a.a. se o BCB mudar.
 
 import logging
 import time
-from datetime import date, datetime, time as dtime, timedelta, timezone
+from datetime import date, datetime, time as dtime, timedelta
 from typing import Optional
 
 import numpy as np
@@ -25,6 +25,7 @@ from src.config import (
     CACHE_DIR_PATH,
     CACHE_TTL_HOURS,
 )
+from src.b3_calendar import BRT, is_trading_day, now_brt  # noqa: F401 (reexport)
 from src.data_collector import CacheManager
 
 logger = logging.getLogger(__name__)
@@ -46,8 +47,6 @@ _BCB_FFILL_LIMIT = 5
 _BCB_DAILY_RATE_MIN = 0.00005   # 0.005% a.d.  (~1.3% a.a.) — limite inferior seguro
 _BCB_DAILY_RATE_MAX = 0.00200   # 0.200% a.d. (~65% a.a.)  — limite superior seguro
 
-# Brasil sem horário de verão desde 2019 → offset fixo.
-BRT = timezone(timedelta(hours=-3))
 _SESSION_OPEN_BRT = dtime(10, 0)
 # Pregão fecha 17:00 (18:00 no horário de verão americano); o yfinance
 # costuma consolidar o candle do dia só depois disso.
@@ -64,14 +63,10 @@ IBOV_ETF_TICKER = "BOVA11.SA"
 IBOV_ETF_TOLERANCE = 0.015
 
 
-def now_brt() -> datetime:
-    return datetime.now(BRT)
-
-
 def is_intraday(now: Optional[datetime] = None) -> bool:
     """True se `now` cai dentro de um pregão ainda não consolidado."""
     now = (now or now_brt()).astimezone(BRT)
-    if now.weekday() >= 5:
+    if not is_trading_day(now.date()):
         return False
     return _SESSION_OPEN_BRT <= now.time() < _SESSION_SETTLED_BRT
 

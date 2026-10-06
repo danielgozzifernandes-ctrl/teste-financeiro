@@ -166,6 +166,7 @@ def _stored_ibov_windows() -> list[tuple[str, str, str, float]]:
     return out
 
 
+@pytest.mark.network
 def test_stored_ibov_returns_agree_with_bova11():
     windows = _stored_ibov_windows()
     if not windows:
