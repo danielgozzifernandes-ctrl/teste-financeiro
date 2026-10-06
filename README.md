@@ -34,27 +34,27 @@ A multifactor stock-selection and asset-allocation system for Brazilian equities
 
 ## Results
 
-Ten-year backtest of the allocation layer (`src/allocation_backtest.py`, 2016-05-12 to 2026-06-11). Rebalancing every 21 trading days, 10 bps per side. The equity sleeve is BOVA11, so this tests the allocation rules, not stock selection.
+Backtest of the allocation layer (`src/allocation_backtest.py`, `data/allocation_backtest.json`), 2019-05-20 to 2026-10-01: the period in which every sleeve has a traded ETF. Rebalancing every 21 trading days at 10 bps per side, with signals computed on data up to day t and traded on t+1, and weights drifting between rebalances. The equity sleeve is BOVA11, so this tests the allocation rules, not stock selection.
 
 | Strategy | Ann. return | Ann. vol | Sharpe vs CDI | Max drawdown |
 |---|---|---|---|---|
-| Static mix 40/30/15/15 | 12.4% | 10.4% | 0.34 | -25.5% |
-| Dynamic allocation (regime + tilts) | 11.0% | 11.7% | 0.21 | -22.9% |
-| Buy and hold BOVA11 | 12.8% | 23.2% | 0.26 | -46.9% |
-| 100% CDI | 9.1% | 0.3% | — | 0.0% |
+| Static mix 40/30/15/15 | 12.5% | 10.7% | 0.28 | -23.8% |
+| Dynamic allocation (regime + tilts) | 9.5% | 12.3% | 0.04 | -28.5% |
+| Buy and hold BOVA11 | 10.5% | 23.4% | 0.15 | -46.9% |
+| 100% CDI | 9.8% | 0.3% | — | 0.0% |
 
-The static mix beat the dynamic rules on return and risk-adjusted return. The value of this layer so far comes from diversification: roughly equity-like returns at half the volatility and drawdown. The regime timing has not added value.
+The static mix beat the dynamic rules in every window and start date tested, including the longer 2016–2026 run with CDI standing in for IMAB11 before it listed (Sharpe 0.34 vs. 0.15). Neither is significantly better than CDI: the probabilistic Sharpe ratio of the static mix is 0.78, and the deflated Sharpe stays below 0.4 for any plausible number of strategies tried. What the layer delivers is diversification, with equity-like returns at half the volatility and drawdown of the index. The regime timing has not added value.
 
 ## Validation
 
 Every scheduled run writes its artifacts to `data/` and commits them back, so the validation sample grows over time:
 
-- **Factor IC:** Spearman rank IC per factor and horizon, with a data-sufficiency flag (`data/factor_ic.json`, `src/factor_analysis.py`).
-- **Walk-forward:** out-of-sample returns of each past recommendation over 1, 4 and 12 weeks (`data/walk_forward.json`).
-- **Backtest and attribution:** each weekly or monthly run measures the previous recommendation against the Ibovespa and CDI, with liquidity-adjusted transaction costs and a Brinson-style attribution by sector. The benchmark return is cross-checked against BOVA11 over the same window.
+- **Factor IC:** Spearman rank IC per factor and horizon over the full scored universe, with Newey-West t-stats for overlapping horizons and a Benjamini-Hochberg correction across factors (`data/factor_ic.json`, `src/factor_analysis.py`). It is a monitor, not a trigger for weight changes.
+- **Walk-forward:** out-of-sample returns of each past recommendation over 1, 4 and 12 weeks, with portfolio and Ibovespa on the same window and Sharpe in excess of CDI (`data/walk_forward.json`).
+- **Backtest and attribution:** each weekly or monthly run measures the previous recommendation on a total-return basis (dividends and JCP from B3) against the Ibovespa and CDI, charging costs on actual turnover, with a Brinson-style attribution by sector. The Ibovespa is measured from its level at the moment of entry and cross-checked against BOVA11; runs made during the session are flagged as intraday.
 - **Equity curve:** a daily NAV of both the full allocated portfolio and the equity sleeve (`data/equity_curve.json`).
 
-Live tracking started in May 2026. With about 20 weekly observations, none of the live metrics (IC, alpha, hit rate) is statistically significant yet, and they should be read as noise until the sample is much larger.
+Live tracking started in May 2026. With about 17 weekly observations, none of the live metrics is statistically significant: no factor survives the multiple-testing correction, and weekly alpha vs. the Ibovespa has a t-stat below 1. Detecting an IC of 0.05 would take more than a year of weekly data, so factor validation has to come from long point-in-time history rather than from the live sample.
 
 ## Architecture
 
@@ -118,7 +118,6 @@ For scheduled runs, set the same variables as repository secrets and enable the 
 ## Limitations
 
 - Free data only: fundamentals are latest values, not point-in-time, and the universe is today's list, so long backtests of stock selection carry survivorship bias.
-- Live portfolio returns are price-only, while the Ibovespa is a total-return index, which understates the portfolio by the dividend yield.
 - The allocation backtest uses a volatility proxy for the regime instead of the live HMM, and BOVA11 instead of the stock portfolio.
 - The live sample is too short to separate skill from noise.
 - Historical index membership and analyst estimates would require a terminal (Bloomberg or Refinitiv). A download script is in `tools/`.

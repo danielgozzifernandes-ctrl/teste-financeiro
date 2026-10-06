@@ -1,137 +1,338 @@
 {
-  "generated_at": "2026-06-11",
-  "period": {
-    "start": "2016-05-12",
-    "end": "2026-06-11"
-  },
+  "generated_at": "2026-10-06",
   "rebalance_days": 21,
   "cost_per_side_bps": 10,
-  "cdi_source": "bcb",
+  "cdi_source": "bcb_sgs_12",
+  "dsr_note": "DSR para N estratégias testadas; o N real não é conhecido (várias versões da regra ao longo do histórico), por isso a faixa N=4/10/20. Variância do SR sob H0 aproximada por 1/(T-1).",
   "limitations": [
     "Regime via proxy de vol (não o HMM do pipeline)",
-    "Sleeve de bolsa = BOVA11, não a carteira top-5 (testa SÓ a camada de allocation)",
+    "Sleeve de bolsa = BOVA11, não a carteira top-5 (testa só a camada de allocation)",
     "Sem imposto; custo fixo 10bps/lado",
-    "ERP tilt não testado (sem EY histórico aqui)"
+    "ERP tilt não testado (sem EY histórico aqui)",
+    "Janela 'full': sleeves sem preço (IMAB11 antes de 2019-05-20) ficam em CDI"
   ],
-  "avg_turnover_per_rebalance": 0.2297,
+  "period": {
+    "start": "2019-05-20",
+    "end": "2026-10-01"
+  },
+  "avg_turnover_per_rebalance": {
+    "dynamic": 0.0959,
+    "static": 0.0145
+  },
   "strategies": {
     "dynamic_allocation": {
-      "ann_return": 0.1103,
-      "ann_vol": 0.1171,
-      "sharpe_vs_cdi": 0.209,
-      "max_drawdown": -0.2292,
-      "total_return": 1.807,
-      "n_days": 2485
+      "ann_return": 0.0946,
+      "ann_vol": 0.1231,
+      "sharpe_vs_cdi": 0.035,
+      "max_drawdown": -0.2855,
+      "total_return": 0.9311,
+      "n_days": 1835,
+      "psr_vs_0": 0.538,
+      "dsr": {
+        "N=4": 0.17,
+        "N=10": 0.07,
+        "N=20": 0.036
+      }
     },
     "static_40_30_15_15": {
-      "ann_return": 0.1244,
-      "ann_vol": 0.1044,
-      "sharpe_vs_cdi": 0.341,
-      "max_drawdown": -0.2545,
-      "total_return": 2.1776,
-      "n_days": 2485
+      "ann_return": 0.1253,
+      "ann_vol": 0.1069,
+      "sharpe_vs_cdi": 0.282,
+      "max_drawdown": -0.2385,
+      "total_return": 1.3628,
+      "n_days": 1835,
+      "psr_vs_0": 0.776,
+      "dsr": {
+        "N=4": 0.386,
+        "N=10": 0.209,
+        "N=20": 0.129
+      }
     },
     "buy_hold_bova11": {
-      "ann_return": 0.128,
-      "ann_vol": 0.2318,
-      "sharpe_vs_cdi": 0.261,
+      "ann_return": 0.1055,
+      "ann_vol": 0.2344,
+      "sharpe_vs_cdi": 0.147,
       "max_drawdown": -0.4693,
-      "total_return": 2.2789,
-      "n_days": 2485
+      "total_return": 1.076,
+      "n_days": 1835,
+      "psr_vs_0": 0.653,
+      "dsr": {
+        "N=4": 0.257,
+        "N=10": 0.12,
+        "N=20": 0.067
+      }
     },
     "cdi_100pct": {
-      "ann_return": 0.091,
-      "ann_vol": 0.0026,
-      "sharpe_vs_cdi": 0.869,
+      "ann_return": 0.0982,
+      "ann_vol": 0.0027,
+      "sharpe_vs_cdi": null,
       "max_drawdown": 0.0,
-      "total_return": 1.3612,
-      "n_days": 2485
+      "total_return": 0.9776,
+      "n_days": 1835
     }
   },
   "allocation_log_tail": [
     {
-      "date": "2025-06-27",
-      "equities_br": 0.7,
-      "cdi": 0.05,
-      "global_usd": 0.15,
-      "inflation": 0.1
-    },
-    {
-      "date": "2025-07-28",
+      "date": "2025-10-14",
       "equities_br": 0.5,
       "cdi": 0.25,
       "global_usd": 0.15,
       "inflation": 0.1
     },
     {
-      "date": "2025-08-26",
+      "date": "2025-11-13",
       "equities_br": 0.5,
       "cdi": 0.25,
       "global_usd": 0.15,
       "inflation": 0.1
     },
     {
-      "date": "2025-09-24",
+      "date": "2025-12-15",
       "equities_br": 0.5,
-      "cdi": 0.25,
+      "cdi": 0.2,
       "global_usd": 0.15,
-      "inflation": 0.1
+      "inflation": 0.15
     },
     {
-      "date": "2025-10-23",
+      "date": "2026-01-19",
       "equities_br": 0.7,
       "cdi": 0.05,
       "global_usd": 0.15,
       "inflation": 0.1
     },
     {
-      "date": "2025-11-24",
+      "date": "2026-02-19",
+      "equities_br": 0.5,
+      "cdi": 0.2,
+      "global_usd": 0.15,
+      "inflation": 0.15
+    },
+    {
+      "date": "2026-03-20",
+      "equities_br": 0.5,
+      "cdi": 0.2,
+      "global_usd": 0.15,
+      "inflation": 0.15
+    },
+    {
+      "date": "2026-04-22",
+      "equities_br": 0.5,
+      "cdi": 0.2,
+      "global_usd": 0.15,
+      "inflation": 0.15
+    },
+    {
+      "date": "2026-05-22",
+      "equities_br": 0.5,
+      "cdi": 0.2,
+      "global_usd": 0.15,
+      "inflation": 0.15
+    },
+    {
+      "date": "2026-06-23",
       "equities_br": 0.7,
       "cdi": 0.05,
       "global_usd": 0.15,
       "inflation": 0.1
     },
     {
-      "date": "2025-12-23",
+      "date": "2026-07-22",
       "equities_br": 0.5,
       "cdi": 0.2,
       "global_usd": 0.15,
       "inflation": 0.15
     },
     {
-      "date": "2026-01-27",
+      "date": "2026-08-20",
       "equities_br": 0.7,
       "cdi": 0.05,
       "global_usd": 0.15,
       "inflation": 0.1
     },
     {
-      "date": "2026-02-27",
-      "equities_br": 0.5,
-      "cdi": 0.2,
-      "global_usd": 0.15,
-      "inflation": 0.15
-    },
-    {
-      "date": "2026-03-30",
-      "equities_br": 0.5,
-      "cdi": 0.2,
-      "global_usd": 0.15,
-      "inflation": 0.15
-    },
-    {
-      "date": "2026-04-30",
-      "equities_br": 0.5,
-      "cdi": 0.2,
-      "global_usd": 0.15,
-      "inflation": 0.15
-    },
-    {
-      "date": "2026-06-01",
+      "date": "2026-09-21",
       "equities_br": 0.7,
       "cdi": 0.05,
       "global_usd": 0.15,
       "inflation": 0.1
     }
-  ]
+  ],
+  "full": {
+    "period": {
+      "start": "2016-09-06",
+      "end": "2026-10-01"
+    },
+    "avg_turnover_per_rebalance": {
+      "dynamic": 0.1121,
+      "static": 0.015
+    },
+    "strategies": {
+      "dynamic_allocation": {
+        "ann_return": 0.1077,
+        "ann_vol": 0.1153,
+        "sharpe_vs_cdi": 0.154,
+        "max_drawdown": -0.248,
+        "total_return": 1.7528,
+        "n_days": 2495,
+        "psr_vs_0": 0.685,
+        "dsr": {
+          "N=4": 0.286,
+          "N=10": 0.139,
+          "N=20": 0.079
+        }
+      },
+      "static_40_30_15_15": {
+        "ann_return": 0.1287,
+        "ann_vol": 0.1023,
+        "sharpe_vs_cdi": 0.344,
+        "max_drawdown": -0.2504,
+        "total_return": 2.317,
+        "n_days": 2495,
+        "psr_vs_0": 0.858,
+        "dsr": {
+          "N=4": 0.511,
+          "N=10": 0.313,
+          "N=20": 0.209
+        }
+      },
+      "buy_hold_bova11": {
+        "ann_return": 0.1237,
+        "ann_vol": 0.2304,
+        "sharpe_vs_cdi": 0.227,
+        "max_drawdown": -0.4693,
+        "total_return": 2.1729,
+        "n_days": 2495,
+        "psr_vs_0": 0.761,
+        "dsr": {
+          "N=4": 0.368,
+          "N=10": 0.196,
+          "N=20": 0.119
+        }
+      },
+      "cdi_100pct": {
+        "ann_return": 0.0955,
+        "ann_vol": 0.0025,
+        "sharpe_vs_cdi": null,
+        "max_drawdown": 0.0,
+        "total_return": 1.4669,
+        "n_days": 2495
+      }
+    },
+    "allocation_log_tail": [
+      {
+        "date": "2025-10-01",
+        "equities_br": 0.5,
+        "cdi": 0.25,
+        "global_usd": 0.15,
+        "inflation": 0.1
+      },
+      {
+        "date": "2025-10-31",
+        "equities_br": 0.5,
+        "cdi": 0.25,
+        "global_usd": 0.15,
+        "inflation": 0.1
+      },
+      {
+        "date": "2025-12-02",
+        "equities_br": 0.7,
+        "cdi": 0.05,
+        "global_usd": 0.15,
+        "inflation": 0.1
+      },
+      {
+        "date": "2026-01-06",
+        "equities_br": 0.5,
+        "cdi": 0.2,
+        "global_usd": 0.15,
+        "inflation": 0.15
+      },
+      {
+        "date": "2026-02-04",
+        "equities_br": 0.5,
+        "cdi": 0.2,
+        "global_usd": 0.15,
+        "inflation": 0.15
+      },
+      {
+        "date": "2026-03-09",
+        "equities_br": 0.5,
+        "cdi": 0.2,
+        "global_usd": 0.15,
+        "inflation": 0.15
+      },
+      {
+        "date": "2026-04-08",
+        "equities_br": 0.5,
+        "cdi": 0.2,
+        "global_usd": 0.15,
+        "inflation": 0.15
+      },
+      {
+        "date": "2026-05-11",
+        "equities_br": 0.7,
+        "cdi": 0.05,
+        "global_usd": 0.15,
+        "inflation": 0.1
+      },
+      {
+        "date": "2026-06-10",
+        "equities_br": 0.7,
+        "cdi": 0.05,
+        "global_usd": 0.15,
+        "inflation": 0.1
+      },
+      {
+        "date": "2026-07-09",
+        "equities_br": 0.7,
+        "cdi": 0.05,
+        "global_usd": 0.15,
+        "inflation": 0.1
+      },
+      {
+        "date": "2026-08-07",
+        "equities_br": 0.5,
+        "cdi": 0.2,
+        "global_usd": 0.15,
+        "inflation": 0.15
+      },
+      {
+        "date": "2026-09-08",
+        "equities_br": 0.7,
+        "cdi": 0.05,
+        "global_usd": 0.15,
+        "inflation": 0.1
+      }
+    ]
+  },
+  "start_sensitivity": {
+    "primary": {
+      "dynamic_allocation": {
+        "min": -0.048,
+        "median": 0.035,
+        "max": 0.124,
+        "n_offsets": 21
+      },
+      "static_40_30_15_15": {
+        "min": 0.224,
+        "median": 0.235,
+        "max": 0.282,
+        "n_offsets": 21
+      }
+    },
+    "full": {
+      "dynamic_allocation": {
+        "min": 0.116,
+        "median": 0.172,
+        "max": 0.22,
+        "n_offsets": 21
+      },
+      "static_40_30_15_15": {
+        "min": 0.339,
+        "median": 0.365,
+        "max": 0.396,
+        "n_offsets": 21
+      }
+    }
+  }
 }
