@@ -2,8 +2,9 @@ name: Monthly Report
 
 on:
   schedule:
-    # Dia 1 de cada mês às 08:00 Brasília (UTC-3) = 11:00 UTC
-    - cron: "0 11 1 * *"
+    # 08:00 Brasília (11:00 UTC) nos dias 1–7; o gate do calendário deixa
+    # rodar só no primeiro pregão do mês.
+    - cron: "0 11 1-7 * *"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -33,16 +34,25 @@ jobs:
         with:
           persist-credentials: true
 
+      # Pula dia sem pregão; weekly/monthly rodam no primeiro pregão do período.
+      - name: Check B3 calendar
+        id: gate
+        if: github.event_name == 'schedule'
+        run: python3 tools/schedule_gate.py monthly
+
       - name: Set up Python 3.11
+        if: steps.gate.outputs.run != 'false'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Install dependencies
+        if: steps.gate.outputs.run != 'false'
         run: pip install -r requirements.txt
 
       - name: Restore data cache
+        if: steps.gate.outputs.run != 'false'
         uses: actions/cache@v4
         with:
           path: cache/
@@ -51,6 +61,7 @@ jobs:
             data-cache-${{ runner.os }}-
 
       - name: Run monthly report
+        if: steps.gate.outputs.run != 'false'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -71,7 +82,7 @@ jobs:
           python main.py --mode monthly $DATE_ARG $DRY_FLAG $SEND_FLAG
 
       - name: Save data cache
-        if: always()
+        if: always() && steps.gate.outputs.run != 'false'
         uses: actions/cache@v4
         with:
           path: cache/
@@ -79,7 +90,7 @@ jobs:
 
       # Persiste histórico/análises via git commit (ver weekly_report.yml).
       - name: Commit history artifacts
-        if: always()
+        if: always() && steps.gate.outputs.run != 'false'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -93,7 +104,7 @@ jobs:
           fi
 
       - name: Upload chart artifact
-        if: always()
+        if: always() && steps.gate.outputs.run != 'false'
         uses: actions/upload-artifact@v4
         with:
           name: monthly-chart-${{ github.run_id }}

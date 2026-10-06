@@ -2,8 +2,9 @@ name: Weekly Report
 
 on:
   schedule:
-    # Segunda-feira às 08:00 Brasília (UTC-3) = 11:00 UTC
-    - cron: "0 11 * * 1"
+    # 08:00 Brasília (11:00 UTC) em dia útil; o gate do calendário deixa
+    # rodar só no primeiro pregão da semana (terça se segunda for feriado).
+    - cron: "0 11 * * 1-5"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -36,18 +37,27 @@ jobs:
           # persist-credentials: true (default) é necessário para o push final.
           persist-credentials: true
 
+      # Pula dia sem pregão; weekly/monthly rodam no primeiro pregão do período.
+      - name: Check B3 calendar
+        id: gate
+        if: github.event_name == 'schedule'
+        run: python3 tools/schedule_gate.py weekly
+
       - name: Set up Python 3.11
+        if: steps.gate.outputs.run != 'false'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Install dependencies
+        if: steps.gate.outputs.run != 'false'
         run: pip install -r requirements.txt
 
       # Cache APENAS de dados regeneráveis (downloads brapi/yfinance, TTL 24h).
       # O histórico (data/history) NÃO é cacheado — é versionado no git (step final).
       - name: Restore data cache
+        if: steps.gate.outputs.run != 'false'
         uses: actions/cache@v4
         with:
           path: cache/
@@ -56,6 +66,7 @@ jobs:
             data-cache-${{ runner.os }}-
 
       - name: Run weekly report
+        if: steps.gate.outputs.run != 'false'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -76,7 +87,7 @@ jobs:
           python main.py --mode weekly $DATE_ARG $DRY_FLAG $SEND_FLAG
 
       - name: Save data cache
-        if: always()
+        if: always() && steps.gate.outputs.run != 'false'
         uses: actions/cache@v4
         with:
           path: cache/
@@ -85,7 +96,7 @@ jobs:
       # data/history só acumula entre runs se for commitado — o cache do
       # Actions expira em ~7 dias. IC, backtest e walk-forward dependem disso.
       - name: Commit history artifacts
-        if: always()
+        if: always() && steps.gate.outputs.run != 'false'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -100,7 +111,7 @@ jobs:
           fi
 
       - name: Upload chart artifact
-        if: always()
+        if: always() && steps.gate.outputs.run != 'false'
         uses: actions/upload-artifact@v4
         with:
           name: weekly-chart-${{ github.run_id }}
