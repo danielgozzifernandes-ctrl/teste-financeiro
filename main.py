@@ -510,6 +510,7 @@ def run(args: argparse.Namespace) -> int:
     if df_scored.empty:
         logger.error("Nenhum ticker sobreviveu ao scoring — abortando.")
         return 1
+    stale_prices = df_scored.attrs.get("stale_prices", {})
 
     # Turnover band: reduz rotação ruidosa dando bônus de TURNOVER_BAND_PTS
     # aos tickers que já estavam na carteira anterior. Aplicado ANTES do
@@ -526,6 +527,7 @@ def run(args: argparse.Namespace) -> int:
 
     # Aplicar filtros de diversificação: 1 por empresa, máx 2 por setor
     df_scored = select_diverse_portfolio(df_scored, n=5, max_per_sector=2)
+    df_scored.attrs["stale_prices"] = stale_prices
 
     top_ticker = df_scored.iloc[0]["ticker"] if "ticker" in df_scored.columns else "?"
     logger.info("Scoring concluído: %d tickers pontuados. Top: %s", len(df_scored), top_ticker)

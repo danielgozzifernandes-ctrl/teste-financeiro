@@ -35,10 +35,10 @@ SMFT3,Smart Fit ON,Consumo Cíclico,Academias e Fitness,10.0,zscore,2010-01-01,
 GRND3,Grendene ON,Consumo Cíclico,Tecidos e Calçados,8.0,zscore,2010-01-01,
 CEAB3,C&A Modas ON,Consumo Cíclico,Comércio de Tecidos e Vestuário,8.0,zscore,2010-01-01,
 ABEV3,Ambev ON,Consumo Não Cíclico,Bebidas,100.0,zscore,2010-01-01,
-JBSS3,JBS ON,Consumo Não Cíclico,Carnes e Derivados,50.0,zscore,2010-01-01,
+JBSS3,JBS ON,Consumo Não Cíclico,Carnes e Derivados,50.0,zscore,2010-01-01,2025-06-09
 BEEF3,Minerva ON,Consumo Não Cíclico,Carnes e Derivados,15.0,zscore,2010-01-01,
-BRFS3,BRF ON,Consumo Não Cíclico,Carnes e Derivados,30.0,zscore,2010-01-01,
-MRFG3,Marfrig ON,Consumo Não Cíclico,Carnes e Derivados,15.0,zscore,2010-01-01,
+BRFS3,BRF ON,Consumo Não Cíclico,Carnes e Derivados,30.0,zscore,2010-01-01,2025-09-23
+MRFG3,Marfrig ON,Consumo Não Cíclico,Carnes e Derivados,15.0,zscore,2010-01-01,2025-09-23
 UGPA3,Ultrapar ON,Consumo Não Cíclico,Distribuição de Combustíveis,15.0,zscore,2010-01-01,
 RAIZ4,Raízen PN,Consumo Não Cíclico,Açúcar e Álcool,10.0,zscore,2010-01-01,
 CAML3,Camil Alimentos ON,Consumo Não Cíclico,Alimentos Processados,8.0,zscore,2010-01-01,
@@ -58,7 +58,7 @@ CSMG3,Copasa ON,Utilidade Pública,Água e Saneamento,8.0,percentile,2010-01-01,
 SAPR11,Sanepar Unit,Utilidade Pública,Água e Saneamento,10.0,percentile,2010-01-01,
 CGAS5,Comgas PNA,Utilidade Pública,Gás,8.0,percentile,2010-01-01,
 WEGE3,WEG ON,Bens Industriais,Motores e Automação,80.0,percentile,2010-01-01,
-EMBR3,Embraer ON,Bens Industriais,Aeronaves,40.0,percentile,2010-01-01,
+EMBR3,Embraer ON,Bens Industriais,Aeronaves,40.0,percentile,2010-01-01,2025-11-03
 RAIL3,Rumo ON,Bens Industriais,Transporte Ferroviário,30.0,percentile,2010-01-01,
 POMO4,Marcopolo PN,Bens Industriais,Veículos e Implementos,8.0,percentile,2010-01-01,
 ROMI3,Romi ON,Bens Industriais,Máquinas e Equipamentos,5.0,percentile,2010-01-01,
@@ -70,15 +70,15 @@ BBAS3,Banco do Brasil ON,Financeiro e Outros,Bancos,100.0,zscore,2010-01-01,
 BPAC11,BTG Pactual Unit,Financeiro e Outros,Bancos,80.0,zscore,2010-01-01,
 SANB11,Santander Brasil Unit,Financeiro e Outros,Bancos,40.0,zscore,2010-01-01,
 B3SA3,B3 ON,Financeiro e Outros,Serviços Financeiros,80.0,zscore,2010-01-01,
-CIEL3,Cielo ON,Financeiro e Outros,Meios de Pagamento,20.0,zscore,2010-01-01,
+CIEL3,Cielo ON,Financeiro e Outros,Meios de Pagamento,20.0,zscore,2010-01-01,2024-08-27
 IRBR3,IRB Brasil RE ON,Financeiro e Outros,Seguros,10.0,zscore,2010-01-01,
 PSSA3,Porto Seguro ON,Financeiro e Outros,Seguros,10.0,zscore,2010-01-01,
-SULA11,SulAmérica Unit,Financeiro e Outros,Seguros,8.0,zscore,2010-01-01,
+SULA11,SulAmérica Unit,Financeiro e Outros,Seguros,8.0,zscore,2010-01-01,2022-12-26
 ABCB4,ABC Brasil PN,Financeiro e Outros,Bancos,8.0,zscore,2010-01-01,
 BRSR6,Banrisul PNB,Financeiro e Outros,Bancos,8.0,zscore,2010-01-01,
-ELET3,Eletrobras ON,Energia Elétrica,Geração e Transmissão,80.0,zscore,2010-01-01,
-ELET6,Eletrobras PNB,Energia Elétrica,Geração e Transmissão,30.0,zscore,2010-01-01,
-NEOE3,Neoenergia ON,Energia Elétrica,Distribuição de Energia,25.0,zscore,2010-01-01,
+ELET3,Eletrobras ON,Energia Elétrica,Geração e Transmissão,80.0,zscore,2010-01-01,2025-11-10
+ELET6,Eletrobras PNB,Energia Elétrica,Geração e Transmissão,30.0,zscore,2010-01-01,2025-11-10
+NEOE3,Neoenergia ON,Energia Elétrica,Distribuição de Energia,25.0,zscore,2010-01-01,2026-05-05
 CSAN3,Cosan ON,Petróleo Gás e Biocombustíveis,Distribuição de Combustíveis,30.0,zscore,2010-01-01,
 DXCO3,Dexco ON,Materiais Básicos,Madeira e Papel,10.0,zscore,2010-01-01,
 MULT3,Multiplan ON,Consumo Cíclico,Shoppings,20.0,zscore,2010-01-01,
@@ -86,11 +86,11 @@ IGTI11,Iguatemi Unit,Consumo Cíclico,Shoppings,10.0,zscore,2010-01-01,
 VIVA3,Vivara ON,Consumo Cíclico,Joalheria,10.0,zscore,2010-01-01,
 SBFG3,SBF Group ON,Consumo Cíclico,Artigos Esportivos,10.0,zscore,2010-01-01,
 GMAT3,Grupo Mateus ON,Consumo Não Cíclico,Supermercados,20.0,zscore,2010-01-01,
-NTCO3,Natura e Co ON,Consumo Não Cíclico,Higiene e Beleza,25.0,zscore,2010-01-01,
+NTCO3,Natura e Co ON,Consumo Não Cíclico,Higiene e Beleza,25.0,zscore,2010-01-01,2025-07-02
 SLCE3,SLC Agrícola ON,Consumo Não Cíclico,Agricultura,10.0,zscore,2010-01-01,
 SMTO3,São Martinho ON,Consumo Não Cíclico,Açúcar e Álcool,10.0,zscore,2010-01-01,
 MDIA3,M.Dias Branco ON,Consumo Não Cíclico,Alimentos Processados,10.0,zscore,2010-01-01,
-ODPV3,Odontoprev ON,Saúde,Planos de Saúde,10.0,zscore,2010-01-01,
+ODPV3,Odontoprev ON,Saúde,Planos de Saúde,10.0,zscore,2010-01-01,2026-05-05
 HYPE3,Hypera Pharma ON,Saúde,Farmacêuticos,20.0,zscore,2010-01-01,
 INTB3,Intelbras ON,Tecnologia da Informação,Hardware,8.0,zscore,2010-01-01,
 ITSA4,Itaúsa PN,Financeiro e Outros,Holding Financeira,50.0,zscore,2010-01-01,

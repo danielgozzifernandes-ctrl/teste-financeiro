@@ -39,6 +39,7 @@ from src.config import (
     HRP_LOOKBACK_DAYS,
     MAX_POSITION_WEIGHT,
     MIN_POSITION_WEIGHT,
+    MIN_VOL_FOR_WEIGHTING,
     UNIVERSE_FILE,
     USE_HRP_WEIGHTS,
     VOL_TARGET_ANNUAL,
@@ -323,6 +324,7 @@ class SnapshotManager:
                 # Cobertura declarado→coletado→pontuado (de main.py via attrs).
                 "data_quality":       getattr(df_scored, "attrs", {}).get("data_quality"),
                 "market_data":        getattr(df_scored, "attrs", {}).get("market_data"),
+                "stale_prices":       getattr(df_scored, "attrs", {}).get("stale_prices"),
                 "generated_at":       datetime.now().isoformat(),
                 "portfolio_weights_method": weights_method,
                 "risk_metrics":             risk_metrics,
@@ -746,6 +748,18 @@ def _compute_portfolio_weights(
     top_n = df_scored.head(n)
     tickers = [str(row.get("ticker", "")) for _, row in top_n.iterrows()]
 
+    # Série parada tem vol ~0 e levaria o maior peso; fica com 0.
+    from src.scoring_engine import detect_stale_prices
+    stale = detect_stale_prices(df_prices, tickers) if df_prices is not None else {}
+    if stale:
+        logger.warning("Pesos: preço congelado/defasado, peso zero: %s", stale)
+        ok = top_n[~top_n["ticker"].astype(str).isin(stale)]
+        if ok.empty:
+            return {t: 0.0 for t in tickers}, "none"
+        weights, method = _compute_portfolio_weights(ok, df_prices, n=len(ok))
+        weights.update({t: 0.0 for t in stale})
+        return weights, method
+
     if not USE_HRP_WEIGHTS:
         return _compute_inv_vol_weights(df_scored, n), "inverse_volatility"
 
@@ -850,7 +864,7 @@ def _compute_inv_vol_weights(df_scored: pd.DataFrame, n: int = 5) -> dict[str, f
     for ticker, (_, row) in zip(tickers, top_n.iterrows()):
         v = _safe_float(row.get("volatility_180d"))
         if v and v > 0:
-            inv_vols[ticker] = 1.0 / v
+            inv_vols[ticker] = 1.0 / max(v, MIN_VOL_FOR_WEIGHTING)
 
     if not inv_vols:
         eq = round(1.0 / len(tickers), 6)

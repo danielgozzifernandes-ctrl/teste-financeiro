@@ -50,9 +50,14 @@ from src.config import (
     ENABLE_BRL_FACTOR,
     ENABLE_FCF_PAYOUT_CHECK,
     ENABLE_GROWTH_FACTOR,
+    ENABLE_IDIO_MOMENTUM,
     ENABLE_INVESTMENT_FACTOR,
     ENABLE_PEAD_FACTOR,
     ENABLE_SIZE_FACTOR,
+    STALE_PRICE_LOW_PRICE_BRL,
+    STALE_PRICE_MAX_LAG,
+    STALE_PRICE_RUN,
+    STALE_PRICE_RUN_LOW_PRICE,
     FCF_PAYOUT_UNSUSTAINABLE,
     GROWTH_WEIGHT,
     INVESTMENT_WEIGHT,
@@ -136,9 +141,13 @@ if ENABLE_INVESTMENT_FACTOR:
 
 _MOMENTUM_CFG: dict[str, dict] = {
     "alpha_3m":      {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 3m"},
-    "idio_alpha_6m": {"base_weight": 0.40, "direction": "higher_is_better", "label": "Momentum Idiossincr. 6m"},
     "alpha_12m":     {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 12m"},
 }
+if ENABLE_IDIO_MOMENTUM:
+    _MOMENTUM_CFG["idio_alpha_6m"] = {
+        "base_weight": 0.40, "direction": "higher_is_better",
+        "label": "Momentum Idiossincr. 6m",
+    }
 if ENABLE_ANALYST_REVISIONS:
     # Sub-fator de momentum: tendência de revisão analista (1-5, higher = better).
     # Peso baixo dentro do pilar — proxy ruidoso de dados de consenso pago.
@@ -261,11 +270,16 @@ class ScoringEngine:
         # Pré-processamento
         df = self._derive_metrics(df)
         df = self._add_momentum_metrics(df, df_prices, ibov_prices)
-        df = self._add_idiosyncratic_momentum(df, df_prices, ibov_prices, sector_map)
+        if ENABLE_IDIO_MOMENTUM:
+            df = self._add_idiosyncratic_momentum(df, df_prices, ibov_prices, sector_map)
         df = self._add_quality_metrics(df, df_prices, ibov_prices)
         df = self._add_pead_signal(df, df_prices, ibov_prices)
         df = self._add_brl_exposure(df, df_prices)
         df = self._apply_hard_filters(df)
+        stale = detect_stale_prices(df_prices, df.index)
+        if stale:
+            logger.warning("Preço congelado/defasado, removidos: %s", stale)
+            df = df.drop(index=list(stale))
         sector_map = sector_map.reindex(df.index)  # re-alinhar após filtros
 
         # Scoring por pilar
@@ -385,6 +399,7 @@ class ScoringEngine:
         )
         if "ticker" not in df_out.columns and df_out.index.name == "ticker":
             df_out = df_out.reset_index()
+        df_out.attrs["stale_prices"] = stale
 
         logger.info(
             "Scoring finalizado: %d tickers. Top 5: %s",
@@ -1844,6 +1859,32 @@ def apply_turnover_band(
 
 
 # Função de conveniência para main.py
+def detect_stale_prices(
+    df_prices: pd.DataFrame, tickers=None,
+) -> dict[str, str]:
+    """{ticker: motivo} para séries que pararam de andar (ver config)."""
+    if df_prices is None or df_prices.empty:
+        return {}
+    cols = [t for t in (tickers if tickers is not None else df_prices.columns)
+            if t in df_prices.columns]
+    out: dict[str, str] = {}
+    for t in cols:
+        s = df_prices[t].dropna()
+        if s.empty:
+            continue
+        lag = int((df_prices.index > s.index[-1]).sum())
+        if lag > STALE_PRICE_MAX_LAG:
+            out[t] = f"sem preço há {lag} pregões (último {s.index[-1].date()})"
+            continue
+        last = float(s.iloc[-1])
+        need = (STALE_PRICE_RUN if last >= STALE_PRICE_LOW_PRICE_BRL
+                else STALE_PRICE_RUN_LOW_PRICE)
+        tail = s.tail(need)
+        if len(tail) == need and (tail.max() - tail.min()) <= 1e-6 * abs(last):
+            out[t] = f"{need} fechamentos idênticos em {last:g}"
+    return out
+
+
 def compute_scores(
     df_fund: pd.DataFrame,
     df_prices: pd.DataFrame,
