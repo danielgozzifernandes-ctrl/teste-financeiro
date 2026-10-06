@@ -327,6 +327,15 @@ ENABLE_ASSET_ALLOCATION = True
 # Alocação-base por regime (soma 1.0 em cada linha).
 # bear NÃO zera bolsa: timing binário é não-confiável (lag HMM ~10d);
 # o piso mantém exposição a recuperações em V.
+# "static": mix fixo abaixo; regime, ERP e TSMOM só aparecem no relatório.
+# "dynamic": base por regime + tilts. No backtest corrigido (2019-05 a
+# 2026-10) o estático venceu em todas as janelas e datas de início
+# (Sharpe vs CDI 0,28 x 0,04; bootstrap da diferença IC95 [0,11; 0,45]).
+ALLOCATION_MODE = "static"
+ALLOCATION_STATIC_MIX: dict[str, float] = {
+    "equities_br": 0.40, "cdi": 0.30, "global_usd": 0.15, "inflation": 0.15,
+}
+
 ALLOCATION_BASE: dict[str, dict[str, float]] = {
     "risk_on":  {"equities_br": 0.60, "cdi": 0.15, "global_usd": 0.15, "inflation": 0.10},
     "mean_rev": {"equities_br": 0.40, "cdi": 0.30, "global_usd": 0.15, "inflation": 0.15},

@@ -273,7 +273,8 @@ class ReportBuilder:
         if ge is not None and ge < 1.0:
             detail_parts.append(f"vol-target {ge * 100:.0f}%")
         if detail_parts:
-            lines.append(italic("Sinais: " + " · ".join(detail_parts)))
+            label = "Sinais (informativos, mix fixo): " if signals.get("mode") == "static" else "Sinais: "
+            lines.append(italic(label + " · ".join(detail_parts)))
 
         return "\n".join(lines)
 

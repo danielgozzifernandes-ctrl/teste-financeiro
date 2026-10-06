@@ -10,6 +10,9 @@ Decide o split de capital entre 4 sleeves ANTES do stock-picking:
 
 Sinais simples, tirados da literatura e não calibrados nos nossos dados:
 
+Com ALLOCATION_MODE = "static" (padrão) o split é o mix fixo e os sinais
+abaixo só entram no relatório. No modo "dynamic":
+
     1. Regime HMM (bull/bear/range) — já detectado pelo pipeline semanal.
        Define a alocação-base (ALLOCATION_BASE).
     2. ERP implícito = earnings yield da carteira − Selic. Se a bolsa não
@@ -35,6 +38,8 @@ import pandas as pd
 from src.config import (
     ALLOCATION_BASE,
     ALLOCATION_INSTRUMENTS,
+    ALLOCATION_MODE,
+    ALLOCATION_STATIC_MIX,
     ALLOCATION_TILT_PP,
     EQUITIES_SLEEVE_MAX,
     EQUITIES_SLEEVE_MIN,
@@ -54,6 +59,7 @@ def compute_allocation(
     ibov_prices: Optional[pd.Series],
     cdi_daily_returns: Optional[pd.Series],
     gross_exposure: float = 1.0,
+    mode: Optional[str] = None,
 ) -> dict[str, Any]:
     """
     Calcula a alocação entre sleeves.
@@ -125,6 +131,33 @@ def compute_allocation(
     else:
         rationale.append("TSMOM indisponível (histórico IBOV/CDI curto) → tilt 0")
 
+    mode = mode or ALLOCATION_MODE
+    if mode == "static":
+        sleeves = dict(ALLOCATION_STATIC_MIX)
+        rationale.append(
+            "Mix estático 40/30/15/15: regime, ERP e TSMOM acima são "
+            "informativos (não venceram o mix fixo no backtest)"
+        )
+        logger.info("Allocation [static]: %s", sleeves)
+        return {
+            "sleeves": sleeves,
+            "signals": {
+                "mode":         "static",
+                "regime":       regime,
+                "erp":          round(erp, 4) if erp is not None else None,
+                "erp_tilt":     0.0,
+                "tsmom":        round(tsmom, 4) if tsmom is not None else None,
+                "tsmom_tilt":   0.0,
+                "portfolio_ey": (round(float(portfolio_earnings_yield), 4)
+                                 if portfolio_earnings_yield is not None else None),
+                "selic_annual": (round(float(selic_annual), 4)
+                                 if selic_annual is not None else None),
+                "gross_exposure": 1.0,
+            },
+            "instruments": dict(ALLOCATION_INSTRUMENTS),
+            "rationale":   rationale,
+        }
+
     # Compor: tilts movem bolsa ↔ CDI, bounds duros
     equities = float(np.clip(
         base["equities_br"] + erp_tilt + tsmom_tilt,
@@ -164,6 +197,7 @@ def compute_allocation(
     return {
         "sleeves":     sleeves,
         "signals": {
+            "mode":        "dynamic",
             "regime":      regime,
             "erp":         round(erp, 4) if erp is not None else None,
             "erp_tilt":    round(erp_tilt, 4),
@@ -191,6 +225,14 @@ def apply_gross_exposure(allocation: dict[str, Any], gross_exposure: float) -> d
     gross = float(np.clip(gross_exposure, 0.0, 1.0))
     if gross >= 1.0 or not allocation or "sleeves" not in allocation:
         return allocation
+    if (allocation.get("signals") or {}).get("mode") == "static":
+        # O mix fixo foi testado sem overlay de vol: o vol target só reduzia
+        # drawdown, com Sharpe menor (0,39 x 0,43 com a mesma exposição média).
+        out = dict(allocation)
+        out["rationale"] = list(allocation.get("rationale", [])) + [
+            f"Vol-targeting sugeria exposure {gross:.0%} — não aplicado no mix estático"
+        ]
+        return out
 
     sleeves = dict(allocation["sleeves"])
     freed = sleeves.get("equities_br", 0.0) * (1.0 - gross)
