@@ -90,18 +90,9 @@ jobs:
 
       # Persiste histórico/análises via git commit (ver weekly_report.yml).
       - name: Commit history artifacts
-        if: always() && steps.gate.outputs.run != 'false'
+        if: "!cancelled() && steps.gate.outputs.run != 'false'"
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase --autostash origin ${{ github.ref_name }} || true
-          git add -A data/history data/*.json 2>/dev/null || true
-          if git diff --cached --quiet; then
-            echo "Sem artefatos novos para commitar."
-          else
-            git commit -m "chore(data): monthly snapshot/recomendação/backtest [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
-          fi
+          bash tools/commit_artifacts.sh "chore(data): monthly snapshot/recomendação/backtest [skip ci]"
 
       - name: Upload chart artifact
         if: always() && steps.gate.outputs.run != 'false'
