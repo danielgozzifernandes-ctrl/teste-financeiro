@@ -49,3 +49,7 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local tooling
+CLAUDE.md
+.claude/

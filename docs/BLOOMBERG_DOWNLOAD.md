@@ -22,7 +22,7 @@ Terminal; senão, use o PC do lab.
 3. Voltar os CSVs pelo próprio navegador: GitHub → **Add file → Upload
    files** → arrastar os CSVs → Commit. (Alternativas: pendrive, e-mail
    para si mesmo, OneDrive — só precisam chegar à pasta `bloomberg_data/`.)
-4. Em casa, pedir ao Claude: *"baixei os dados, integre"*.
+4. Em casa, rodar a integração (Passo 4).
 
 **Plano B sem internet liberada no lab:** levar no pendrive só
 `tools/bloomberg_download.py` + `data/universe.csv` (na mesma estrutura de
@@ -133,9 +133,9 @@ não é point-in-time e perde metade do valor.
 
 ## Passo 4 — De volta em casa
 
-Peça ao Claude: *"os CSVs da Bloomberg estão em bloomberg_data/, integre"*.
-O plano de integração já existe (módulo `src/bloomberg_data.py` plugável com
-fallback para yfinance/brapi; ver memória do projeto). A integração é ~1 sessão.
+Com os CSVs em `bloomberg_data/`, falta o loader: um módulo
+`src/bloomberg_data.py` que lê esses arquivos e cai para yfinance/brapi
+quando um campo não existe. Ainda não foi escrito.
 
 ## Problemas comuns
 
