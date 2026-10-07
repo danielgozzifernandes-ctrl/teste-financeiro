@@ -22,3 +22,6 @@ matplotlib~=3.10
 
 # Utilitários
 python-dotenv~=1.2
+
+# Base histórica (COTAHIST/CVM em parquet)
+pyarrow>=15,<26
