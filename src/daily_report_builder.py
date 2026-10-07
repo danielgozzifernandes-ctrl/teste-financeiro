@@ -119,7 +119,7 @@ class DailyReportBuilder:
 
         return "\n\n".join(filter(None, sections))
 
-    # ─── Sections ─────────────────────────────────────────────────────────────
+    # Sections
 
     @staticmethod
     def _header(run_date: Optional[str], sentiment: str) -> str:
@@ -322,7 +322,7 @@ class DailyReportBuilder:
         )
 
 
-# ─── Convenience function ─────────────────────────────────────────────────────
+# Convenience function
 
 def build_daily_report(
     macro_snapshot: dict,

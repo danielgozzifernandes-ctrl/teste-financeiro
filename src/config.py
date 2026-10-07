@@ -6,9 +6,7 @@ Todos os parâmetros, pesos, thresholds e paths ficam aqui.
 import os
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
 # Paths
-# ---------------------------------------------------------------------------
 ROOT_DIR      = Path(__file__).parent.parent
 DATA_DIR      = ROOT_DIR / "data"
 HISTORY_DIR   = DATA_DIR / "history"
@@ -18,15 +16,11 @@ SNAPSHOT_DIR  = DATA_DIR / "snapshots"
 OUTPUT_DIR    = ROOT_DIR / "output"
 UNIVERSE_FILE = DATA_DIR / "universe.csv"
 
-# ---------------------------------------------------------------------------
 # Logging
-# ---------------------------------------------------------------------------
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
-# ---------------------------------------------------------------------------
 # Pesos principais do score composto
 # Contexto: Selic 15% penaliza empresas alavancadas → fundamental pesa mais
-# ---------------------------------------------------------------------------
 WEIGHTS = {
     "fundamental": 0.45,
     "momentum":    0.30,
@@ -41,10 +35,8 @@ WEIGHTS = {
 # quando houver IC condicional por regime com n>=8 por estado.
 ENABLE_REGIME_ADAPTIVE_WEIGHTS = False
 
-# ---------------------------------------------------------------------------
 # Fatores fundamentalistas
 # direction: lower_is_better = valores menores recebem score maior
-# ---------------------------------------------------------------------------
 FUNDAMENTAL_FACTORS = {
     "pl": {
         "weight":    0.20,
@@ -84,20 +76,16 @@ FUNDAMENTAL_FACTORS = {
     },
 }
 
-# ---------------------------------------------------------------------------
 # Fatores de momentum
 # Todos globais: retorno de preço é comparável entre setores
-# ---------------------------------------------------------------------------
 MOMENTUM_FACTORS = {
     "ret_3m":  {"weight": 0.30, "label": "Retorno 3m",  "norm": "global"},
     "ret_6m":  {"weight": 0.40, "label": "Retorno 6m",  "norm": "global"},
     "ret_12m": {"weight": 0.30, "label": "Retorno 12m", "norm": "global"},
 }
 
-# ---------------------------------------------------------------------------
 # Fatores de qualidade/risco
 # Todos globais: risco e liquidez são universais
-# ---------------------------------------------------------------------------
 QUALITY_FACTORS = {
     "volatility_180d": {
         "weight":    0.40,
@@ -119,10 +107,22 @@ QUALITY_FACTORS = {
     },
 }
 
-# ---------------------------------------------------------------------------
 # Thresholds e filtros
-# ---------------------------------------------------------------------------
 MIN_DAILY_VOLUME_BRL  = 5_000_000   # R$ 5M/dia — filtro de liquidez mínima
+
+# Preço congelado (OPA, suspensão, delisting): a série para de andar, a vol
+# vai a zero e o papel vira "low vol" com peso alto — foi o caso de NEOE3 a
+# 33,799999 por 7 semanas em 2026. Em 3 anos de papéis vivos com ADV ≥ R$5M,
+# a maior sequência de fechamentos idênticos foi 4 (preço ≥ R$2) e 5 (preço
+# < R$2, onde o tick de R$0,01 pesa); daí 5 e 10. O coletor faz ffill de até
+# 3 pregões, então último preço mais de 3 pregões atrás do painel = parado.
+STALE_PRICE_RUN = 5
+STALE_PRICE_RUN_LOW_PRICE = 10
+STALE_PRICE_LOW_PRICE_BRL = 2.0
+STALE_PRICE_MAX_LAG = 3
+# Piso de vol no inverse-vol: menor vol 6m de papel líquido em 3 anos foi
+# 11,8% (TAEE11), então o piso só morde em série quebrada.
+MIN_VOL_FOR_WEIGHTING = 0.10
 MAX_DIVIDA_EBITDA     = 5.0         # piso de alavancagem (abaixo disso nunca exclui)
 # Filtro de alavancagem SETOR-RELATIVO. O flat 5x excluía nomes legitimamente
 # alavancados em setores capital-intensivos (leasing/RENT3, utilities, real
@@ -134,9 +134,7 @@ SECTOR_LEVERAGE_TOLERANCE  = 1.5    # múltiplo da mediana setorial p/ exclusão
 MAX_PL                = 80.0        # filtro hard: P/L > 80 é distorção (prejuízo)
 MIN_ROE               = -0.50       # filtro hard: ROE < -50% indica destruição de valor
 
-# ---------------------------------------------------------------------------
 # Filtros de sanidade de dados
-# ---------------------------------------------------------------------------
 # Acima de 20% costuma indicar provento extraordinário/amortização de capital
 # (ex.: SBSP3 retornou DY=55% após distribuição especial em 2024 — não é
 # dividend yield recorrente). Setamos para NaN para não contaminar o ranking.
@@ -163,9 +161,7 @@ EQUAL_WEIGHT          = 1.0 / TOP_N_RECOMMENDATIONS  # 20% cada posição
 MAX_POSITION_WEIGHT   = 0.30
 MIN_POSITION_WEIGHT   = 0.05
 
-# ---------------------------------------------------------------------------
 # Diversificação do portfólio
-# ---------------------------------------------------------------------------
 MAX_PER_SECTOR        = 2           # máx 2 ações do mesmo setor B3
 MAX_PER_SUBSECTOR     = 1           # máx 1 ação por sub-setor (evita 2 bancos)
 MAX_PER_MACRO_THEME   = 2           # máx 2 ações por tema macro (commodity_export,
@@ -209,9 +205,7 @@ MOMENTUM_SKIP_DAYS = 21
 VOLATILITY_WINDOW = 180  # dias para cálculo de volatilidade histórica
 VOLUME_WINDOW     = 30   # dias para média de volume
 
-# ---------------------------------------------------------------------------
 # Tributação (Lei 15.270/2025 — em vigor a partir de 2026)
-# ---------------------------------------------------------------------------
 # IRRF 10% sobre dividendos para PF residente quando soma de proventos no mês
 # ultrapassa R$ 50k (única empresa) ou em pagamento intra-grupo. Para PF típico
 # de carteira diversificada, aplica-se em DY mensal expressivo.
@@ -219,9 +213,7 @@ VOLUME_WINDOW     = 30   # dias para média de volume
 DIVIDEND_TAX_RATE_PF = 0.10
 JCP_TAX_RATE_PF      = 0.15
 
-# ---------------------------------------------------------------------------
 # Portfólio: alocação e rotação
-# ---------------------------------------------------------------------------
 # HRP (Hierarchical Risk Parity, López de Prado 2016) é mais robusto que
 # inverse-vol em portfólios pequenos: respeita correlações via clustering.
 # Quando False, mantém inverse-vol legado.
@@ -234,9 +226,7 @@ HRP_LOOKBACK_DAYS = 126   # 6 meses de retornos diários para estimar covariânc
 # significativas em score multi-fator.
 TURNOVER_BAND_PTS = 5.0
 
-# ---------------------------------------------------------------------------
 # Novos fatores fundamentalistas (QMJ-style: Growth, Investment, Size)
-# ---------------------------------------------------------------------------
 # Size (SMB): log(market_cap) — small caps brasileiras têm prêmio documentado
 # (NEFIN-USP). Direção: lower_is_better (menor cap = maior score).
 # Peso baixo (~5%) para não dominar o pilar.
@@ -260,17 +250,13 @@ INVESTMENT_WEIGHT = 0.05
 ENABLE_FCF_PAYOUT_CHECK = True
 FCF_PAYOUT_UNSUSTAINABLE = 1.2  # >120% do FCF → DY zerado no score
 
-# ---------------------------------------------------------------------------
 # Earnings revisions (proxy via yfinance analyst recommendations)
-# ---------------------------------------------------------------------------
 # Tendência recente de revisões de analistas como sub-fator de momentum.
 # Direção: higher_is_better (mais upgrades nas últimas semanas = bom sinal).
 ENABLE_ANALYST_REVISIONS = True
 ANALYST_REVISIONS_WEIGHT = 0.10  # dentro do pilar momentum
 
-# ---------------------------------------------------------------------------
-# Análise quantitativa avançada (Pacote profissional)
-# ---------------------------------------------------------------------------
+# Análise quantitativa
 
 # Covariance estimation method no HRP. Opções (Riskfolio-Lib):
 #   "hist"   — covariância amostral (default antigo)
@@ -280,9 +266,7 @@ ANALYST_REVISIONS_WEIGHT = 0.10  # dentro do pilar momentum
 # pouco vs sample; mas "oas" tem boa propriedade Gaussian-assintótica.
 HRP_COVARIANCE_METHOD = "ledoit"
 
-# ---------------------------------------------------------------------------
 # Volatility targeting (Moreira-Muir JF 2017)
-# ---------------------------------------------------------------------------
 # Escalar gross exposure da carteira para uma vol target fixa anualizada.
 # Para B3 (vol histórica ~22% a.a.), target=12-15% reduz drawdown ~30%
 # e melhora Sharpe ~20% in-sample.
@@ -314,6 +298,15 @@ LIQUIDITY_PENALTY_MIN_FACTOR    = 0.50         # piso da penalty (50% do score)
 ENABLE_EWMA_FUNDAMENTALS = True
 EWMA_HALFLIFE_QUARTERS = 6
 
+# Momentum idiossincrático 6m (resíduo de OLS vs IBOV e setor).
+# Desligado: os resíduos de uma regressão com intercepto somam zero na
+# própria janela, então o "fator" era só ruído de ponto flutuante — e
+# não aleatório: os extremos caíam quase sempre em financeiras. Sem ele,
+# o peso se redistribui entre os demais fatores do pilar de momentum.
+# Versão correta (beta estimado fora da janela do resíduo) só depois de
+# validar em histórico longo.
+ENABLE_IDIO_MOMENTUM = False
+
 # PEAD (Post-Earnings Announcement Drift)
 # Janela de surpresa: ±1 dia úteis ao redor do anúncio (CAR vs IBOV).
 # Holding window: 5-60 dias úteis pós-anúncio. Tickers com EAR positivo
@@ -336,18 +329,15 @@ BRL_CORRELATION_WINDOW = 90       # dias úteis para correlação rolling
 BCB_USDBRL_SERIES = 1             # série BCB SGS — PTAX venda diária
 
 # HMM regime detection
-# 2-state é o padrão profissional (bull/bear ≈ low-vol/high-vol). 3-state
-# é popular em research mas frequentemente tem um estado quase vazio fora
-# de períodos extremos. Mantemos fallback ao detector binário se hmmlearn
+# 2 estados (bull/bear ≈ low-vol/high-vol): com 3, um estado costuma ficar
+# quase vazio fora de períodos extremos. Mantemos fallback ao detector binário se hmmlearn
 # falhar ou histórico insuficiente.
 USE_HMM_REGIME = True
 HMM_N_STATES = 2
 HMM_MIN_HISTORY_DAYS = 200        # ~10 meses de dados mínimo para ajustar HMM
 HMM_RANDOM_STATE = 42
 
-# ---------------------------------------------------------------------------
 # Asset Allocation — camada "investidor absoluto"
-# ---------------------------------------------------------------------------
 # A decisão dominante de um investidor PF com Selic a 15% não é QUAL ação
 # comprar, é QUANTO estar em bolsa (Brinson 1986: allocation explica ~90% da
 # variância de retorno). Esta camada decide o split entre 4 sleeves ANTES do
@@ -360,6 +350,15 @@ ENABLE_ASSET_ALLOCATION = True
 # Alocação-base por regime (soma 1.0 em cada linha).
 # bear NÃO zera bolsa: timing binário é não-confiável (lag HMM ~10d);
 # o piso mantém exposição a recuperações em V.
+# "static": mix fixo abaixo; regime, ERP e TSMOM só aparecem no relatório.
+# "dynamic": base por regime + tilts. No backtest corrigido (2019-05 a
+# 2026-10) o estático venceu em todas as janelas e datas de início
+# (Sharpe vs CDI 0,28 x 0,04; bootstrap da diferença IC95 [0,11; 0,45]).
+ALLOCATION_MODE = "static"
+ALLOCATION_STATIC_MIX: dict[str, float] = {
+    "equities_br": 0.40, "cdi": 0.30, "global_usd": 0.15, "inflation": 0.15,
+}
+
 ALLOCATION_BASE: dict[str, dict[str, float]] = {
     "risk_on":  {"equities_br": 0.60, "cdi": 0.15, "global_usd": 0.15, "inflation": 0.10},
     "mean_rev": {"equities_br": 0.40, "cdi": 0.30, "global_usd": 0.15, "inflation": 0.15},
@@ -393,9 +392,7 @@ ALLOCATION_BACKTEST_TICKERS = {
     "inflation":   "IMAB11.SA",
 }
 
-# ---------------------------------------------------------------------------
 # Análise de Factor IC (Information Coefficient)
-# ---------------------------------------------------------------------------
 # Janelas de retorno forward para medir poder preditivo dos fatores.
 IC_FORWARD_WINDOWS = {
     "1w":  5,
@@ -404,9 +401,7 @@ IC_FORWARD_WINDOWS = {
 }
 IC_OUTPUT_PATH = DATA_DIR / "factor_ic.json"
 
-# ---------------------------------------------------------------------------
 # Significância estatística e qualidade de dados
-# ---------------------------------------------------------------------------
 # Mínimo de observações por fator para tratar IC/IR/hit-rate como sinal e
 # não ruído. Abaixo disso as métricas são marcadas significant=false e o
 # relatório/JSON sinaliza amostra insuficiente. ~2 meses de snapshots
@@ -436,15 +431,13 @@ BETA_SANITY_MAX = 3.0
 ENABLE_WINSORIZATION = True
 WINSORIZATION_MAD_K = 3.0
 
-# Score de convicção: calibração honesta de quão bem-suportada está cada
+# Score de convicção: quão bem-suportada está cada
 # recomendação (cobertura de fatores, nº de peers, método de normalização,
 # margem de score). Limiares para rótulo Alta/Média/Baixa.
 CONVICTION_HIGH = 0.66
 CONVICTION_MEDIUM = 0.40
 
-# ---------------------------------------------------------------------------
 # Data Sources
-# ---------------------------------------------------------------------------
 BRAPI_BASE_URL    = "https://brapi.dev/api"
 BRAPI_TIMEOUT     = 15          # segundos por request
 YFINANCE_TIMEOUT  = 20
@@ -455,9 +448,7 @@ BRAPI_RATE_LIMIT  = 0.5         # segundos entre requests (respeitar rate limit 
 BCB_SELIC_SERIES = 11   # Taxa SELIC diária
 BCB_CDI_SERIES   = 12   # Taxa CDI diária
 
-# ---------------------------------------------------------------------------
 # Graham Number
-# ---------------------------------------------------------------------------
 # Graham's constant 22.5 = P/L 15 × P/VP 1.5, calibrated for ~4% risk-free rate.
 # Brazil's higher rate environment lowers the fair-value multiple.
 # Formula: GRAHAM_CONSTANT = 22.5 × (GRAHAM_RF_BASE / current_selic)
@@ -466,25 +457,19 @@ GRAHAM_RF_BASE          = 0.04    # Graham's original US rf assumption (~4% a.a.
 GRAHAM_SELIC_FALLBACK   = 0.1375  # update when SELIC changes significantly
 GRAHAM_CONSTANT_FALLBACK = round(22.5 * (GRAHAM_RF_BASE / GRAHAM_SELIC_FALLBACK), 4)  # ≈ 6.55
 
-# ---------------------------------------------------------------------------
 # Benchmarks
-# ---------------------------------------------------------------------------
 BENCHMARKS = {
     "ibovespa": {"ticker": "^BVSP", "label": "IBOVESPA", "source": "yfinance"},
     "selic":    {"series": BCB_SELIC_SERIES, "label": "SELIC",    "source": "bcb"},
     "cdi":      {"series": BCB_CDI_SERIES,   "label": "CDI",      "source": "bcb"},
 }
 
-# ---------------------------------------------------------------------------
 # Telegram
-# ---------------------------------------------------------------------------
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_PARSE_MODE = "Markdown"
 
-# ---------------------------------------------------------------------------
 # Modos de execução
-# ---------------------------------------------------------------------------
 VALID_MODES = ["weekly", "monthly"]
 
 CHART_LOOKBACK_WEEKS = {
@@ -492,8 +477,6 @@ CHART_LOOKBACK_WEEKS = {
     "monthly": 26,  # últimos 6 meses no gráfico mensal
 }
 
-# ---------------------------------------------------------------------------
 # Output
-# ---------------------------------------------------------------------------
 CHART_OUTPUT_PATH = ROOT_DIR / "output_chart.png"
 REPORT_OUTPUT_PATH = ROOT_DIR / "output_report.md"

@@ -129,7 +129,7 @@ class ClosingChartGenerator:
         fig.patch.set_facecolor(PALETTE["bg"])
         ax.set_facecolor(PALETTE["surface"])
 
-        # ── Horizontal bars ──────────────────────────────────────────────────
+        # Horizontal bars
         y_pos = np.arange(n)
         colors = [PALETTE["positive"] if r >= 0 else PALETTE["negative"] for r in returns]
 
@@ -140,7 +140,7 @@ class ClosingChartGenerator:
             edgecolor="none",
         )
 
-        # ── Portfolio + IBOV reference lines ─────────────────────────────────
+        # Portfolio + IBOV reference lines
         ax.axvline(
             portfolio_return * 100,
             color=PALETTE["portfolio"], linewidth=2.0,
@@ -155,7 +155,7 @@ class ClosingChartGenerator:
         )
         ax.axvline(0, color=PALETTE["grid"], linewidth=0.8, zorder=2)
 
-        # ── Bar annotations ───────────────────────────────────────────────────
+        # Bar annotations
         for i, (ticker, ret) in enumerate(zip(tickers, returns)):
             pct_str = f"{ret*100:+.2f}%"
             price   = ticker_prices.get(ticker)
@@ -172,12 +172,12 @@ class ClosingChartGenerator:
                 fontfamily="monospace", zorder=10,
             )
 
-        # ── Y-axis tickers ────────────────────────────────────────────────────
+        # Y-axis tickers
         ax.set_yticks(y_pos)
         ax.set_yticklabels(tickers, fontsize=10.5, color=PALETTE["text_primary"], fontweight="bold")
         ax.tick_params(axis="y", length=0)
 
-        # ── X-axis ────────────────────────────────────────────────────────────
+        # X-axis
         ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:+.1f}%"))
         ax.tick_params(axis="x", colors=PALETTE["text_muted"], labelsize=8.5, length=3)
 
@@ -186,13 +186,13 @@ class ClosingChartGenerator:
         margin = max(1.0, max_abs * 0.4)
         ax.set_xlim(-max_abs - margin, max_abs + margin)
 
-        # ── Grid ──────────────────────────────────────────────────────────────
+        # Grid
         ax.grid(axis="x", color=PALETTE["grid"], linewidth=0.6, alpha=0.7, zorder=1)
         ax.grid(axis="y", visible=False)
         for spine in ax.spines.values():
             spine.set_visible(False)
 
-        # ── Title ────────────────────────────────────────────────────────────
+        # Title
         date_display = _format_date(run_date)
         ax.set_title(
             f"Desempenho do Dia  •  {date_display}",
@@ -201,7 +201,7 @@ class ClosingChartGenerator:
             pad=12, loc="left",
         )
 
-        # ── Performance box (portfolio vs IBOV alpha) ────────────────────────
+        # Performance box (portfolio vs IBOV alpha)
         alpha_day = portfolio_return - ibov_return
         alpha_sign = "+" if alpha_day >= 0 else ""
         box_lines = [
@@ -223,7 +223,7 @@ class ClosingChartGenerator:
             zorder=20,
         )
 
-        # ── Legend ────────────────────────────────────────────────────────────
+        # Legend
         ax.legend(
             loc="lower right", fontsize=8.5,
             framealpha=0.85, facecolor=PALETTE["bg"],
@@ -231,7 +231,7 @@ class ClosingChartGenerator:
             labelcolor=PALETTE["text_primary"],
         )
 
-        # ── Disclaimer ────────────────────────────────────────────────────────
+        # Disclaimer
         fig.text(
             0.5, 0.01,
             "⚠  Não é recomendação de investimento. Análise quantitativa automatizada.",

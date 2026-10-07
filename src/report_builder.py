@@ -1,27 +1,11 @@
 """
-report_builder.py — Módulo 6
+Mensagem do Telegram em MarkdownV2.
 
-Constrói a mensagem de texto para o Telegram em formato MarkdownV2.
+Fora de entidades, _ * [ ] ( ) ~ ` > # + - = | { } . ! e a própria barra
+precisam de escape — todo texto cru passa por escape().
 
-Por que MarkdownV2 e não HTML?
-  MarkdownV2 é mais legível como texto plano (fallback),
-  suporta negrito/itálico/código sem tags verbosas e é o formato
-  recomendado pela Telegram Bot API para mensagens ricas.
-
-Regras críticas do MarkdownV2:
-  Os caracteres a seguir DEVEM ser escapados com \\ fora de entidades:
-  _ * [ ] ( ) ~ ` > # + - = | { } . !
-  E também a própria barra invertida \\.
-  O helper escape() cuida disso. NUNCA passe texto raw sem passar por escape().
-
-Estrutura da mensagem:
-  📊 Cabeçalho com data e modo
-  🏆 Top 5 com score, setor, métricas e why
-  📉 Performance da carteira anterior (backtesting)
-  ⚠️  Disclaimer legal
-
-Limite do Telegram: 4096 caracteres por mensagem.
-  A classe monitora o tamanho e trunca seções se necessário.
+Seções: cabeçalho, top 5, backtest da carteira anterior, disclaimer.
+Limite de 4096 caracteres por mensagem; seções são truncadas se passar.
 """
 
 import logging
@@ -62,7 +46,7 @@ _SECTOR_EMOJI: dict[str, str] = {
 }
 
 
-# ─── Helpers de escape e formatação MarkdownV2 ───────────────────────────────
+# Helpers de escape e formatação MarkdownV2
 
 def escape(text: Any) -> str:
     """
@@ -132,20 +116,11 @@ def fmt_pp(value: Optional[float], decimals: int = 2) -> str:
     return escape(f"{prefix}{pct:.{decimals}f} pp")
 
 
-# ─── ReportBuilder ────────────────────────────────────────────────────────────
+# ReportBuilder
 
 class ReportBuilder:
     """
-    Constrói a mensagem do Telegram para relatórios semanais e mensais.
-
-    Uso:
-        builder = ReportBuilder()
-        text = builder.build(
-            df_scored=df_scored,
-            backtest_result=backtest_result,
-            mode="weekly",
-            run_date="2025-01-06",
-        )
+    Mensagem do Telegram dos relatórios semanal e mensal.
     """
 
     def build(
@@ -218,9 +193,7 @@ class ReportBuilder:
         logger.debug("Mensagem montada: %d caracteres", len(message))
         return message
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Seções da mensagem
-    # ═══════════════════════════════════════════════════════════════════════
 
     _REGIME_LABELS: dict[str, str] = {
         "risk_on":  "Risk\\-On  🟢  Fund 30% · Mom 50% · Qual 20%",
@@ -300,7 +273,8 @@ class ReportBuilder:
         if ge is not None and ge < 1.0:
             detail_parts.append(f"vol-target {ge * 100:.0f}%")
         if detail_parts:
-            lines.append(italic("Sinais: " + " · ".join(detail_parts)))
+            label = "Sinais (informativos, mix fixo): " if signals.get("mode") == "static" else "Sinais: "
+            lines.append(italic(label + " · ".join(detail_parts)))
 
         return "\n".join(lines)
 
@@ -508,8 +482,7 @@ class ReportBuilder:
 
         warnings: list[str] = []
 
-        # Alerta de cobertura de dados — honestidade sobre quanto do universo
-        # foi realmente avaliado. Aparece antes dos alertas de concentração.
+        # Cobertura do universo vem antes dos alertas de concentração.
         cov = dq.get("coverage_pct")
         if cov is not None and cov < MIN_UNIVERSE_COVERAGE:
             scored = dq.get("scored", "?")
@@ -661,9 +634,7 @@ class ReportBuilder:
             f"⚠️ {italic('Não é recomendação de investimento. Análise quantitativa automatizada. Faça sua própria análise antes de investir.')}"
         )
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Utilitários
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _truncate_why(why_text: str, max_chars: int = _WHY_MAX_CHARS) -> str:
@@ -701,7 +672,7 @@ class ReportBuilder:
         return body[:available] + "\n\n" + disclaimer
 
 
-# ─── Função de conveniência ───────────────────────────────────────────────────
+# Função de conveniência
 
 def build_report(
     df_scored: pd.DataFrame,

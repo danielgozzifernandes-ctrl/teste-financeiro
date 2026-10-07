@@ -1,26 +1,27 @@
-# B3 Stock Recommender — dependências
-# Testado com Python 3.11
+# Python 3.11 (CI). Faixas compatíveis: atualiza patch/minor sem pular major.
 
-# Dados de mercado
-yfinance>=0.2.36
-python-bcb>=0.3.0
-requests>=2.31.0
+# Dados de mercado. yfinance muda formato com frequência; a faixa segue o
+# major atual e o workflow de testes pega quebra antes da main.
+yfinance>=1.3,<2
+python-bcb~=0.3.6
+requests~=2.33
 
 # Análise de dados
-pandas>=2.1.0
-numpy>=1.26.0
-scipy>=1.11.0
+pandas~=2.3
+numpy~=2.4
+scipy~=1.17
 
-# Otimização de portfólio (HRP — Hierarchical Risk Parity)
-# Fallback automático para inverse-vol se import falhar.
-riskfolio-lib>=5.0.0
+# HRP (fallback para inverse-vol se o import falhar)
+riskfolio-lib~=7.2
 
-# Hidden Markov Model para detecção de regime de mercado.
-# Fallback automático para detector binário (IBOV/VIX) se import falhar.
-hmmlearn>=0.3.0
+# HMM de regime (fallback para detector binário IBOV/VIX)
+hmmlearn~=0.3.3
 
 # Visualização
-matplotlib>=3.8.0
+matplotlib~=3.10
 
 # Utilitários
-python-dotenv>=1.0.0
+python-dotenv~=1.2
+
+# Base histórica (COTAHIST/CVM em parquet)
+pyarrow>=15,<26

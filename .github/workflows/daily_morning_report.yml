@@ -27,16 +27,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Pula dia sem pregão; weekly/monthly rodam no primeiro pregão do período.
+      - name: Check B3 calendar
+        id: gate
+        if: github.event_name == 'schedule'
+        run: python3 tools/schedule_gate.py daily
+
       - name: Set up Python 3.11
+        if: steps.gate.outputs.run != 'false'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Install dependencies
+        if: steps.gate.outputs.run != 'false'
         run: pip install -r requirements.txt
 
       - name: Run morning report
+        if: steps.gate.outputs.run != 'false'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}

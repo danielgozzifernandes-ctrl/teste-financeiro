@@ -30,6 +30,7 @@ from typing import Any, Optional
 
 import numpy as np
 
+from src.b3_calendar import is_trading_day
 from src.config import DATA_DIR
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,7 @@ def update_equity_curve(
     cdi_daily_return: Optional[float] = None,
     blended_daily_return: Optional[float] = None,
     path: Optional[Path] = None,
+    market_data: Optional[dict] = None,
 ) -> dict[str, Any]:
     """
     Acrescenta (ou sobrescreve) o ponto do dia e persiste.
@@ -99,6 +101,8 @@ def update_equity_curve(
         "cdi_nav":     round(prev_cdi * (1.0 + (cdi_daily_return_eff or 0.0)), 6),
         "blended_nav": round(prev_blend * (1.0 + (blended_daily_return or 0.0)), 6),
     }
+    if market_data:
+        point["market_data"] = market_data
     series.append(point)
     series.sort(key=lambda p: p["date"])
 
@@ -111,6 +115,80 @@ def update_equity_curve(
         summary["cdi_nav"], summary["alpha_vs_cdi_pp"],
     )
     return summary
+
+
+def upsert_points(
+    points: list[dict],
+    path: Optional[Path] = None,
+    window_start: Optional[str] = None,
+) -> dict[str, Any]:
+    """
+    Grava pontos diários calculados de fechamento final e reencadeia os NAVs.
+
+    Cada ponto tem date, port_ret, ibov_ret, cdi_ret, blended_ret (None =
+    sem dado) e campos extras opcionais (provisional, missing, rec_date,
+    market_data). Dentro da janela [window_start, ...] o fechamento final
+    manda: substitui o que estava gravado e apaga ponto em dia sem pregão
+    (rótulos errados de versões antigas, ex.: sábado). Retorno nulo não move
+    o NAV; CDI nulo em pregão consolidado usa a última taxa conhecida.
+    """
+    path = path or EQUITY_CURVE_PATH
+    series = _load(path)
+    by_date = {p["date"]: p for p in series}
+
+    changed: list[str] = []
+    if window_start:
+        for d in [d for d in by_date if d >= window_start and not is_trading_day(d)]:
+            del by_date[d]
+            changed.append(d)
+    for pt in points:
+        old = by_date.get(pt["date"])
+        new = {k: (_round(v) if k.endswith("_ret") else v) for k, v in pt.items()}
+        if old is not None and _same_returns(old, new) and \
+                old.get("provisional") == new.get("provisional"):
+            continue
+        by_date[pt["date"]] = new
+        changed.append(pt["date"])
+
+    series = sorted(by_date.values(), key=lambda p: p["date"])
+    if changed:
+        _rechain(series, start=min(changed))
+        _save(path, series)
+    summary = summarize(series)
+    logger.info(
+        "Equity curve: %d ponto(s) gravado(s) | n=%d | NAV %.2f | IBOV %.2f | "
+        "CDI %.2f", len(changed), summary["n_obs"], summary["nav"],
+        summary["ibov_nav"], summary["cdi_nav"],
+    )
+    return summary
+
+
+def _same_returns(a: dict, b: dict) -> bool:
+    return all(a.get(k) == b.get(k)
+               for k in ("port_ret", "ibov_ret", "cdi_ret", "blended_ret"))
+
+
+def _rechain(series: list[dict], start: str) -> None:
+    """Recalcula os NAVs a partir do ponto `start` (inclusive)."""
+    for i, p in enumerate(series):
+        if p["date"] < start:
+            continue
+        prev = series[i - 1] if i > 0 else None
+        base = {
+            "nav": float(prev["nav"]) if prev else 100.0,
+            "ibov_nav": float(prev["ibov_nav"]) if prev else 100.0,
+            "cdi_nav": float(prev["cdi_nav"]) if prev else 100.0,
+            "blended_nav": float(prev.get("blended_nav") or prev["nav"]) if prev else 100.0,
+        }
+        cdi = p.get("cdi_ret")
+        if cdi is None and not p.get("provisional") and p.get("ibov_ret") is not None:
+            cdi = _implied_daily(prev, series[:i]) if prev else None
+        p["nav"] = round(base["nav"] * (1.0 + (p.get("port_ret") or 0.0)), 6)
+        p["ibov_nav"] = round(base["ibov_nav"] * (1.0 + (p.get("ibov_ret") or 0.0)), 6)
+        p["cdi_nav"] = round(base["cdi_nav"] * (1.0 + (cdi or 0.0)), 6)
+        p["blended_nav"] = round(
+            base["blended_nav"] * (1.0 + (p.get("blended_ret") or 0.0)), 6,
+        )
 
 
 def summarize(series: Optional[list[dict]] = None,
@@ -176,7 +254,7 @@ def alpha_noise_band_pp(series: Optional[list[dict]] = None,
     return float(np.std(alphas, ddof=1))
 
 
-# ─── IO ──────────────────────────────────────────────────────────────────────
+# IO
 
 def _load(path: Path) -> list[dict]:
     try:

@@ -15,7 +15,7 @@ from src.snapshot_manager import _apply_weight_bounds
 from src.scoring_engine import ScoringEngine
 
 
-# ─── _apply_weight_bounds ────────────────────────────────────────────────────
+# _apply_weight_bounds
 
 def test_cap_reduces_concentrated_position():
     # Caso real de 08/06/2026
@@ -70,7 +70,7 @@ def test_effective_n_improves():
     assert 1.0 / hhi_after > 3.0  # N efetivo > 3 com cap 30%
 
 
-# ─── Momentum skip-month ─────────────────────────────────────────────────────
+# Momentum skip-month
 
 def _price_frame(n_days: int, final_jump: float) -> pd.DataFrame:
     """Série flat com salto de final_jump nos últimos 21 dias."""

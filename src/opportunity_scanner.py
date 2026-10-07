@@ -30,7 +30,9 @@ Horizon estimate:
   Based on signal strength and fundamental score.
 """
 
+import json
 import logging
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -38,7 +40,7 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# ─── Thresholds ───────────────────────────────────────────────────────────────
+# Thresholds
 
 _MIN_SCORE       = 72.0    # total_score mínimo
 _RSI_MIN         = 28.0    # RSI mínimo (não em colapso)
@@ -48,6 +50,20 @@ _BB_THRESHOLD    = 0.35    # posição BB máxima (0=banda inferior, 1=banda sup
 _MIN_SECONDARY   = 2       # critérios secundários mínimos para aprovação
 _STOP_LOSS_PCT   = 0.07    # stop-loss 7% abaixo da entrada
 _MIN_TARGET_GAP  = 0.015   # resistência deve estar ≥1.5% acima do preço atual
+
+THRESHOLDS = {
+    "min_score":     _MIN_SCORE,
+    "rsi_min":       _RSI_MIN,
+    "rsi_max":       _RSI_MAX,
+    "volume_ratio":  _VOL_THRESHOLD,
+    "bb_position":   _BB_THRESHOLD,
+    "min_secondary": _MIN_SECONDARY,
+}
+
+_UNIVERSE_COLUMNS = [
+    "ticker", "score", "signal", "rsi", "macd_above_signal",
+    "macd_crossover", "volume_ratio", "bb_position", "price",
+]
 
 
 class OpportunityScanner:
@@ -116,7 +132,22 @@ class OpportunityScanner:
         )
         return opportunities
 
-    # ─── Filter criteria ──────────────────────────────────────────────────────
+    def evaluate(
+        self,
+        df_scored: pd.DataFrame,
+        tech_data: dict[str, dict],
+    ) -> list[dict]:
+        """Valor e resultado de cada critério por ticker (mesmos tickers que scan() olha)."""
+        out = []
+        for _, row in df_scored.iterrows():
+            ticker = str(row.get("ticker", ""))
+            tech = tech_data.get(ticker, {})
+            if not tech or "price" not in tech:
+                continue
+            out.append(_criteria(ticker, row, tech))
+        return out
+
+    # Filter criteria
 
     @staticmethod
     def _passes_primary(row: pd.Series, tech: dict) -> bool:
@@ -164,7 +195,7 @@ class OpportunityScanner:
 
         return hits
 
-    # ─── Opportunity builder ──────────────────────────────────────────────────
+    # Opportunity builder
 
     def _build_opportunity(
         self,
@@ -216,7 +247,7 @@ class OpportunityScanner:
             "pvp":               _safe_float(row.get("pvp")),
         }
 
-    # ─── Price targets ────────────────────────────────────────────────────────
+    # Price targets
 
     @staticmethod
     def _compute_targets(price: Optional[float], tech: dict) -> list[dict]:
@@ -263,7 +294,7 @@ class OpportunityScanner:
 
         return candidates[:2]
 
-    # ─── Supporting helpers ───────────────────────────────────────────────────
+    # Supporting helpers
 
     @staticmethod
     def _risk_level(volatility: Optional[float], beta: Optional[float]) -> str:
@@ -330,7 +361,122 @@ class OpportunityScanner:
         return reasons[:5]
 
 
-# ─── Helper ───────────────────────────────────────────────────────────────────
+# Registro de execução
+
+def _criteria(ticker: str, row: pd.Series, tech: dict) -> dict:
+    score = _safe_float(row.get("total_score"))
+    rsi = _safe_float(tech.get("rsi"))
+    vol = _safe_float(tech.get("volume_ratio"))
+    bb = _safe_float(tech.get("bb_position"))
+    signal = tech.get("signal", "neutral")
+    primary = {
+        "score":  score is not None and score >= _MIN_SCORE,
+        "signal": signal in ("buy", "strong_buy"),
+        "rsi":    rsi is not None and _RSI_MIN <= rsi <= _RSI_MAX,
+        "macd":   bool(tech.get("macd_above_signal", False)),
+    }
+    secondary = {
+        "macd_cross": tech.get("macd_crossover") == "bullish",
+        "volume":     vol is not None and vol >= _VOL_THRESHOLD,
+        "bb":         bb is not None and bb <= _BB_THRESHOLD,
+    }
+    n_secondary = sum(secondary.values())
+    return {
+        "ticker":            ticker,
+        "score":             _round(score, 2),
+        "signal":            signal,
+        "rsi":               _round(rsi, 2),
+        "macd_above_signal": bool(tech.get("macd_above_signal", False)),
+        "macd_crossover":    tech.get("macd_crossover"),
+        "volume_ratio":      _round(vol, 3),
+        "bb_position":       _round(bb, 3),
+        "price":             _round(_safe_float(tech.get("price")), 4),
+        "primary":           primary,
+        "primary_hits":      sum(primary.values()),
+        "secondary":         secondary,
+        "secondary_hits":    n_secondary,
+        "qualified":         all(primary.values()) and n_secondary >= _MIN_SECONDARY,
+    }
+
+
+def build_scan_record(
+    run_date: str,
+    evaluations: list[dict],
+    opportunities: list[dict],
+    meta: Optional[dict] = None,
+) -> dict:
+    """
+    Uma linha do log do scanner: alertas, quase-alertas e os critérios de todo
+    o universo avaliado, para dar para medir o scanner depois (inclusive dia
+    sem alerta).
+
+    Quase-alerta: falhou um único critério primário, ou passou nos primários
+    e ficou abaixo do mínimo de secundários.
+    """
+    counts = {k: 0 for k in ("score", "signal", "rsi", "macd",
+                             "macd_cross", "volume", "bb")}
+    for ev in evaluations:
+        for k, v in {**ev["primary"], **ev["secondary"]}.items():
+            counts[k] += int(v)
+    counts["primary"] = sum(1 for ev in evaluations if all(ev["primary"].values()))
+    counts["qualified"] = sum(1 for ev in evaluations if ev["qualified"])
+
+    near = [
+        ev for ev in evaluations
+        if not ev["qualified"] and (
+            ev["primary_hits"] == 3
+            or (ev["primary_hits"] == 4 and ev["secondary_hits"] < _MIN_SECONDARY)
+        )
+    ]
+    alert_keys = ("ticker", "score", "price", "entry_low", "entry_high",
+                  "stop_loss", "signal", "rsi", "macd_crossover",
+                  "volume_ratio", "bb_position", "secondary_hits")
+    return {
+        "date":          run_date,
+        **(meta or {}),
+        "thresholds":    THRESHOLDS,
+        "n_evaluated":   len(evaluations),
+        "counts":        counts,
+        "alerts":        [
+            {**{k: o.get(k) for k in alert_keys},
+             "targets": [t.get("level") for t in o.get("targets", [])]}
+            for o in opportunities
+        ],
+        "near_misses":   near,
+        "universe": {
+            "columns": _UNIVERSE_COLUMNS,
+            "rows": [[ev.get(c) for c in _UNIVERSE_COLUMNS] for ev in evaluations],
+        },
+    }
+
+
+def append_scan_record(record: dict, history_dir: Path) -> Path:
+    """Acrescenta o registro em data/history/scanner_YYYY-MM.jsonl."""
+    history_dir = Path(history_dir)
+    history_dir.mkdir(parents=True, exist_ok=True)
+    path = history_dir / f"scanner_{record['date'][:7]}.jsonl"
+    line = json.dumps(record, ensure_ascii=False, default=_json_default)
+    with open(path, "a", encoding="utf-8", newline="\n") as f:
+        f.write(line + "\n")
+    return path
+
+
+def _json_default(v):
+    if isinstance(v, (np.bool_,)):
+        return bool(v)
+    if isinstance(v, (np.integer,)):
+        return int(v)
+    if isinstance(v, (np.floating,)):
+        f = float(v)
+        return None if (np.isnan(f) or np.isinf(f)) else f
+    return str(v)
+
+
+def _round(v: Optional[float], nd: int) -> Optional[float]:
+    return round(v, nd) if v is not None else None
+
+
+# Helper
 
 def _safe_float(v) -> Optional[float]:
     try:

@@ -111,7 +111,7 @@ class TradeAdvisor:
         # Sector medians from other tickers in same sector
         sector_ey_med, sector_pvp_med = self._sector_medians(df_scored, setor)
 
-        # ── Target methods ────────────────────────────────────────────────────
+        # Target methods
         target_pl = self._target_from_pl(price, ey, sector_ey_med)
         target_pvp = self._target_from_pvp(price, pvp, sector_pvp_med)
         target_graham = self._target_graham(price, ey, pvp)
@@ -134,12 +134,12 @@ class TradeAdvisor:
         if target_extended <= target_conservative:
             target_extended = round(target_conservative * 1.10, 2)
 
-        # ── Entry zone ────────────────────────────────────────────────────────
+        # Entry zone
         entry_low = round(price * 0.98, 2)
         entry_high = round(price * 1.02, 2)
         entry_mid = price  # symmetric, ≈ current price
 
-        # ── Stop-loss ─────────────────────────────────────────────────────────
+        # Stop-loss
         # Priority: ATR(14) × 2.0 → MA50 × 0.99 → -7% flat; always capped at -10%
         #
         # Salvaguardas adicionais:
@@ -167,12 +167,12 @@ class TradeAdvisor:
         if stop > floor_close:
             stop = floor_close
 
-        # ── Risk / Reward ─────────────────────────────────────────────────────
+        # Risk / Reward
         downside = max(entry_mid - stop, 0.01)
         upside = target_conservative - entry_mid
         rr = round(upside / downside, 2) if upside > 0 else 0.0
 
-        # ── Type & horizon ────────────────────────────────────────────────────
+        # Type & horizon
         opp_type = self._opportunity_type(row, tech)
         horizon = self._horizon(row, tech, opp_type)
 
@@ -190,7 +190,7 @@ class TradeAdvisor:
             "target_graham":       round(target_graham, 2) if target_graham else None,
         }
 
-    # ── Target methods ────────────────────────────────────────────────────────
+    # Target methods
 
     @staticmethod
     def _target_from_pl(
@@ -257,7 +257,7 @@ class TradeAdvisor:
         candidates.sort()
         return candidates
 
-    # ── Sector medians ────────────────────────────────────────────────────────
+    # Sector medians
 
     @staticmethod
     def _sector_medians(
@@ -281,7 +281,7 @@ class TradeAdvisor:
 
         return ey_med, pvp_med
 
-    # ── Type & horizon ────────────────────────────────────────────────────────
+    # Type & horizon
 
     @staticmethod
     def _opportunity_type(row: pd.Series, tech: dict) -> str:
@@ -322,7 +322,7 @@ class TradeAdvisor:
         return "3–8 semanas"
 
 
-# ── Helper ────────────────────────────────────────────────────────────────────
+# Helper
 
 def _safe_float(v) -> Optional[float]:
     try:

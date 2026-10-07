@@ -1,6 +1,4 @@
 """
-scoring_engine.py — Módulo 3
-
 Motor de scoring multi-fator com normalização adaptativa Z-Score Híbrida.
 
 Arquitetura de normalização:
@@ -52,9 +50,14 @@ from src.config import (
     ENABLE_BRL_FACTOR,
     ENABLE_FCF_PAYOUT_CHECK,
     ENABLE_GROWTH_FACTOR,
+    ENABLE_IDIO_MOMENTUM,
     ENABLE_INVESTMENT_FACTOR,
     ENABLE_PEAD_FACTOR,
     ENABLE_SIZE_FACTOR,
+    STALE_PRICE_LOW_PRICE_BRL,
+    STALE_PRICE_MAX_LAG,
+    STALE_PRICE_RUN,
+    STALE_PRICE_RUN_LOW_PRICE,
     FCF_PAYOUT_UNSUSTAINABLE,
     GROWTH_WEIGHT,
     INVESTMENT_WEIGHT,
@@ -86,7 +89,7 @@ logger = logging.getLogger(__name__)
 
 FINANCIAL_SECTORS = {"Financeiro e Outros"}
 
-# ── Regime-adaptive scoring weights ──────────────────────────────────────────
+# Regime-adaptive scoring weights
 # 3-state market regime determined by IBOV vs MA200 and VIX level.
 #   risk_on:  IBOV > MA200 and VIX < 18 — trending bull; favour momentum
 #   bear:     VIX > 25 — global risk-off; favour quality/low-vol
@@ -138,9 +141,13 @@ if ENABLE_INVESTMENT_FACTOR:
 
 _MOMENTUM_CFG: dict[str, dict] = {
     "alpha_3m":      {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 3m"},
-    "idio_alpha_6m": {"base_weight": 0.40, "direction": "higher_is_better", "label": "Momentum Idiossincr. 6m"},
     "alpha_12m":     {"base_weight": 0.30, "direction": "higher_is_better", "label": "Alpha 12m"},
 }
+if ENABLE_IDIO_MOMENTUM:
+    _MOMENTUM_CFG["idio_alpha_6m"] = {
+        "base_weight": 0.40, "direction": "higher_is_better",
+        "label": "Momentum Idiossincr. 6m",
+    }
 if ENABLE_ANALYST_REVISIONS:
     # Sub-fator de momentum: tendência de revisão analista (1-5, higher = better).
     # Peso baixo dentro do pilar — proxy ruidoso de dados de consenso pago.
@@ -175,9 +182,7 @@ _QUALITY_CFG: dict[str, dict] = {
 _FACTOR_LABELS = {f: cfg["label"] for d in [_FUNDAMENTAL_CFG, _MOMENTUM_CFG, _QUALITY_CFG] for f, cfg in d.items()}
 
 
-# ---------------------------------------------------------------------------
 # NormDetail — metadados de normalização por fator por ticker
-# ---------------------------------------------------------------------------
 @dataclass
 class NormDetail:
     """
@@ -204,16 +209,10 @@ class NormDetail:
     percentile:  Optional[float] = None
 
 
-# ---------------------------------------------------------------------------
 # ScoringEngine
-# ---------------------------------------------------------------------------
 class ScoringEngine:
     """
-    Calcula o score composto 0-100 para cada ticker do universo B3.
-
-    Uso:
-        engine = ScoringEngine()
-        df_ranked = engine.score(df_fund, df_prices, ibov_prices)
+    Score composto 0-100 para cada ticker do universo.
     """
 
     def score(
@@ -268,22 +267,27 @@ class ScoringEngine:
             df = df.set_index("ticker")
         sector_map = df["setor"].astype(str)
 
-        # ── Pré-processamento ─────────────────────────────────────────────
+        # Pré-processamento
         df = self._derive_metrics(df)
         df = self._add_momentum_metrics(df, df_prices, ibov_prices)
-        df = self._add_idiosyncratic_momentum(df, df_prices, ibov_prices, sector_map)
+        if ENABLE_IDIO_MOMENTUM:
+            df = self._add_idiosyncratic_momentum(df, df_prices, ibov_prices, sector_map)
         df = self._add_quality_metrics(df, df_prices, ibov_prices)
         df = self._add_pead_signal(df, df_prices, ibov_prices)
         df = self._add_brl_exposure(df, df_prices)
         df = self._apply_hard_filters(df)
+        stale = detect_stale_prices(df_prices, df.index)
+        if stale:
+            logger.warning("Preço congelado/defasado, removidos: %s", stale)
+            df = df.drop(index=list(stale))
         sector_map = sector_map.reindex(df.index)  # re-alinhar após filtros
 
-        # ── Scoring por pilar ─────────────────────────────────────────────
+        # Scoring por pilar
         fund_scores, fund_details = self._score_fundamental(df, sector_map)
         mom_scores,  mom_details  = self._score_momentum(df)
         qual_scores, qual_details = self._score_quality(df)
 
-        # ── Score composto — regime-adaptive weights ──────────────────────
+        # Score composto — regime-adaptive weights
         df["fundamental_score"] = fund_scores.round(2)
         df["momentum_score"]    = mom_scores.round(2)
         df["quality_score"]     = qual_scores.round(2)
@@ -315,7 +319,7 @@ class ScoringEngine:
 
         df["total_score"] = total_score.round(2)
 
-        # ── Campos de rastreabilidade ─────────────────────────────────────
+        # Campos de rastreabilidade
         df["norm_details"] = self._build_norm_details_col(
             fund_details, mom_details, qual_details, df.index
         )
@@ -345,7 +349,7 @@ class ScoringEngine:
             for ticker in df.index
         ]
 
-        # ── Convicção: calibração de quão bem-suportada está cada pick ─────
+        # Convicção: calibração de quão bem-suportada está cada pick
         conv = {
             t: self._conviction_score(
                 df.at[t, "total_score"] if "total_score" in df.columns else None,
@@ -357,7 +361,7 @@ class ScoringEngine:
         df["conviction"]       = pd.Series(conv, dtype=float)
         df["conviction_label"] = df["conviction"].map(self._conviction_label)
 
-        # ── Montar output ─────────────────────────────────────────────────
+        # Montar output
         ordered_cols = [
             "nome", "setor", "subsetor", "normalization_method", "data_source",
             # métricas brutas
@@ -395,6 +399,7 @@ class ScoringEngine:
         )
         if "ticker" not in df_out.columns and df_out.index.name == "ticker":
             df_out = df_out.reset_index()
+        df_out.attrs["stale_prices"] = stale
 
         logger.info(
             "Scoring finalizado: %d tickers. Top 5: %s",
@@ -403,9 +408,7 @@ class ScoringEngine:
         )
         return df_out
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Pré-processamento de métricas
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _derive_metrics(df: pd.DataFrame) -> pd.DataFrame:
@@ -644,8 +647,7 @@ class ScoringEngine:
         Tickers fora da janela ou sem earnings_date → NaN (vai para
         redistribuição de peso no scoring).
 
-        IMPORTANTE: filtragem look-ahead já foi feita no data_collector
-        (só datas < today entram). Aqui só transformamos em signal.
+        O corte de look-ahead (só datas < hoje) já é feito no data_collector.
         """
         df["pead_signal"] = np.nan
         if not ENABLE_PEAD_FACTOR:
@@ -811,9 +813,7 @@ class ScoringEngine:
             logger.debug("BRL exposure falhou (%s) — fator vai ficar NaN", exc)
         return df
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Filtros hard — aplicados antes do ranking
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _apply_hard_filters(df: pd.DataFrame) -> pd.DataFrame:
@@ -920,9 +920,7 @@ class ScoringEngine:
             logger.info("Hard filters: %d→%d tickers (%d removidos)", n_before, n_after, n_before - n_after)
         return df
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Scoring por pilar
-    # ═══════════════════════════════════════════════════════════════════════
 
     def _score_fundamental(
         self,
@@ -1133,9 +1131,7 @@ class ScoringEngine:
         composite = self._weighted_sum(df.index, base_weights, factor_scores_map)
         return composite.clip(0, 100), all_details
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Normalização — núcleo matemático
-    # ═══════════════════════════════════════════════════════════════════════
 
     def _normalize_adaptive(
         self,
@@ -1145,7 +1141,7 @@ class ScoringEngine:
         """
         Normalização adaptativa: escolhe método baseado em N de peers válidos por setor.
 
-        IMPORTANTE: 'values' já deve estar com direção corrigida (lower_is_better negados).
+        'values' já vem com a direção corrigida (lower_is_better negados).
         O N de peers é calculado sobre valores NÃO-NaN, não sobre o tamanho total do setor.
         Isso protege contra setores onde muitos tickers têm dado ausente para aquele fator.
 
@@ -1166,7 +1162,7 @@ class ScoringEngine:
             n              = len(sector_values)
 
             if n >= MIN_SECTOR_ZSCORE:
-                # ── Z-Score Setorial ────────────────────────────────────
+                # Z-Score Setorial
                 # Winsorização robusta via MAD: limita os valores a
                 # mediana ± k·1.4826·MAD antes de estimar μ/σ, para que um
                 # outlier não infle o desvio e comprima o z-score dos demais.
@@ -1205,7 +1201,7 @@ class ScoringEngine:
                     )
 
             elif n >= MIN_SECTOR_PERCENTILE:
-                # ── Percentil Setorial ──────────────────────────────────
+                # Percentil Setorial
                 # Recomendação Deutsche Bank Quant Research:
                 # percentil é mais robusto a outliers quando N < 8.
                 # kind='rank': empates → média dos ranks (sem viés de posição)
@@ -1227,7 +1223,7 @@ class ScoringEngine:
                     )
 
             else:
-                # ── Fallback Global — setor muito pequeno (N < 4) ───────
+                # Fallback Global — setor muito pequeno (N < 4)
                 global_fallback_tickers.extend(sector_idx.tolist())
 
         # Aplicar Z-Score Global para tickers de setores pequenos
@@ -1323,9 +1319,7 @@ class ScoringEngine:
 
         return scores, details
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Soma ponderada com redistribuição de NaN
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _weighted_sum(
@@ -1360,9 +1354,7 @@ class ScoringEngine:
 
         return composite
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Cálculos de séries temporais (preços)
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _trailing_returns(
@@ -1458,9 +1450,7 @@ class ScoringEngine:
 
         return stock_ret.apply(lambda col: col.cov(ibov_ret) / ibov_var)
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Geração de explicação ("why")
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _conviction_score(
@@ -1641,9 +1631,7 @@ class ScoringEngine:
 
         return f"{label} {rv_str}"
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Metadata de normalização para JSON de histórico
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _build_norm_details_col(
@@ -1681,9 +1669,7 @@ class ScoringEngine:
         return pd.Series(result, index=index)
 
 
-# ---------------------------------------------------------------------------
 # Seleção de portfólio diversificado
-# ---------------------------------------------------------------------------
 
 def select_diverse_portfolio(
     df_scored: pd.DataFrame,
@@ -1824,9 +1810,7 @@ def select_diverse_portfolio(
     return result
 
 
-# ---------------------------------------------------------------------------
 # Turnover band — anti-churn
-# ---------------------------------------------------------------------------
 
 def apply_turnover_band(
     df_scored: pd.DataFrame,
@@ -1874,9 +1858,33 @@ def apply_turnover_band(
     return df
 
 
-# ---------------------------------------------------------------------------
 # Função de conveniência para main.py
-# ---------------------------------------------------------------------------
+def detect_stale_prices(
+    df_prices: pd.DataFrame, tickers=None,
+) -> dict[str, str]:
+    """{ticker: motivo} para séries que pararam de andar (ver config)."""
+    if df_prices is None or df_prices.empty:
+        return {}
+    cols = [t for t in (tickers if tickers is not None else df_prices.columns)
+            if t in df_prices.columns]
+    out: dict[str, str] = {}
+    for t in cols:
+        s = df_prices[t].dropna()
+        if s.empty:
+            continue
+        lag = int((df_prices.index > s.index[-1]).sum())
+        if lag > STALE_PRICE_MAX_LAG:
+            out[t] = f"sem preço há {lag} pregões (último {s.index[-1].date()})"
+            continue
+        last = float(s.iloc[-1])
+        need = (STALE_PRICE_RUN if last >= STALE_PRICE_LOW_PRICE_BRL
+                else STALE_PRICE_RUN_LOW_PRICE)
+        tail = s.tail(need)
+        if len(tail) == need and (tail.max() - tail.min()) <= 1e-6 * abs(last):
+            out[t] = f"{need} fechamentos idênticos em {last:g}"
+    return out
+
+
 def compute_scores(
     df_fund: pd.DataFrame,
     df_prices: pd.DataFrame,

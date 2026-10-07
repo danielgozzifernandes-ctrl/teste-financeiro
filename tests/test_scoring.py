@@ -23,9 +23,7 @@ import pytest
 
 from src.scoring_engine import NormDetail, ScoringEngine, compute_scores
 
-# ---------------------------------------------------------------------------
 # Fixtures reutilizáveis
-# ---------------------------------------------------------------------------
 
 def _make_sector_map(tickers_by_sector: dict[str, list[str]]) -> pd.Series:
     """Cria pd.Series ticker→setor."""
@@ -45,9 +43,7 @@ def engine():
     return ScoringEngine()
 
 
-# ---------------------------------------------------------------------------
 # 1. Z-Score Setorial (N=10 → N>=8)
-# ---------------------------------------------------------------------------
 def test_normalize_adaptive_zscore_sectoral(engine):
     """N=10 → zscore_sectoral; mediana→≈50, extremos diferenciados.
 
@@ -75,9 +71,7 @@ def test_normalize_adaptive_zscore_sectoral(engine):
     assert scores.between(0, 100).all()
 
 
-# ---------------------------------------------------------------------------
 # 2. Percentil Setorial (N=5)
-# ---------------------------------------------------------------------------
 def test_normalize_adaptive_percentile_sectoral(engine):
     """N=5 → deve usar percentile_sectoral."""
     tickers = [f"P{i}" for i in range(5)]
@@ -92,9 +86,7 @@ def test_normalize_adaptive_percentile_sectoral(engine):
     assert scores.between(0, 100).all()
 
 
-# ---------------------------------------------------------------------------
 # 3. Fallback Global (N=2 < 4)
-# ---------------------------------------------------------------------------
 def test_normalize_adaptive_global_fallback(engine):
     """N=2 < MIN_SECTOR_PERCENTILE → deve usar zscore_global."""
     # Setor pequeno (2 tickers) + setor grande como referência global
@@ -118,9 +110,7 @@ def test_normalize_adaptive_global_fallback(engine):
         assert details[t].method == "zscore_sectoral", f"{t} deveria usar zscore_sectoral"
 
 
-# ---------------------------------------------------------------------------
 # 4. Direção: lower_is_better → score invertido
-# ---------------------------------------------------------------------------
 def test_direction_lower_is_better(engine):
     """
     Para lower_is_better, um valor MENOR deve gerar um score MAIOR.
@@ -140,9 +130,7 @@ def test_direction_lower_is_better(engine):
     assert scores["D0"] > 70
 
 
-# ---------------------------------------------------------------------------
 # 5. Redistribuição ROIC→ROE: setor Financeiro
-# ---------------------------------------------------------------------------
 def test_roic_weight_redirected_to_roe_for_financial(engine):
     """Para setor Financeiro, o peso de ROIC (20%) deve ser somado ao ROE."""
     row = pd.Series({
@@ -178,9 +166,7 @@ def test_roic_weight_redirected_to_roe_for_financial(engine):
     assert sum(weights.values()) == pytest.approx(1.0, abs=1e-6)
 
 
-# ---------------------------------------------------------------------------
 # 6. Redistribuição ROIC→ROE: ROIC é NaN
-# ---------------------------------------------------------------------------
 def test_roic_weight_redirected_when_roic_is_nan(engine):
     """Quando ROIC é NaN (não-financeiro), seu peso vai para ROE."""
     row = pd.Series({"setor": "Materiais Básicos", "roic": np.nan})
@@ -202,9 +188,7 @@ def test_roic_weight_redirected_when_roic_is_nan(engine):
     assert sum(weights.values()) == pytest.approx(1.0, abs=1e-6)
 
 
-# ---------------------------------------------------------------------------
 # 7. Earnings Yield: 1/P·L e P/L<=0 → NaN
-# ---------------------------------------------------------------------------
 def test_derive_metrics_earnings_yield(engine):
     df = pd.DataFrame({
         "pl": [4.0, 20.0, -5.0, 0.0, np.nan, 100.0]
@@ -223,9 +207,7 @@ def test_derive_metrics_earnings_yield(engine):
     assert pd.isna(result.loc[4, "earnings_yield"])
 
 
-# ---------------------------------------------------------------------------
 # 8. Momentum relativo: alpha = ret_ação - ret_IBOV
-# ---------------------------------------------------------------------------
 def test_momentum_alpha_relative(engine):
     """Alpha deve refletir corretamente o excesso de retorno vs IBOV."""
     dates = pd.date_range("2024-01-01", periods=130, freq="B")
@@ -274,9 +256,7 @@ def test_momentum_alpha_relative(engine):
     assert alpha_a > alpha_b
 
 
-# ---------------------------------------------------------------------------
 # 9. Hard filter: liquidez mínima
-# ---------------------------------------------------------------------------
 def test_hard_filter_removes_illiquid(engine):
     """Tickers com avg_volume_30d < R$5M devem ser excluídos."""
     # Fundamentos suficientes (>=3 não-NaN) em todos para que APENAS o
@@ -300,9 +280,7 @@ def test_hard_filter_removes_illiquid(engine):
     assert "T4" in result.index, "T4 (8M vol) deve permanecer"
 
 
-# ---------------------------------------------------------------------------
 # 10. Score composto = 0.45*fund + 0.30*mom + 0.25*qual (com PESOS do config)
-# ---------------------------------------------------------------------------
 def test_total_score_weighting():
     """Verifica que total_score é a combinação correta dos pilares."""
     from src.config import WEIGHTS
@@ -326,9 +304,7 @@ def test_total_score_weighting():
     assert computed == pytest.approx(71.5, abs=0.01)
 
 
-# ---------------------------------------------------------------------------
 # 11. normalization_method column presente e com valores válidos
-# ---------------------------------------------------------------------------
 def test_normalization_method_column_present(engine):
     """Verifica que normalization_method é uma string em um conjunto válido."""
     valid_methods = {"zscore_sectoral", "percentile_sectoral", "zscore_global", "unknown"}
@@ -349,9 +325,7 @@ def test_normalization_method_column_present(engine):
             assert detail.method in valid_methods
 
 
-# ---------------------------------------------------------------------------
 # 12. Robustez: NaN em todos os fatores não trava o pipeline
-# ---------------------------------------------------------------------------
 def test_weighted_sum_all_nan_returns_nan(engine):
     """Ticker com todos os fatores NaN deve resultar em composite NaN, não erro."""
     index = pd.Index(["GHOST3"])
@@ -367,11 +341,9 @@ def test_weighted_sum_all_nan_returns_nan(engine):
     assert pd.isna(result["GHOST3"]), "Ticker sem dados deve resultar em NaN, não erro"
 
 
-# ---------------------------------------------------------------------------
 # 13. Z-Score: clip [-3, +3] → score em [0, 100]
-# ---------------------------------------------------------------------------
 def test_zscore_clipping_bounds(engine):
-    """Outliers extremos: scores SEMPRE em [0,100], saturados nos extremos.
+    """Outliers extremos: scores ficam em [0,100], saturados nos extremos.
 
     Nota matemática: um único outlier gigante infla o próprio σ, então o
     z dele não dispara a 100 (fica ~89). O invariante real e importante é:
@@ -396,9 +368,7 @@ def test_zscore_clipping_bounds(engine):
     assert scores["OUTLIER_LOW"] < 20
 
 
-# ---------------------------------------------------------------------------
 # 14. Sanidade de fundamentos: ROE/ROIC/Dívida fora de faixa → NaN
-# ---------------------------------------------------------------------------
 def test_derive_metrics_sanitizes_garbage(engine):
     """Valores implausíveis de fonte devem virar NaN (antes passavam direto)."""
     df = pd.DataFrame({
@@ -419,9 +389,7 @@ def test_derive_metrics_sanitizes_garbage(engine):
     assert pd.isna(res.loc[2, "divida_ebitda"])  # 999x
 
 
-# ---------------------------------------------------------------------------
 # 15. Winsorização robusta (MAD) reduz influência de outlier no z-score
-# ---------------------------------------------------------------------------
 def test_winsorization_reduces_outlier_influence(engine, monkeypatch):
     """Com winsorização, um outlier não esmaga o z-score dos demais."""
     import src.scoring_engine as se
@@ -443,9 +411,7 @@ def test_winsorization_reduces_outlier_influence(engine, monkeypatch):
     assert scores_off.between(0, 100).all()
 
 
-# ---------------------------------------------------------------------------
 # 16. Score de convicção: bem-suportado > frágil
-# ---------------------------------------------------------------------------
 def test_conviction_score_ranks_support(engine):
     """Pick com cobertura/peers/método fortes deve ter convicção > frágil."""
     from src.scoring_engine import NormDetail
@@ -469,9 +435,7 @@ def test_conviction_score_ranks_support(engine):
     assert engine._conviction_label(c_weak) == "Baixa"
 
 
-# ---------------------------------------------------------------------------
 # 17. ADV em R$ calculado do OHLCV (substitui campo bruto da brapi)
-# ---------------------------------------------------------------------------
 def test_adv_brl_from_ohlc():
     """ADV R$ = mediana(Close × Volume); robusto e em R$ reais."""
     from src.data_collector import DataCollector

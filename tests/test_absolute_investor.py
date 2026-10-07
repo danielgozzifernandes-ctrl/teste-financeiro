@@ -1,6 +1,6 @@
 """
 Testes da camada "investidor absoluto":
-  - allocator (sleeves, tilts, bounds, gross exposure, degradação honesta)
+  - allocator (sleeves, tilts, bounds, gross exposure, dado faltante)
   - stop_monitor (stop_hit/near/target, recomendações antigas sem trade_advice)
   - equity_curve (encadeamento de NAV, dedup por data, banda de ruído)
   - order_sheet (quantidades fracionárias, sobra → CDI, nota de IR)
@@ -34,7 +34,7 @@ from src.order_sheet import build_order_sheet
 from src.stop_monitor import check_levels
 
 
-# ─── Fixtures ────────────────────────────────────────────────────────────────
+# Fixtures
 
 def _ibov_series(n: int = 300, trend: float = 0.001) -> pd.Series:
     idx = pd.date_range("2025-01-01", periods=n, freq="B")
@@ -46,12 +46,12 @@ def _cdi_series(n: int = 300, daily: float = 0.00055) -> pd.Series:
     return pd.Series(np.full(n, daily), index=idx)
 
 
-# ─── Allocator ───────────────────────────────────────────────────────────────
+# Allocator
 
 def test_allocation_sums_to_one_all_regimes():
     for regime in ("risk_on", "mean_rev", "bear"):
         out = compute_allocation(
-            regime=regime, portfolio_earnings_yield=0.12, selic_annual=0.15,
+            mode="dynamic", regime=regime, portfolio_earnings_yield=0.12, selic_annual=0.15,
             ibov_prices=_ibov_series(), cdi_daily_returns=_cdi_series(),
         )
         assert abs(sum(out["sleeves"].values()) - 1.0) < 1e-3
@@ -64,8 +64,8 @@ def test_bear_allocates_less_equity_than_risk_on():
         portfolio_earnings_yield=0.12, selic_annual=0.15,
         ibov_prices=_ibov_series(), cdi_daily_returns=_cdi_series(),
     )
-    bear = compute_allocation(regime="bear", **kwargs)
-    bull = compute_allocation(regime="risk_on", **kwargs)
+    bear = compute_allocation(regime="bear", mode="dynamic", **kwargs)
+    bull = compute_allocation(regime="risk_on", mode="dynamic", **kwargs)
     assert bear["sleeves"]["equities_br"] < bull["sleeves"]["equities_br"]
 
 
@@ -73,7 +73,7 @@ def test_low_erp_reduces_equity():
     """EY 10% com Selic 15% → ERP −5pp < threshold → tilt negativo."""
     base = ALLOCATION_BASE["mean_rev"]["equities_br"]
     out = compute_allocation(
-        regime="mean_rev", portfolio_earnings_yield=0.10, selic_annual=0.15,
+        mode="dynamic", regime="mean_rev", portfolio_earnings_yield=0.10, selic_annual=0.15,
         ibov_prices=_ibov_series(trend=0.002),  # TSMOM positivo (+tilt)
         cdi_daily_returns=_cdi_series(),
     )
@@ -85,17 +85,17 @@ def test_low_erp_reduces_equity():
 
 def test_negative_tsmom_reduces_equity():
     out = compute_allocation(
-        regime="mean_rev", portfolio_earnings_yield=None, selic_annual=None,
+        mode="dynamic", regime="mean_rev", portfolio_earnings_yield=None, selic_annual=None,
         ibov_prices=_ibov_series(trend=-0.002),  # bear market 12m
         cdi_daily_returns=_cdi_series(),
     )
     assert out["signals"]["tsmom_tilt"] == -ALLOCATION_TILT_PP
-    assert out["signals"]["erp_tilt"] == 0.0  # degradação honesta
+    assert out["signals"]["erp_tilt"] == 0.0  # sem dado → tilt 0
 
 
 def test_missing_data_degrades_to_base():
     out = compute_allocation(
-        regime="mean_rev", portfolio_earnings_yield=None, selic_annual=None,
+        mode="dynamic", regime="mean_rev", portfolio_earnings_yield=None, selic_annual=None,
         ibov_prices=None, cdi_daily_returns=None,
     )
     base = ALLOCATION_BASE["mean_rev"]
@@ -106,7 +106,7 @@ def test_missing_data_degrades_to_base():
 
 def test_apply_gross_exposure_moves_equity_to_cdi():
     out = compute_allocation(
-        regime="mean_rev", portfolio_earnings_yield=None, selic_annual=None,
+        mode="dynamic", regime="mean_rev", portfolio_earnings_yield=None, selic_annual=None,
         ibov_prices=None, cdi_daily_returns=None,
     )
     eq_before, cdi_before = out["sleeves"]["equities_br"], out["sleeves"]["cdi"]
@@ -117,6 +117,32 @@ def test_apply_gross_exposure_moves_equity_to_cdi():
     assert abs(sum(scaled["sleeves"].values()) - 1.0) < 1e-3
     # Idempotente em gross >= 1
     assert apply_gross_exposure(out, 1.0)["sleeves"] == out["sleeves"]
+
+
+def test_static_mode_ignores_regime_and_tilts():
+    from src.config import ALLOCATION_STATIC_MIX
+
+    for regime in ("risk_on", "bear"):
+        out = compute_allocation(
+            mode="static", regime=regime, portfolio_earnings_yield=0.10,
+            selic_annual=0.15, ibov_prices=_ibov_series(trend=-0.002),
+            cdi_daily_returns=_cdi_series(),
+        )
+        assert out["sleeves"] == ALLOCATION_STATIC_MIX
+        assert out["signals"]["mode"] == "static"
+        # sinais seguem calculados para o relatório
+        assert out["signals"]["erp"] == pytest.approx(-0.05, abs=1e-6)
+        assert out["signals"]["tsmom"] is not None
+
+
+def test_static_mode_is_not_scaled_by_vol_target():
+    out = compute_allocation(
+        mode="static", regime="mean_rev", portfolio_earnings_yield=None,
+        selic_annual=None, ibov_prices=None, cdi_daily_returns=None,
+    )
+    scaled = apply_gross_exposure(out, 0.5)
+    assert scaled["sleeves"] == out["sleeves"]
+    assert "não aplicado" in scaled["rationale"][-1]
 
 
 def test_selic_annualization():
@@ -133,7 +159,7 @@ def test_portfolio_earnings_yield_requires_majority():
     assert portfolio_earnings_yield(df_sparse) is None
 
 
-# ─── Stop monitor ────────────────────────────────────────────────────────────
+# Stop monitor
 
 _REC = {
     "trade_advice": {
@@ -165,7 +191,7 @@ def test_old_recommendation_without_trade_advice():
     assert check_levels(None, {}) == []
 
 
-# ─── Equity curve ────────────────────────────────────────────────────────────
+# Equity curve
 
 def test_equity_curve_chains_nav(tmp_path):
     path = tmp_path / "curve.json"
@@ -240,11 +266,11 @@ def test_weighted_portfolio_return_uses_real_weights():
         pytest.approx(0.06)
     # sem pesos → fallback equal-weight
     assert _weighted_portfolio_return(rets, None) == pytest.approx(0.0)
-    # pesos não cobrem nenhum ticker válido → fallback
-    assert _weighted_portfolio_return(rets, {"C": 1.0}) == pytest.approx(0.0)
+    # nenhuma posição da carteira tem retorno → sem dado
+    assert _weighted_portfolio_return(rets, {"C": 1.0}) is None
 
 
-# ─── Order sheet ─────────────────────────────────────────────────────────────
+# Order sheet
 
 _ALLOC = {"sleeves": {"equities_br": 0.40, "cdi": 0.30,
                       "global_usd": 0.15, "inflation": 0.15}}

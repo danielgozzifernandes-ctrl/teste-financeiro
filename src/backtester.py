@@ -1,36 +1,24 @@
 """
-backtester.py — Módulo 7
+Backtest da recomendação anterior: preço de entrada gravado vs preço atual.
 
-Audita o desempenho das recomendações anteriores comparando o preço
-de entrada registrado no snapshot com o preço atual de mercado.
+Retorno por ação = (P_atual + proventos) / P_entrada − 1, com proventos de
+data-com em [data da recomendação, data do backtest). O IBOV é índice de
+retorno total; sem os proventos a carteira sai prejudicada na comparação.
+Carteira = Σ w_i × R_i com os pesos gravados (equal-weight se não houver).
+Ticker sem preço mantém o peso com retorno 0 (caso típico: OPA, preço parado).
+Custo = Σ |Δw_i| × f_i contra os pesos da recomendação anterior a ela; só o
+que foi negociado paga (deriva de preço entre recomendações é ignorada).
+Sem recomendação anterior → status "no_history".
 
-Fórmula do retorno da carteira (briefing, pesos iguais 20%):
-    R_total = Σ 0.20 × (P_atual_i / P_entrada_i − 1)  para i=1..N
-
-Por que essa fórmula?
-  É equivalente à média aritmética dos retornos individuais com pesos iguais.
-  Corresponde a uma carteira rebalanceada diariamente (simplificação conservadora
-  — subestima ligeiramente o retorno real, que seria geométrico com rebalanceamento
-  mensal). Para janelas curtas (1-4 semanas) a diferença é desprezível (<0.1pp).
-
-Tratamento de "primeira execução":
-  Se não há recomendação anterior gravada → retorna status "no_history"
-  sem lançar exceção. O main.py trata esse caso graciosamente.
-
-Tratamento de ticker indisponível (delisting, erro de dado):
-  Se um ticker da recomendação anterior não tem preço atual → excluído
-  do cálculo e os pesos são redistribuídos proporcionalmente.
-  Ex: 4 de 5 tickers disponíveis → peso efetivo de 25% cada.
-
-Output salvo em data/history/backtest_YYYY-MM-DD_{mode}.json.
+Saída: data/history/backtest_YYYY-MM-DD_{mode}.json.
 """
 
 import json
 import logging
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
@@ -49,6 +37,101 @@ _FRICTION_BPS = 13
 _FRICTION = _FRICTION_BPS / 10_000
 _ADV_REFERENCE_BRL = 50_000_000  # 50M R$/dia = baseline large-cap
 
+DIVIDEND_BASIS = "bruto: dividendos + JCP antes do IR retido (B3; yfinance como reserva)"
+
+# {ticker: {"amount": R$/ação, "jcp": parte em JCP, "source": "b3"|"yfinance"}}
+DividendFetcher = Callable[[list[str], date, date], dict[str, dict]]
+
+_B3_CLASS = {"3": "ACNOR", "4": "ACNPR", "5": "ACNPA", "6": "ACNPB", "11": "CDAM"}
+
+
+def _b3_cash_dividends(issuer: str) -> list[dict]:
+    import base64
+
+    import requests
+
+    payload = base64.b64encode(
+        json.dumps({"issuingCompany": issuer, "language": "pt-br"}).encode()
+    ).decode()
+    url = (
+        "https://sistemaswebb3-listados.b3.com.br/listedCompaniesProxy/"
+        f"CompanyCall/GetListedSupplementCompany/{payload}"
+    )
+    r = requests.get(url, timeout=20)
+    r.raise_for_status()
+    data = r.json()
+    return (data[0] if isinstance(data, list) and data else {}).get("cashDividends") or []
+
+
+def _br_float(x: str) -> float:
+    return float(str(x).replace(".", "").replace(",", "."))
+
+
+def fetch_dividends(tickers: list[str], start: date, end: date) -> dict[str, dict]:
+    """
+    Proventos por ação no período, para quem comprou em `start` e avalia em `end`.
+
+    B3 (oficial, separa JCP): data-com em [start, end). Linhas repetidas na API
+    são parcelas distintas — a soma bate com o yfinance. Se a B3 falhar ou o
+    ticker não casar com um ISIN, cai no yfinance (data-ex em (start, end]).
+    """
+    out: dict[str, dict] = {}
+    by_issuer: dict[str, list[dict]] = {}
+    for t in tickers:
+        cls = _B3_CLASS.get(t[4:])
+        issuer = t[:4]
+        if cls is None:
+            continue
+        try:
+            if issuer not in by_issuer:
+                by_issuer[issuer] = _b3_cash_dividends(issuer)
+        except Exception as exc:
+            logger.warning("Proventos B3 de %s indisponíveis: %s", issuer, exc)
+            by_issuer[issuer] = []
+            continue
+        rows = [r for r in by_issuer[issuer] if str(r.get("isinCode", ""))[6:6 + len(cls)] == cls]
+        if not rows:
+            continue
+        amount = jcp = 0.0
+        for r in rows:
+            try:
+                com = datetime.strptime(r["lastDatePrior"], "%d/%m/%Y").date()
+                rate = _br_float(r["rate"])
+            except (KeyError, ValueError):
+                continue
+            if start <= com < end:
+                amount += rate
+                if "JRS" in str(r.get("label", "")).upper() or "JCP" in str(r.get("label", "")).upper():
+                    jcp += rate
+        out[t] = {"amount": amount, "jcp": jcp, "source": "b3"}
+
+    missing = [t for t in tickers if t not in out]
+    if missing:
+        for t, amount in fetch_dividends_yf(missing, start, end).items():
+            out[t] = {"amount": amount, "jcp": None, "source": "yfinance"}
+    return out
+
+
+def fetch_dividends_yf(tickers: list[str], start: date, end: date) -> dict[str, float]:
+    """Proventos por ação com data-ex em (start, end], via yfinance."""
+    import yfinance as yf
+
+    out: dict[str, float] = {}
+    for t in tickers:
+        try:
+            div = yf.Ticker(f"{t}.SA").dividends
+        except Exception as exc:
+            logger.warning("Proventos de %s indisponíveis no yfinance: %s", t, exc)
+            continue
+        if div is None or div.empty:
+            out[t] = 0.0
+            continue
+        dates = pd.to_datetime(div.index).tz_localize(None).date
+        mask = (dates > start) & (dates <= end)
+        out[t] = float(div[mask].sum())
+    return out
+
+
 def _adv_adjusted_friction(adv_brl: Optional[float]) -> float:
     """Friction com ajuste de liquidez via raiz quadrada do ADV."""
     if adv_brl is None or adv_brl <= 0:
@@ -60,8 +143,6 @@ def _adv_adjusted_friction(adv_brl: Optional[float]) -> float:
     return _FRICTION * scale
 
 
-# ─── Tipos de resultado ───────────────────────────────────────────────────────
-
 class BacktestStatus:
     SUCCESS      = "success"
     NO_HISTORY   = "no_history"       # primeira execução
@@ -69,33 +150,62 @@ class BacktestStatus:
     ERROR        = "error"
 
 
-# ─── Backtester ───────────────────────────────────────────────────────────────
+def _normalized_weights(rec: Optional[dict]) -> dict[str, float]:
+    """Pesos do top-5 somando 1 (equal-weight se a recomendação não tiver)."""
+    if not rec:
+        return {}
+    tickers = [r.get("ticker") for r in rec.get("top5", []) if r.get("ticker")]
+    stored = rec.get("portfolio_weights") or {}
+    raw = {t: float(stored[t]) for t in tickers if stored.get(t) is not None}
+    if len(raw) != len(tickers) or sum(raw.values()) <= 0:
+        raw = {t: 1.0 for t in tickers}
+    total = sum(raw.values())
+    return {t: w / total for t, w in raw.items()} if total > 0 else {}
+
+
+def _adv_by_ticker(rec: Optional[dict]) -> dict[str, float]:
+    out: dict[str, float] = {}
+    for r in (rec or {}).get("top5", []):
+        m = r.get("metrics") or {}
+        adv = m.get("adv_brl")
+        if adv:
+            out[r.get("ticker")] = float(adv)
+    return out
+
+
+def transaction_cost(previous: dict, prior: Optional[dict]) -> tuple[float, float]:
+    """
+    Custo de montar a carteira `previous` a partir de `prior`.
+
+    Returns: (custo como fração do capital, giro one-way).
+    Sem `prior` (primeira recomendação) cobra só a compra inicial.
+    """
+    w_new = _normalized_weights(previous)
+    w_old = _normalized_weights(prior)
+    adv = {**_adv_by_ticker(prior), **_adv_by_ticker(previous)}
+    cost = traded = 0.0
+    for t in set(w_new) | set(w_old):
+        dw = abs(w_new.get(t, 0.0) - w_old.get(t, 0.0))
+        traded += dw
+        cost += dw * _adv_adjusted_friction(adv.get(t))
+    return cost, traded / 2
+
 
 class Backtester:
-    """
-    Calcula e persiste o resultado do backtesting da carteira anterior.
-
-    Uso:
-        bt = Backtester()
-        result = bt.run(
-            mode="weekly",
-            current_prices={"PETR4": 41.55, "VALE3": 72.10, ...},
-            benchmark_period_returns={"ibovespa": 0.051, "cdi": 0.016, "selic": 0.016},
-        )
-    """
+    """Calcula e grava o backtest da carteira anterior."""
 
     def __init__(
         self,
         snapshot_manager: Optional[SnapshotManager] = None,
         history_dir: Path = HISTORY_DIR,
+        dividend_fetcher: Optional[DividendFetcher] = None,
     ):
         self.snap    = snapshot_manager or SnapshotManager()
         self.history = Path(history_dir)
         self.history.mkdir(parents=True, exist_ok=True)
+        self.dividend_fetcher = dividend_fetcher or fetch_dividends
 
-    # ═══════════════════════════════════════════════════════════════════════
     # API pública
-    # ═══════════════════════════════════════════════════════════════════════
 
     def run(
         self,
@@ -103,6 +213,8 @@ class Backtester:
         current_prices: dict[str, float],
         benchmark_period_returns: dict[str, float],
         run_date: Optional[str | date] = None,
+        market_data: Optional[dict] = None,
+        dividends: Optional[dict[str, dict]] = None,
     ) -> dict:
         """
         Executa o backtest comparando a recomendação anterior com os preços atuais.
@@ -114,6 +226,10 @@ class Backtester:
             benchmark_period_returns:  {"ibovespa": 0.051, "cdi": 0.016, "selic": 0.016}
                                        retornos acumulados do período (de BenchmarkManager).
             run_date:                  Data de referência; default = hoje.
+            market_data:               Horário da execução, estado do candle do
+                                       IBOV e checagem contra o BOVA11.
+            dividends:                 Saída de fetch_dividends. None = proventos
+                                       não buscados (return_basis "price").
 
         Returns:
             dict com o resultado completo (veja _build_result).
@@ -153,21 +269,30 @@ class Backtester:
                 rec_date, run_date_str,
             )
 
-            # Calcular retorno da carteira
-            port_return, holdings, status_detail = self._calc_portfolio_return(
-                previous, current_prices
+            period_days = self._calc_period_days(rec_date, run_date_str)
+            if period_days is not None and period_days <= 0:
+                result = self._first_run_result(run_date_str, mode)
+                result["degenerate"] = True
+                result["message"] = "Período vazio entre recomendação e backtest."
+                self._save(result, run_date_str, mode)
+                return result
+
+            gross_return, holdings, status_detail = self._calc_portfolio_return(
+                previous, current_prices, dividends=dividends,
+            )
+            prior = self.snap.load_latest_recommendation(mode=mode, before_date=rec_date)
+            cost, turnover = transaction_cost(previous, prior)
+            port_return = (
+                (1.0 + gross_return) * (1.0 - cost) - 1.0
+                if gross_return is not None else None
             )
 
-            # Calcular métricas de alpha
             ibov = benchmark_period_returns.get("ibovespa")
             cdi  = benchmark_period_returns.get("cdi")
             selic = benchmark_period_returns.get("selic")
 
             alpha_ibov = (port_return - ibov) if ibov is not None and port_return is not None else None
             alpha_cdi  = (port_return - cdi)  if cdi  is not None and port_return is not None else None
-
-            # Calcular dias do período
-            period_days = self._calc_period_days(rec_date, run_date_str)
 
             # Brinson-style attribution: decompõe retorno em allocation +
             # selection vs IBOV (universo equal-weight como proxy).
@@ -190,7 +315,20 @@ class Backtester:
                 period_days=period_days,
                 previous_top5=[r.get("ticker") for r in previous.get("top5", [])],
                 attribution=attribution,
+                market_data=market_data,
             )
+            result.update({
+                "return_basis":     "total" if dividends is not None else "price",
+                "dividend_basis":   DIVIDEND_BASIS if dividends is not None else None,
+                "gross_return":     gross_return,
+                "transaction_cost": round(cost, 6),
+                "turnover_one_way": round(turnover, 4),
+            })
+            if dividends is not None:
+                result["dividends_missing"] = [
+                    h["ticker"] for h in holdings
+                    if h.get("included") and h["ticker"] not in dividends
+                ]
 
             self._save(result, run_date_str, mode)
             logger.info(
@@ -211,6 +349,41 @@ class Backtester:
             }
             self._save(result, run_date_str, mode)
             return result
+
+    @staticmethod
+    def _align_ibov_to_entry(
+        previous: dict, rec_date: str, end, bench_returns: dict, market_data: dict,
+        price_fetcher=None,
+    ) -> None:
+        """
+        Mede o IBOV a partir do nível gravado no instante da entrada.
+
+        Sem isso a janela começa no fechamento anterior a rec_date: se a
+        recomendação rodou no meio do pregão, o movimento do dia antes da
+        entrada entra no benchmark e não na carteira. Recomendações antigas
+        não têm o nível — ficam com a janela de fechamentos.
+        """
+        entry_level = (
+            (previous.get("execution_metadata") or {}).get("market_data") or {}
+        ).get("ibov_level")
+        market_data["ibov_basis"] = "daily_closes"
+        if not entry_level or bench_returns.get("ibovespa") is None:
+            return
+        if price_fetcher is None:
+            from src.benchmark import get_ibov_prices as price_fetcher
+        try:
+            start = date.fromisoformat(rec_date) - timedelta(days=10)
+            prices = price_fetcher(start, end)
+        except Exception as exc:
+            logger.warning("Nível atual do IBOV indisponível: %s", exc)
+            return
+        if prices is None or len(prices) == 0:
+            return
+        market_data["ibov_daily_closes"] = bench_returns["ibovespa"]
+        market_data["ibov_entry_level"] = float(entry_level)
+        market_data["ibov_current_level"] = round(float(prices.iloc[-1]), 2)
+        market_data["ibov_basis"] = "entry_level"
+        bench_returns["ibovespa"] = float(prices.iloc[-1]) / float(entry_level) - 1
 
     def run_from_df(
         self,
@@ -241,153 +414,130 @@ class Backtester:
         previous = self.snap.load_latest_recommendation(
             mode=mode, before_date=_date_str(run_date),
         )
+        from src.benchmark import BenchmarkManager, is_intraday, now_brt  # import lazy
+
         bench_returns: dict[str, float] = {}
+        run_at = now_brt()
+        market_data: dict = {
+            "run_at_brt": run_at.isoformat(timespec="seconds"),
+            "prices_intraday": is_intraday(run_at),
+        }
 
         if previous:
             rec_date = previous.get("date")
             if rec_date:
                 try:
-                    from src.benchmark import BenchmarkManager  # import lazy
                     if not isinstance(benchmark_manager, BenchmarkManager):
                         benchmark_manager = BenchmarkManager()
+                    end = run_date or date.today()
                     period_ret = benchmark_manager.get_period_return(
-                        start_date=rec_date,
-                        end_date=run_date or date.today(),
+                        start_date=rec_date, end_date=end,
                     )
                     bench_returns = period_ret.to_dict()
+                    market_data["ibovespa"] = dict(benchmark_manager.ibov_meta)
+                    market_data["ibov_vs_etf"] = benchmark_manager.check_against_etf(
+                        rec_date, end, bench_returns.get("ibovespa"),
+                    )
+                    self._align_ibov_to_entry(previous, rec_date, end, bench_returns, market_data)
                 except Exception as exc:
                     logger.warning("Falha ao buscar retornos do benchmark para backtest: %s", exc)
+
+        dividends: Optional[dict[str, dict]] = None
+        if previous and previous.get("date"):
+            tickers = [r.get("ticker") for r in previous.get("top5", []) if r.get("ticker")]
+            try:
+                dividends = self.dividend_fetcher(
+                    tickers,
+                    date.fromisoformat(previous["date"]),
+                    date.fromisoformat(_date_str(run_date)),
+                )
+            except Exception as exc:
+                logger.warning("Proventos indisponíveis — backtest só de preço: %s", exc)
 
         return self.run(
             mode=mode,
             current_prices=current_prices,
             benchmark_period_returns=bench_returns,
             run_date=run_date,
+            market_data=market_data,
+            dividends=dividends,
         )
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Cálculo de retorno
-    # ═══════════════════════════════════════════════════════════════════════
 
     def _calc_portfolio_return(
         self,
         previous: dict,
         current_prices: dict[str, float],
+        dividends: Optional[dict[str, dict]] = None,
     ) -> tuple[Optional[float], list[dict], str]:
         """
-        Calcula o retorno da carteira usando a fórmula de pesos iguais.
+        Retorno bruto (antes de custo) da carteira anterior.
 
-        Fórmula: R_total = Σ w_i × (P_atual_i / P_entrada_i − 1)
-        onde w_i = 1/N para os N tickers com dados disponíveis.
-
-        Tratamento de dados ausentes:
-          - Ticker sem preço atual → excluído, peso redistribuído
-          - Ticker sem preço de entrada → excluído, peso redistribuído
-          - Se < 3 tickers disponíveis → status PARTIAL_DATA
-
-        Returns:
-            (portfolio_return, holdings_list, status)
+        Ticker sem preço fica com o peso e retorno 0 — numa OPA o preço fica
+        parado no valor da oferta até a liquidação; não inventa rendimento.
         """
         entry_prices = previous.get("entry_prices", {})
-        top5         = previous.get("top5", [])
-
+        top5 = previous.get("top5", [])
         if not top5:
             return None, [], BacktestStatus.ERROR
 
-        # Stored inverse-volatility weights from SnapshotManager (may be absent in old snapshots)
-        stored_weights: dict[str, float] = previous.get("portfolio_weights", {})
+        weights = _normalized_weights(previous)
+        dividends = dividends or {}
 
-        holdings: list[dict]  = []
-        excluded: list[str]   = []
-
+        holdings: list[dict] = []
+        n_priced = 0
         for stock in top5:
-            ticker        = stock.get("ticker", "")
-            entry_price   = entry_prices.get(ticker) or stock.get("entry_price")
+            ticker = stock.get("ticker", "")
+            entry_price = entry_prices.get(ticker) or stock.get("entry_price")
             current_price = current_prices.get(ticker)
+            w = weights.get(ticker, 0.0)
 
-            if entry_price is None or entry_price <= 0:
-                logger.warning("Backtester: preço de entrada inválido para %s", ticker)
-                excluded.append(ticker)
-                continue
-
-            if current_price is None or current_price <= 0:
+            if not entry_price or entry_price <= 0 or not current_price or current_price <= 0:
                 logger.warning(
-                    "Backtester: preço atual não disponível para %s — excluído do cálculo",
-                    ticker,
+                    "Backtester: sem preço para %s — peso %.1f%% fica com retorno 0",
+                    ticker, w * 100,
                 )
-                excluded.append(ticker)
+                holdings.append({
+                    "ticker":   ticker,
+                    "weight":   round(w, 6),
+                    "return":   0.0,
+                    "included": False,
+                    "reason":   "preço ausente — mantido com retorno 0",
+                })
                 continue
 
-            # Frictional cost: ADV-adjusted per leg (buy + sell).
-            # Pegamos ADV das metrics armazenadas na recomendação anterior.
-            adv = None
-            for r in top5:
-                if r.get("ticker") == ticker:
-                    m = r.get("metrics") or {}
-                    adv = m.get("avg_volume_30d") or m.get("avg_volume")
-                    break
-            friction = _adv_adjusted_friction(adv)
-            stock_return = (
-                (current_price * (1 - friction)) / (entry_price * (1 + friction))
-            ) - 1
-
-            holdings.append({
+            div = dividends.get(ticker) or {}
+            amount = float(div.get("amount") or 0.0)
+            stock_return = (current_price + amount) / entry_price - 1
+            n_priced += 1
+            holding = {
                 "ticker":        ticker,
                 "entry_price":   round(float(entry_price), 4),
                 "current_price": round(float(current_price), 4),
                 "return":        round(float(stock_return), 6),
                 "return_pct":    round(float(stock_return * 100), 4),
-                "weight":        stored_weights.get(ticker),
+                "weight":        round(w, 6),
                 "included":      True,
-            })
+            }
+            if div:
+                holding["dividends"] = round(amount, 6)
+                holding["jcp"] = div.get("jcp")
+                holding["dividend_source"] = div.get("source")
+            holdings.append(holding)
 
-        # Marcar excluídos
-        for ticker in excluded:
-            holdings.append({
-                "ticker":   ticker,
-                "included": False,
-                "reason":   "preço ausente",
-            })
-
-        n_valid = sum(1 for h in holdings if h.get("included"))
-
-        if n_valid == 0:
-            logger.error("Backtester: nenhum ticker válido para cálculo.")
+        if n_priced == 0:
+            logger.error("Backtester: nenhum ticker com preço.")
             return None, holdings, BacktestStatus.ERROR
 
-        # Portfolio weights: use inverse-volatility weights when available,
-        # redistributing excluded tickers' weights proportionally.
-        valid_tickers = [h["ticker"] for h in holdings if h.get("included")]
-        if stored_weights and all(t in stored_weights for t in valid_tickers):
-            raw_w = {t: stored_weights[t] for t in valid_tickers}
-            total_w = sum(raw_w.values())
-            eff_weights = {t: w / total_w for t, w in raw_w.items()} if total_w > 0 else {}
-        else:
-            eq = 1.0 / n_valid
-            eff_weights = {t: eq for t in valid_tickers}
-
-        portfolio_return = sum(
-            eff_weights[h["ticker"]] * h["return"]
-            for h in holdings
-            if h.get("included")
-        )
-
+        portfolio_return = sum(h["weight"] * h["return"] for h in holdings)
         status = (
-            BacktestStatus.SUCCESS if n_valid == len(top5)
+            BacktestStatus.SUCCESS if n_priced == len(top5)
             else BacktestStatus.PARTIAL_DATA
         )
-
-        if status == BacktestStatus.PARTIAL_DATA:
-            logger.warning(
-                "Backtester: %d/%d tickers disponíveis. Pesos redistribuídos.",
-                n_valid, len(top5),
-            )
-
         return float(portfolio_return), holdings, status
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Persistência
-    # ═══════════════════════════════════════════════════════════════════════
 
     def _save(self, result: dict, run_date_str: str, mode: str) -> Path:
         """Salva o resultado do backtest em JSON atômico."""
@@ -485,9 +635,7 @@ class Backtester:
             "last_6_periods":         backtests[-6:],
         }
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Helpers
-    # ═══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _first_run_result(run_date_str: str, mode: str) -> dict:
@@ -513,8 +661,14 @@ class Backtester:
         period_days: Optional[int],
         previous_top5: list[str],
         attribution: Optional[dict] = None,
+        market_data: Optional[dict] = None,
     ) -> dict:
         """Constrói o dict de resultado normalizado."""
+        market_data = market_data or {}
+        intraday = bool(
+            market_data.get("prices_intraday")
+            or (market_data.get("ibovespa") or {}).get("intraday")
+        )
         return {
             "status":              status,
             "backtest_date":       backtest_date,
@@ -534,6 +688,9 @@ class Backtester:
             "holdings":            holdings,
             "previous_top5":       previous_top5,
             "attribution":         attribution,
+            # True = preços e/ou IBOV vieram de pregão aberto, não de fechamento.
+            "intraday":            intraday,
+            "market_data":         market_data,
             "generated_at":        datetime.now().isoformat(),
         }
 
@@ -551,9 +708,8 @@ class Backtester:
         Per-sector aggregation:  Σ_i∈sector w_i × R_i + total weight no setor
         Vs IBOV: cada setor é comparado com retorno médio do IBOV (proxy).
 
-        Limitação honesta: Brinson completo requer composição setorial do
-        IBOV (free data parcial — i Ibovespa por setor está em CSV BVMF, mas
-        peso por setor varia mensalmente). Usamos IBOV total como proxy.
+        Brinson completo precisaria do peso setorial do IBOV a cada período;
+        aqui o IBOV total serve de proxy para todos os setores.
 
         Returns dict com:
           per_ticker:  [{ticker, sector, weight, return, contribution}]
@@ -652,7 +808,7 @@ class Backtester:
             return None
 
 
-# ─── Helpers de serialização ─────────────────────────────────────────────────
+# Helpers de serialização
 
 def _safe_serialize(obj):
     """Garante que todos os floats NaN/inf sejam None antes de serializar."""
@@ -665,7 +821,7 @@ def _safe_serialize(obj):
     return obj
 
 
-# ─── Função de conveniência ───────────────────────────────────────────────────
+# Função de conveniência
 
 def run_backtest(
     mode: str,

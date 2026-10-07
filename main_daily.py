@@ -23,6 +23,7 @@ Flags CLI:
   --dry-run                   Executa tudo mas não envia ao Telegram
   --send                      Envia ao Telegram
   --debug                     Logging DEBUG
+  --force                     Roda mesmo em dia sem pregão
 
 Exit codes:
   0  Sucesso
@@ -31,6 +32,7 @@ Exit codes:
 """
 
 import argparse
+import json
 import logging
 import sys
 from datetime import date, datetime, timedelta
@@ -47,6 +49,7 @@ import pandas as pd
 import yfinance as yf
 
 from src.config import OUTPUT_DIR, HISTORY_DIR, CACHE_DIR
+from src.b3_calendar import holiday_name, is_trading_day, today_brt
 from src.snapshot_manager import SnapshotManager
 from src.macro_fetcher import MacroFetcher
 from src.technical_analyzer import TechnicalAnalyzer
@@ -57,8 +60,11 @@ from src.telegram_sender import send_report, TelegramError
 
 logger = logging.getLogger(__name__)
 
+# Dias corridos que cada closing recalcula com fechamento final.
+_RECONCILE_DAYS = 12
 
-# ─── CLI ─────────────────────────────────────────────────────────────────────
+
+# CLI
 
 def _parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -75,6 +81,8 @@ def _parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--send",    action="store_true")
     parser.add_argument("--debug",   action="store_true")
+    parser.add_argument("--force",   action="store_true",
+                        help="Roda mesmo em dia sem pregão na B3")
     return parser.parse_args(argv)
 
 
@@ -95,7 +103,7 @@ def _resolve_date(date_arg: Optional[str]) -> str:
         except ValueError:
             logger.error("Formato inválido: %s (esperado YYYY-MM-DD)", date_arg)
             sys.exit(2)
-    return date.today().strftime("%Y-%m-%d")
+    return today_brt().isoformat()
 
 
 def _ensure_dirs() -> None:
@@ -103,20 +111,26 @@ def _ensure_dirs() -> None:
         Path(d).mkdir(parents=True, exist_ok=True)
 
 
-# ─── Fetch today's prices ─────────────────────────────────────────────────────
+# Fetch today's prices
 
-def _fetch_daily_prices(tickers: list[str]) -> tuple[dict[str, float], dict[str, float], float]:
+def _fetch_daily_prices(
+    tickers: list[str],
+) -> tuple[dict[str, float], dict[str, float], float, dict]:
     """
     Fetches today's close prices and returns for a list of B3 tickers + IBOV.
 
     Returns:
-        (ticker_returns, ticker_prices, ibov_return)
-        All returns are decimal (0.01 = 1%).
+        (ticker_returns, ticker_prices, ibov_return, ibov_meta)
+        All returns are decimal (0.01 = 1%). ibov_meta = last bar date and
+        whether it is an unsettled intraday print.
     """
+    from src.benchmark import clean_close, now_brt
+
     yf_symbols = [f"{t}.SA" for t in tickers] + ["^BVSP"]
     ticker_returns: dict[str, float] = {}
     ticker_prices:  dict[str, float] = {}
     ibov_return: float = 0.0
+    ibov_meta: dict = {}
 
     try:
         raw = yf.download(
@@ -128,41 +142,51 @@ def _fetch_daily_prices(tickers: list[str]) -> tuple[dict[str, float], dict[str,
         )
     except Exception as exc:
         logger.error("_fetch_daily_prices: download falhou: %s", exc)
-        return ticker_returns, ticker_prices, ibov_return
+        return ticker_returns, ticker_prices, ibov_return, ibov_meta
 
     if raw is None or raw.empty:
         logger.error("_fetch_daily_prices: dados vazios")
-        return ticker_returns, ticker_prices, ibov_return
+        return ticker_returns, ticker_prices, ibov_return, ibov_meta
 
-    def _extract(symbol: str) -> tuple[Optional[float], Optional[float]]:
+    def _extract(symbol: str) -> tuple[Optional[float], Optional[float], dict]:
         try:
             if isinstance(raw.columns, pd.MultiIndex):
-                level1 = raw.columns.get_level_values(1)
-                if symbol not in level1:
-                    return None, None
-                close = raw["Close"][symbol].dropna()
+                if symbol not in raw.columns.get_level_values(1):
+                    return None, None, {}
+                sub = raw.xs(symbol, axis=1, level=1)
             else:
-                close = raw["Close"].dropna()
+                sub = raw
+            close, meta = clean_close(sub)
 
             if len(close) < 2:
-                return None, None
+                return None, None, meta
 
             today_close = float(close.iloc[-1])
             prev_close  = float(close.iloc[-2])
             ret = (today_close - prev_close) / prev_close if prev_close else 0.0
-            return ret, today_close
+            return ret, today_close, meta
         except Exception as exc:
             logger.debug("_extract %s: %s", symbol, exc)
-            return None, None
+            return None, None, {}
 
     # IBOV
-    ibov_ret, _ = _extract("^BVSP")
+    ibov_ret, _, ibov_meta = _extract("^BVSP")
     if ibov_ret is not None:
         ibov_return = ibov_ret
+    today = now_brt().date().isoformat()
+    if ibov_meta.get("last_bar") and ibov_meta["last_bar"] != today:
+        # Candle de hoje ainda não saiu: o "retorno do dia" seria o de ontem.
+        ibov_meta["stale"] = True
+        logger.warning(
+            "IBOV: último candle é de %s, não de hoje (%s).",
+            ibov_meta["last_bar"], today,
+        )
+    if ibov_meta.get("intraday"):
+        logger.warning("IBOV: candle de hoje ainda é intradiário (não consolidado).")
 
     # Tickers
     for ticker in tickers:
-        ret, price = _extract(f"{ticker}.SA")
+        ret, price, _ = _extract(f"{ticker}.SA")
         if ret is not None:
             ticker_returns[ticker] = ret
         if price is not None:
@@ -172,7 +196,7 @@ def _fetch_daily_prices(tickers: list[str]) -> tuple[dict[str, float], dict[str,
         "Preços do dia: %d/%d tickers, IBOV %.2f%%",
         len(ticker_returns), len(tickers), ibov_return * 100,
     )
-    return ticker_returns, ticker_prices, ibov_return
+    return ticker_returns, ticker_prices, ibov_return, ibov_meta
 
 
 def _portfolio_return(ticker_returns: dict[str, float]) -> float:
@@ -183,93 +207,198 @@ def _portfolio_return(ticker_returns: dict[str, float]) -> float:
 
 
 def _weighted_portfolio_return(
-    ticker_returns: dict[str, float],
+    ticker_returns: dict[str, Optional[float]],
     weights: Optional[dict[str, float]],
-) -> float:
-    """
-    Retorno do sleeve de bolsa com os pesos REAIS da recomendação (HRP com
-    bounds), renormalizados sobre os tickers com retorno válido. Medir em
-    equal-weight enquanto se recomenda HRP é medir outra carteira.
-    Fallback: equal-weight quando a recomendação não tem pesos.
-    """
-    if not weights:
-        return _portfolio_return(ticker_returns)
-    num = den = 0.0
-    for t, r in ticker_returns.items():
-        if r is None or (isinstance(r, float) and np.isnan(r)):
-            continue
-        w = weights.get(t)
-        if w and w > 0:
-            num += w * r
-            den += w
-    return num / den if den > 0 else _portfolio_return(ticker_returns)
-
-
-def _fetch_etf_daily_returns(symbols: dict[str, str]) -> dict[str, Optional[float]]:
-    """
-    Retorno diário (último pregão) dos ETFs dos sleeves não-bolsa.
-
-    Args: symbols: {sleeve: "IVVB11.SA", ...}
-    Returns: {sleeve: retorno decimal ou None se indisponível}
-    """
-    out: dict[str, Optional[float]] = {s: None for s in symbols}
-    try:
-        raw = yf.download(
-            tickers=list(symbols.values()),
-            period="5d", auto_adjust=True, progress=False,
-        )
-        if raw is None or raw.empty:
-            return out
-        close = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw[["Close"]]
-        for sleeve, sym in symbols.items():
-            col = close[sym] if sym in close.columns else None
-            if col is None:
-                continue
-            clean = col.dropna()
-            if len(clean) >= 2:
-                out[sleeve] = float(clean.iloc[-1] / clean.iloc[-2] - 1.0)
-    except Exception as exc:
-        logger.warning("_fetch_etf_daily_returns: %s", exc)
-    return out
-
-
-def _blended_daily_return(
-    recommendation: Optional[dict],
-    equity_sleeve_return: float,
-    cdi_daily: Optional[float],
 ) -> Optional[float]:
     """
-    Retorno diário da CARTEIRA COMPLETA recomendada (todos os sleeves).
-
-    Esta é a régua do investidor absoluto: o sistema recomenda um split de
-    capital — medir só o sleeve de bolsa é medir outra carteira. Retorna
-    None quando a recomendação não tem allocation (recs antigas) — lacuna
-    declarada, não inventada.
-
-    Sleeve sem retorno disponível entra com 0 no dia (conservador para CDI
-    em feriado; para ETFs, falha de fetch vira lacuna de 1 dia, auditável
-    no log).
+    Retorno do sleeve de bolsa com os pesos da recomendação (equal-weight se
+    ela não tem pesos). Posição sem retorno no dia conta como parada (0%),
+    sem redistribuir o peso dela entre as outras: renormalizar inflava a
+    curva quando um papel some (NEOE3/ODPV3 deslistadas). None se nenhuma
+    posição tem retorno.
     """
-    sleeves = ((recommendation or {}).get("allocation") or {}).get("sleeves") or {}
-    if not sleeves:
+    if weights:
+        holdings = {t: w for t, w in weights.items() if w and w > 0}
+    else:
+        holdings = {t: 1.0 for t in ticker_returns}
+    total = sum(holdings.values())
+    if not holdings or total <= 0:
         return None
-
-    etf_rets = _fetch_etf_daily_returns({
-        "global_usd": "IVVB11.SA",
-        "inflation":  "IMAB11.SA",
-    })
-    sleeve_rets: dict[str, Optional[float]] = {
-        "equities_br": equity_sleeve_return,
-        "cdi":         cdi_daily,
-        **etf_rets,
+    valid = {
+        t: r for t, r in ticker_returns.items()
+        if t in holdings and r is not None and not np.isnan(r)
     }
-    missing = [s for s, r in sleeve_rets.items() if s in sleeves and r is None]
-    if missing:
-        logger.warning("Sleeves sem retorno hoje (entram com 0): %s", missing)
+    if not valid:
+        return None
+    return float(sum(holdings[t] / total * r for t, r in valid.items()))
 
-    return float(sum(
-        w * (sleeve_rets.get(s) or 0.0) for s, w in sleeves.items()
-    ))
+
+def _session_closes(
+    symbols: list[str], start: str,
+) -> tuple[pd.DataFrame, dict[str, dict]]:
+    """
+    Fechamentos consolidados (data × símbolo) em dias de pregão. Candle
+    incompleto ou intradiário do dia fica de fora; o metadata dele vai em
+    metas[símbolo].
+    """
+    from src.benchmark import clean_close
+
+    raw = yf.download(tickers=symbols, start=start, auto_adjust=True, progress=False)
+    if raw is None or raw.empty:
+        return pd.DataFrame(), {}
+    closes: dict[str, pd.Series] = {}
+    metas: dict[str, dict] = {}
+    for sym in symbols:
+        try:
+            if isinstance(raw.columns, pd.MultiIndex):
+                if sym not in raw.columns.get_level_values(1):
+                    continue
+                sub = raw.xs(sym, axis=1, level=1)
+            else:
+                sub = raw
+            sub = sub.copy()
+            sub.index = pd.to_datetime(sub.index).tz_localize(None)
+            close, meta = clean_close(sub)
+            if meta.get("intraday"):
+                close = close.iloc[:-1]
+            closes[sym] = close
+            metas[sym] = meta
+        except Exception as exc:
+            logger.debug("_session_closes %s: %s", sym, exc)
+    df = pd.DataFrame(closes)
+    if not df.empty:
+        df = df[[is_trading_day(d) for d in df.index]]
+    return df, metas
+
+
+def _session_points(
+    closes: pd.DataFrame,
+    sessions: list,
+    cdi_by_date: dict[str, float],
+    snap: SnapshotManager,
+) -> list[dict]:
+    """Pontos da equity curve, um por pregão em `sessions`, com fechamentos finais."""
+    ibov_dates = list(closes["^BVSP"].dropna().index) if "^BVSP" in closes else []
+
+    def ret(sym: str, d, prev) -> Optional[float]:
+        if sym not in closes:
+            return None
+        a, b = closes[sym].get(prev), closes[sym].get(d)
+        if a is None or b is None or pd.isna(a) or pd.isna(b) or a <= 0:
+            return None
+        return float(b / a - 1.0)
+
+    points = []
+    for d in sessions:
+        i = ibov_dates.index(d)
+        if i == 0:
+            continue
+        prev = ibov_dates[i - 1]
+        day = d.date().isoformat()
+        # Carteira vigente no pregão: a última recomendação até ele (mesma
+        # convenção de antes: a recomendação de segunda já conta na segunda).
+        rec = snap.load_latest_recommendation(
+            mode="weekly", before_date=(d.date() + timedelta(days=1)).isoformat(),
+        )
+        if not rec:
+            continue
+        holdings = [r["ticker"] for r in rec.get("top5", [])]
+        weights = rec.get("portfolio_weights") or {t: 1.0 for t in holdings}
+        weights = {t: weights.get(t, 0.0) for t in holdings}
+        rets = {t: ret(f"{t}.SA", d, prev) for t in holdings}
+        port = _weighted_portfolio_return(rets, weights)
+        cdi = cdi_by_date.get(day)
+
+        blended = None
+        sleeves = (rec.get("allocation") or {}).get("sleeves") or {}
+        missing_sleeves = []
+        if sleeves and port is not None:
+            sleeve_rets = {
+                "equities_br": port,
+                "cdi":         cdi,
+                "global_usd":  ret("IVVB11.SA", d, prev),
+                "inflation":   ret("IMAB11.SA", d, prev),
+            }
+            missing_sleeves = [k for k in sleeves if sleeve_rets.get(k) is None]
+            blended = float(sum(
+                w * (sleeve_rets.get(k) or 0.0) for k, w in sleeves.items()
+            ))
+
+        point = {
+            "date":        day,
+            "port_ret":    port,
+            "ibov_ret":    ret("^BVSP", d, prev),
+            "cdi_ret":     cdi,
+            "blended_ret": blended,
+            "rec_date":    rec.get("date"),
+        }
+        missing = [t for t, r in rets.items() if r is None]
+        if missing:
+            point["missing"] = missing
+        if missing_sleeves:
+            point["missing_sleeves"] = missing_sleeves
+        points.append(point)
+    return points
+
+
+def _equity_curve_points(
+    run_date: str, snap: SnapshotManager,
+) -> tuple[list[dict], str]:
+    """
+    Pontos a gravar na equity curve neste closing e o início da janela que
+    eles cobrem: os pregões recentes com fechamento final (reconcilia ponto
+    provisório, preliminar ou que faltou) e, se o pregão de hoje ainda não
+    consolidou, um ponto provisório nulo.
+    """
+    from src.benchmark import BenchmarkManager
+
+    run_day = date.fromisoformat(run_date)
+    start = (run_day - timedelta(days=_RECONCILE_DAYS)).isoformat()
+
+    tickers: set[str] = set()
+    for f in Path(snap.history_dir).glob("recommendations_*_weekly.json"):
+        rec_day = f.name.split("_")[1]
+        if rec_day >= (run_day - timedelta(days=_RECONCILE_DAYS + 10)).isoformat():
+            try:
+                rec = json.loads(f.read_text(encoding="utf-8"))
+                tickers.update(r["ticker"] for r in rec.get("top5", []))
+            except Exception:
+                continue
+    current = snap.load_latest_recommendation(mode="weekly")
+    tickers.update(r["ticker"] for r in (current or {}).get("top5", []))
+
+    symbols = [f"{t}.SA" for t in sorted(tickers)] + ["^BVSP", "IVVB11.SA", "IMAB11.SA"]
+    closes, metas = _session_closes(symbols, start)
+    if closes.empty or "^BVSP" not in closes:
+        logger.warning("Equity curve: sem fechamentos do IBOV — nada a gravar.")
+        return [], start
+
+    cdi_by_date: dict[str, float] = {}
+    try:
+        cdi = BenchmarkManager().get_returns(start, run_date)["cdi"].dropna()
+        cdi_by_date = {d.date().isoformat(): float(v) for d, v in cdi.items()}
+    except Exception as exc:
+        logger.warning("Equity curve: CDI indisponível (%s)", exc)
+
+    ts = pd.Timestamp(run_day)
+    sessions = [d for d in closes["^BVSP"].dropna().index if d <= ts]
+    points = _session_points(closes, sessions, cdi_by_date, snap)
+
+    if is_trading_day(run_day) and ts not in sessions:
+        points.append({
+            "date":        run_date,
+            "port_ret":    None,
+            "ibov_ret":    None,
+            "cdi_ret":     None,
+            "blended_ret": None,
+            "provisional": True,
+            "market_data": {"ibovespa": metas.get("^BVSP", {})},
+        })
+        logger.warning(
+            "Pregão de %s ainda sem fechamento consolidado: ponto provisório, "
+            "o próximo closing reconcilia.", run_date,
+        )
+    return points, start
 
 
 def _calc_cumulative_returns(
@@ -286,26 +415,6 @@ def _calc_cumulative_returns(
         if entry and entry > 0 and current and current > 0:
             result[ticker] = (current / entry) - 1
     return result
-
-
-def _fetch_cdi_daily() -> Optional[float]:
-    """
-    Última taxa diária do CDI via BCB (python-bcb, série 12).
-
-    Best-effort: retorna None em falha — a equity curve usa a última taxa
-    conhecida como fallback (CDI é taxa administrada, muda raramente).
-    """
-    try:
-        from src.benchmark import BenchmarkManager
-        start = (date.today() - timedelta(days=15)).strftime("%Y-%m-%d")
-        df = BenchmarkManager().get_returns(start)
-        if "cdi" in df.columns:
-            clean = df["cdi"].dropna()
-            if not clean.empty:
-                return float(clean.iloc[-1])
-    except Exception as exc:
-        logger.warning("_fetch_cdi_daily: %s", exc)
-    return None
 
 
 def _fetch_ibov_cumulative(rec_date: str) -> Optional[float]:
@@ -337,14 +446,14 @@ def _fetch_ibov_cumulative(rec_date: str) -> Optional[float]:
         return None
 
 
-# ─── Fetch historical prices for technical analysis ──────────────────────────
+# Fetch historical prices for technical analysis
 
 def _fetch_hist_prices(tickers: list[str], lookback_days: int = 300) -> pd.DataFrame:
     """
     Fetches historical adjusted-close prices for technical indicator computation.
     Returns wide DataFrame (date × ticker).
     """
-    start = (date.today() - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+    start = (today_brt() - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
     yf_symbols = [f"{t}.SA" for t in tickers]
 
     try:
@@ -377,7 +486,7 @@ def _fetch_hist_prices(tickers: list[str], lookback_days: int = 300) -> pd.DataF
         return pd.DataFrame()
 
 
-# ─── Morning pipeline ─────────────────────────────────────────────────────────
+# Morning pipeline
 
 def run_morning(run_date: str, do_send: bool, dry_run: bool) -> int:
     logger.info("=== MORNING REPORT | %s ===", run_date)
@@ -462,7 +571,7 @@ def run_morning(run_date: str, do_send: bool, dry_run: bool) -> int:
     return 0
 
 
-# ─── Closing pipeline ─────────────────────────────────────────────────────────
+# Closing pipeline
 
 def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
     logger.info("=== CLOSING REPORT | %s ===", run_date)
@@ -482,7 +591,7 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
     # Step 1: Fetch today's prices
     logger.info("Etapa 1/3 — Buscando preços do dia...")
     try:
-        ticker_returns, ticker_prices, ibov_return = _fetch_daily_prices(top5_tickers)
+        ticker_returns, ticker_prices, ibov_return, ibov_meta = _fetch_daily_prices(top5_tickers)
     except Exception as exc:
         logger.error("Falha ao buscar preços do dia: %s", exc, exc_info=True)
         return 1
@@ -495,8 +604,9 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
     # com bounds) — medir equal-weight enquanto se recomenda HRP é medir
     # outra carteira.
     port_return = _weighted_portfolio_return(
-        ticker_returns, recommendation.get("portfolio_weights"),
-    )
+        {t: ticker_returns.get(t) for t in top5_tickers},
+        recommendation.get("portfolio_weights") or {t: 1.0 for t in top5_tickers},
+    ) or 0.0
 
     # Cumulative returns since recommendation
     entry_prices: dict[str, float] = recommendation.get("entry_prices", {})
@@ -525,17 +635,9 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
     equity_summary: Optional[dict] = None
     noise_band_pp: Optional[float] = None
     try:
-        from src.equity_curve import alpha_noise_band_pp, update_equity_curve
-        cdi_daily = _fetch_cdi_daily()
-        # Carteira COMPLETA (todos os sleeves) — a régua absoluta de verdade
-        blended_return = _blended_daily_return(recommendation, port_return, cdi_daily)
-        equity_summary = update_equity_curve(
-            run_date=run_date,
-            portfolio_daily_return=port_return,
-            ibov_daily_return=ibov_return,
-            cdi_daily_return=cdi_daily,
-            blended_daily_return=blended_return,
-        )
+        from src.equity_curve import alpha_noise_band_pp, upsert_points
+        points, window_start = _equity_curve_points(run_date, snap)
+        equity_summary = upsert_points(points, window_start=window_start)
         noise_band_pp = alpha_noise_band_pp()
     except Exception as exc:
         logger.warning("Equity curve falhou (não crítico): %s", exc, exc_info=True)
@@ -619,7 +721,7 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
     return 0
 
 
-# ─── Entrypoint ───────────────────────────────────────────────────────────────
+# Entrypoint
 
 def main(argv: Optional[list] = None) -> int:
     args = _parse_args(argv)
@@ -627,6 +729,13 @@ def main(argv: Optional[list] = None) -> int:
 
     run_date = _resolve_date(args.date)
     do_send  = args.send and not args.dry_run
+
+    if not args.force and not is_trading_day(run_date):
+        logger.info(
+            "%s não tem pregão na B3 (%s) — nada a fazer.",
+            run_date, holiday_name(run_date) or "fim de semana",
+        )
+        return 0
 
     _ensure_dirs()
 

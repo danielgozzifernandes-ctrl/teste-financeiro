@@ -9,11 +9,10 @@ reais. Dado `--capital R$X`, este módulo gera:
      sem lote-padrão de 100 — PF pequeno deve usar o fracionário e pagar
      o spread, que é menor que o erro de arredondar para lotes de 100)
   3. Rotação vs carteira anterior (entradas/saídas)
-  4. Nota fiscal honesta: NÃO conhecemos o preço médio de compra do usuário,
-     então não dá para calcular o IR exato — informamos o valor estimado de
-     vendas do rebalanceamento e a regra (isenção swing-trade até R$20k de
-     VENDAS/mês; acima, 15% sobre o GANHO, DARF até último dia útil do mês
-     seguinte). Estimar imposto sem a base de custo seria número inventado.
+  4. Nota de IR: sem o preço médio de compra não dá para calcular o imposto,
+     então só informamos as vendas estimadas e a regra (isenção swing-trade
+     até R$20k de vendas/mês; acima, 15% sobre o ganho, DARF até o último dia
+     útil do mês seguinte).
 
 Sem side-effects: retorna dict serializável; report_builder formata.
 """
@@ -60,7 +59,7 @@ def build_order_sheet(
         s: round(capital_brl * w, 2) for s, w in sleeves.items() if w > 0
     }
 
-    # ── Ordens de bolsa: ticker → qty no fracionário ──────────────────────
+    # Ordens de bolsa: ticker → qty no fracionário
     equity_value = sleeve_values.get("equities_br", 0.0)
     orders: list[dict[str, Any]] = []
     unallocated = 0.0
@@ -89,7 +88,7 @@ def build_order_sheet(
     if unallocated > 0 and "cdi" in sleeve_values:
         sleeve_values["cdi"] = round(sleeve_values["cdi"] + unallocated, 2)
 
-    # ── Rotação vs carteira anterior ─────────────────────────────────────
+    # Rotação vs carteira anterior
     current = [o["ticker"] for o in orders]
     rotation = None
     estimated_sales = 0.0
@@ -104,7 +103,7 @@ def build_order_sheet(
             estimated_sales = per_position * len(exits)
             rotation = {"exits": exits, "entries": entries}
 
-    # ── Nota fiscal (honesta: sem base de custo, sem número inventado) ───
+    # sem base de custo → só a regra, sem valor de imposto
     tax_note = _tax_note(estimated_sales)
 
     return {

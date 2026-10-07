@@ -1,9 +1,6 @@
 """
-snapshot_manager.py — Módulo Eixo
-
-Responsável pela persistência auditável de cada execução do sistema.
-Sem esse módulo, não há backtesting — não sabemos quais preços
-valiam quando a recomendação foi feita.
+Persistência de cada execução — é daqui que o backtester tira os preços
+de entrada.
 
 Três artefatos por execução:
   1. snapshot_YYYY-MM-DD.json  — preços de fechamento de todos os tickers
@@ -18,10 +15,8 @@ Estrutura de diretórios esperada:
     universe_2025-01-06.json
     ...
 
-Por que snapshot separado das recomendações?
-  As recomendações mudam semanalmente, mas o backtester precisa dos preços
-  de TODOS os tickers (não só top 5) para recalcular hipóteses alternativas.
-  Manter os dois artefatos separados permite análises post-hoc.
+O snapshot guarda preços de todo o universo (não só o top 5) para
+análises post-hoc.
 """
 
 import json
@@ -35,6 +30,7 @@ from typing import Any, Optional
 import numpy as np
 import pandas as pd
 
+from src.b3_calendar import today_brt
 from src.config import (
     ENABLE_VOLATILITY_TARGETING,
     EWMA_LAMBDA,
@@ -43,6 +39,7 @@ from src.config import (
     HRP_LOOKBACK_DAYS,
     MAX_POSITION_WEIGHT,
     MIN_POSITION_WEIGHT,
+    MIN_VOL_FOR_WEIGHTING,
     UNIVERSE_FILE,
     USE_HRP_WEIGHTS,
     VOL_TARGET_ANNUAL,
@@ -54,11 +51,11 @@ from src.config import (
 logger = logging.getLogger(__name__)
 
 
-# ─── Tipos de retorno estruturados ───────────────────────────────────────────
+# Tipos de retorno estruturados
 
 @dataclass
 class TickerRecommendation:
-    """Recomendação individual — espelha a estrutura do briefing."""
+    """Uma linha do top-N."""
     ticker:               str
     nome:                 str
     score:                float
@@ -85,7 +82,7 @@ class RecommendationRecord:
     execution_metadata:       dict[str, Any] = field(default_factory=dict)
 
 
-# ─── Helpers de serialização ──────────────────────────────────────────────────
+# Helpers de serialização
 
 def _safe_float(v: Any) -> Optional[float]:
     """Converte para float, retorna None em caso de NaN/inf."""
@@ -111,7 +108,7 @@ def _to_json_safe(obj: Any) -> Any:
     return obj
 
 
-# ─── SnapshotManager ─────────────────────────────────────────────────────────
+# SnapshotManager
 
 class SnapshotManager:
     """
@@ -132,9 +129,7 @@ class SnapshotManager:
         self.history_dir = Path(history_dir)
         self.history_dir.mkdir(parents=True, exist_ok=True)
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Escrita
-    # ═══════════════════════════════════════════════════════════════════════
 
     def save_price_snapshot(
         self,
@@ -304,7 +299,7 @@ class SnapshotManager:
         top5  = top_recs[:5]
         top10 = top_recs[:top_n]
 
-        # Full universe factor scores — crítico para Factor IC honesto.
+        # Scores do universo inteiro — o IC precisa deles, não só do top 10.
         # Sem isso, IC é medido apenas sobre top10 → selection bias enorme
         # (correlaciona fator com retorno SÓ entre ações que o fator já
         # selecionou). Salvar TODOS os tickers com seus scores normalizados
@@ -328,6 +323,8 @@ class SnapshotManager:
                 "tickers_scored":     int(df_scored["total_score"].notna().sum()),
                 # Cobertura declarado→coletado→pontuado (de main.py via attrs).
                 "data_quality":       getattr(df_scored, "attrs", {}).get("data_quality"),
+                "market_data":        getattr(df_scored, "attrs", {}).get("market_data"),
+                "stale_prices":       getattr(df_scored, "attrs", {}).get("stale_prices"),
                 "generated_at":       datetime.now().isoformat(),
                 "portfolio_weights_method": weights_method,
                 "risk_metrics":             risk_metrics,
@@ -348,9 +345,7 @@ class SnapshotManager:
         )
         return path
 
-    # ═══════════════════════════════════════════════════════════════════════
     # Leitura — usada pelo backtester.py
-    # ═══════════════════════════════════════════════════════════════════════
 
     def load_recommendation(
         self,
@@ -469,12 +464,12 @@ class SnapshotManager:
         return {t: entry_prices[t] for t in top5_tickers if t in entry_prices}
 
 
-# ─── Helpers privados ─────────────────────────────────────────────────────────
+# Helpers privados
 
 def _date_str(d: Optional[str | date | datetime]) -> str:
     """Normaliza para string ISO 8601 'YYYY-MM-DD'."""
     if d is None:
-        return date.today().isoformat()
+        return today_brt().isoformat()
     if isinstance(d, datetime):
         return d.date().isoformat()
     if isinstance(d, date):
@@ -753,6 +748,18 @@ def _compute_portfolio_weights(
     top_n = df_scored.head(n)
     tickers = [str(row.get("ticker", "")) for _, row in top_n.iterrows()]
 
+    # Série parada tem vol ~0 e levaria o maior peso; fica com 0.
+    from src.scoring_engine import detect_stale_prices
+    stale = detect_stale_prices(df_prices, tickers) if df_prices is not None else {}
+    if stale:
+        logger.warning("Pesos: preço congelado/defasado, peso zero: %s", stale)
+        ok = top_n[~top_n["ticker"].astype(str).isin(stale)]
+        if ok.empty:
+            return {t: 0.0 for t in tickers}, "none"
+        weights, method = _compute_portfolio_weights(ok, df_prices, n=len(ok))
+        weights.update({t: 0.0 for t in stale})
+        return weights, method
+
     if not USE_HRP_WEIGHTS:
         return _compute_inv_vol_weights(df_scored, n), "inverse_volatility"
 
@@ -857,7 +864,7 @@ def _compute_inv_vol_weights(df_scored: pd.DataFrame, n: int = 5) -> dict[str, f
     for ticker, (_, row) in zip(tickers, top_n.iterrows()):
         v = _safe_float(row.get("volatility_180d"))
         if v and v > 0:
-            inv_vols[ticker] = 1.0 / v
+            inv_vols[ticker] = 1.0 / max(v, MIN_VOL_FOR_WEIGHTING)
 
     if not inv_vols:
         eq = round(1.0 / len(tickers), 6)
@@ -963,6 +970,8 @@ def _row_to_recommendation(row: pd.Series, entry_price: Optional[float]) -> dict
         "alpha_6m":      _safe_float(row.get("alpha_6m")),
         "volatility":    _safe_float(row.get("volatility_180d")),
         "beta":          _safe_float(row.get("beta")),
+        # ADV em R$ (mediana 21d de close×volume); o backtester usa na fricção.
+        "adv_brl":       _safe_float(row.get("avg_volume_30d")),
     }
 
     fund_score = _safe_float(row.get("fundamental_score")) or 0.0

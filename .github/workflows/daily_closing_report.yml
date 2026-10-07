@@ -35,16 +35,25 @@ jobs:
         with:
           persist-credentials: true
 
+      # Pula dia sem pregão; weekly/monthly rodam no primeiro pregão do período.
+      - name: Check B3 calendar
+        id: gate
+        if: github.event_name == 'schedule'
+        run: python3 tools/schedule_gate.py daily
+
       - name: Set up Python 3.11
+        if: steps.gate.outputs.run != 'false'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Install dependencies
+        if: steps.gate.outputs.run != 'false'
         run: pip install -r requirements.txt
 
       - name: Run closing report
+        if: steps.gate.outputs.run != 'false'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -64,23 +73,18 @@ jobs:
 
           python main_daily.py --mode closing $DATE_ARG $DRY_FLAG $SEND_FLAG
 
+      - name: Archive B3 index portfolios
+        if: always()
+        run: python tools/archive_index_portfolios.py
+
       # Persiste eventuais snapshots de fechamento gerados (ver weekly_report.yml).
       - name: Commit history artifacts
-        if: always()
+        if: "!cancelled() && steps.gate.outputs.run != 'false'"
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase --autostash origin ${{ github.ref_name }} || true
-          git add -A data/history data/*.json 2>/dev/null || true
-          if git diff --cached --quiet; then
-            echo "Sem artefatos novos para commitar."
-          else
-            git commit -m "chore(data): closing snapshot [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
-          fi
+          bash tools/commit_artifacts.sh "chore(data): closing snapshot [skip ci]"
 
       - name: Upload closing chart
-        if: always()
+        if: always() && steps.gate.outputs.run != 'false'
         uses: actions/upload-artifact@v4
         with:
           name: closing-chart-${{ github.run_id }}
