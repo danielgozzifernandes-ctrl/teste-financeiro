@@ -59,6 +59,12 @@ from src.telegram_sender import send_report, TelegramError
 logger = logging.getLogger(__name__)
 
 
+def _print_utf8(text: str) -> None:
+    # Console do Windows (cp1252) não codifica emoji.
+    sys.stdout.buffer.write(text.encode("utf-8", errors="replace") + b"\n")
+    sys.stdout.buffer.flush()
+
+
 # CLI
 
 def _parse_args(argv: Optional[list] = None) -> argparse.Namespace:
@@ -208,7 +214,7 @@ def run(args: argparse.Namespace) -> int:
         print(f"\n[DRY RUN] {len(opportunities)} oportunidade(s) encontrada(s):")
         for msg in messages:
             print("\n" + "-" * 60)
-            print(msg)
+            _print_utf8(msg)
         print("-" * 60 + "\n")
         return 0
 
@@ -216,7 +222,7 @@ def run(args: argparse.Namespace) -> int:
         print(f"\n{len(opportunities)} oportunidade(s) encontrada(s). Use --send para enviar.")
         for msg in messages:
             print("\n" + "-" * 60)
-            print(msg)
+            _print_utf8(msg)
         return 0
 
     # Envio ao Telegram

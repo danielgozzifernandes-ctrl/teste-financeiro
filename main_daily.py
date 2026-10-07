@@ -60,6 +60,12 @@ from src.telegram_sender import send_report, TelegramError
 
 logger = logging.getLogger(__name__)
 
+
+def _print_utf8(text: str) -> None:
+    # Console do Windows (cp1252) não codifica emoji.
+    sys.stdout.buffer.write(text.encode("utf-8", errors="replace") + b"\n")
+    sys.stdout.buffer.flush()
+
 # Dias corridos que cada closing recalcula com fechamento final.
 _RECONCILE_DAYS = 12
 
@@ -550,14 +556,14 @@ def run_morning(run_date: str, do_send: bool, dry_run: bool) -> int:
 
     if dry_run:
         print("\n" + "-" * 60)
-        print(report_text)
+        _print_utf8(report_text)
         print("-" * 60 + "\n")
         return 0
 
     if not do_send:
         logger.info("Envio desativado. Use --send para enviar ao Telegram.")
         print("\n" + "-" * 60)
-        print(report_text)
+        _print_utf8(report_text)
         print("-" * 60 + "\n")
         return 0
 
@@ -698,7 +704,7 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
 
     if dry_run:
         print("\n" + "-" * 60)
-        print(report_text)
+        _print_utf8(report_text)
         print("-" * 60 + "\n")
         if chart_path:
             print(f"Gráfico: {chart_path}")
@@ -707,7 +713,7 @@ def run_closing(run_date: str, do_send: bool, dry_run: bool) -> int:
     if not do_send:
         logger.info("Envio desativado. Use --send para enviar ao Telegram.")
         print("\n" + "-" * 60)
-        print(report_text)
+        _print_utf8(report_text)
         print("-" * 60 + "\n")
         return 0
 
