@@ -58,6 +58,13 @@ Every scheduled run writes its artifacts to `data/` and commits them back, so th
 
 Live tracking started in May 2026. With about 17 weekly observations, none of the live metrics is statistically significant: no factor survives the multiple-testing correction, and weekly alpha vs. the Ibovespa has a t-stat below 1. Detecting an IC of 0.05 would take more than a year of weekly data, so factor validation has to come from long point-in-time history rather than from the live sample.
 
+**Long-history study** (`src/history/`, `tools/run_factor_study.py`):
+- **Data:** a survivorship-free monthly panel, 2011–2026, built from B3's official COTAHIST files (including delisted names, total-return adjusted with B3 corporate actions) and CVM filings keyed by their delivery date, so there is no look-ahead in fundamentals.
+- **Design:** pre-registered; trained on 2011–2018, tested on 2019–2026; Benjamini-Hochberg across factors and a deflated Sharpe over 82 declared variants.
+- **Evidence out of sample:** 12-1 momentum (IC +0.065 train, +0.056 test), low volatility and ROE.
+- **No evidence:** price-to-book, beta, gross profitability and accruals. Size works in the opposite direction from the model's assumption.
+- **The current 45/30/25 composite has no detectable edge out of sample:** its top quintile matches the index and the top-5 is +0.8% a.a. with t = 0.15. The pillar weights are therefore left unchanged rather than re-fitted, because the weight combination chosen on the training set did worse on the test set.
+
 ## Architecture
 
 ```
@@ -77,6 +84,7 @@ Live tracking started in May 2026. With about 17 weekly observations, none of th
 │   ├── factor_analysis.py     # IC / IR / decay
 │   ├── walk_forward.py        # out-of-sample evaluation
 │   ├── equity_curve.py        # daily NAV
+│   ├── history/               # COTAHIST prices, CVM point-in-time fundamentals, factor research
 │   └── ...                    # report builders, charts, Telegram client
 ├── data/
 │   ├── universe.csv     # investable universe
@@ -119,7 +127,7 @@ For scheduled runs, set the same variables as repository secrets and enable the 
 
 ## Limitations
 
-- Free data only: fundamentals are latest values, not point-in-time, and the universe is today's list, so long backtests of stock selection carry survivorship bias.
+- The live pipeline still takes fundamentals from brapi/yfinance (latest values) and a fixed universe list; the point-in-time, survivorship-free data is used for research only so far. CVM files carry the latest version of restated filings, so 12–22% of documents have a small look-ahead.
 - The allocation backtest uses a volatility proxy for the regime instead of the live HMM, and BOVA11 instead of the stock portfolio.
 - The live sample is too short to separate skill from noise.
 - Historical index membership and analyst estimates would require a terminal (Bloomberg or Refinitiv). A download script is in `tools/`.
