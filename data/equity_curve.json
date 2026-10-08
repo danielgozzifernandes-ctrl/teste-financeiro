@@ -1048,16 +1048,42 @@
    "port_ret": 0.037992,
    "ibov_ret": 0.077022,
    "cdi_ret": 0.000508,
-   "blended_ret": 0.00452,
+   "blended_ret": 0.004112,
    "rec_date": "2026-10-05",
-   "missing_sleeves": [
-    "global_usd",
-    "inflation"
-   ],
    "nav": 120.28997,
    "ibov_nav": 120.650653,
    "cdi_nav": 104.299568,
-   "blended_nav": 112.188636
+   "blended_nav": 112.143069
+  },
+  {
+   "date": "2026-10-06",
+   "port_ret": -0.003794,
+   "ibov_ret": -0.005205,
+   "cdi_ret": 0.000508,
+   "blended_ret": 0.000579,
+   "rec_date": "2026-10-05",
+   "nav": 119.83359,
+   "ibov_nav": 120.022666,
+   "cdi_nav": 104.352552,
+   "blended_nav": 112.208
+  },
+  {
+   "date": "2026-10-07",
+   "port_ret": null,
+   "ibov_ret": null,
+   "cdi_ret": null,
+   "blended_ret": null,
+   "provisional": true,
+   "market_data": {
+    "ibovespa": {
+     "last_bar": "2026-10-07",
+     "intraday": true
+    }
+   },
+   "nav": 119.83359,
+   "ibov_nav": 120.022666,
+   "cdi_nav": 104.352552,
+   "blended_nav": 112.208
   }
  ]
 }
