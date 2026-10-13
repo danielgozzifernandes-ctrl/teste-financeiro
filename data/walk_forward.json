@@ -1,413 +1,670 @@
 {
-  "analysis_date": "2026-10-05T19:28:08.506667",
+  "analysis_date": "2026-10-13T17:59:15.172701",
   "n_recommendations": 22,
-  "n_snapshots": 26,
-  "data_sufficiency": {
-    "min_periods_required": 6,
-    "max_periods_available": 18,
-    "is_significant": true,
-    "warning": null
-  },
   "per_window": {
     "1w": {
-      "n_periods": 18,
-      "mean_return": 0.0113,
-      "median_return": 0.0015,
-      "std_return": 0.0346,
-      "sharpe_annualized": 2.309,
-      "max_drawdown": -0.0508,
-      "mean_alpha_ibov": 0.0052,
-      "hit_rate": 0.556,
-      "cumulative_return": 0.2113,
-      "significant": true
+      "n_periods": 20,
+      "n_eff": 20.0,
+      "mean_return": 0.0099,
+      "median_return": 0.0065,
+      "mean_alpha_ibov": -0.0,
+      "t_nw_alpha": -0.006,
+      "p_value": 0.9953,
+      "hit_rate": 0.6,
+      "mean_excess_cdi": 0.0073,
+      "sharpe_excess_cdi": 1.749,
+      "sharpe_annualized": 1.749,
+      "max_drawdown": -0.0514,
+      "cumulative_return": 0.2082,
+      "n_nonoverlap": 20,
+      "significant": false
     },
     "4w": {
       "n_periods": 17,
-      "mean_return": 0.035,
-      "median_return": 0.0212,
-      "std_return": 0.0649,
-      "sharpe_annualized": 1.912,
-      "max_drawdown": -0.0738,
-      "mean_alpha_ibov": 0.02,
-      "hit_rate": 0.647,
-      "cumulative_return": 0.7376,
-      "significant": true
+      "n_eff": 4.2,
+      "mean_return": 0.0233,
+      "median_return": 0.0226,
+      "mean_alpha_ibov": 0.0041,
+      "t_nw_alpha": null,
+      "p_value": null,
+      "hit_rate": 0.529,
+      "mean_excess_cdi": 0.0128,
+      "sharpe_excess_cdi": 0.856,
+      "sharpe_annualized": 0.856,
+      "max_drawdown": -0.0091,
+      "cumulative_return": 0.1307,
+      "n_nonoverlap": 5,
+      "significant": false
     },
     "12w": {
       "n_periods": 9,
-      "mean_return": 0.1191,
-      "median_return": 0.176,
-      "std_return": 0.1528,
-      "sharpe_annualized": 1.598,
-      "max_drawdown": -0.1358,
-      "mean_alpha_ibov": 0.0763,
-      "hit_rate": 0.667,
-      "cumulative_return": 1.5503,
-      "significant": true
+      "n_eff": 0.8,
+      "mean_return": 0.0895,
+      "median_return": 0.1605,
+      "mean_alpha_ibov": 0.0358,
+      "t_nw_alpha": null,
+      "p_value": null,
+      "hit_rate": 0.556,
+      "mean_excess_cdi": 0.0576,
+      "sharpe_excess_cdi": null,
+      "sharpe_annualized": null,
+      "max_drawdown": 0.0,
+      "cumulative_return": -0.0494,
+      "n_nonoverlap": 1,
+      "significant": false
     }
   },
   "per_period": [
     {
+      "rec_date": "2026-05-09",
+      "entry_date": "2026-05-11",
+      "exit_date": "2026-05-18",
+      "window": "1w",
+      "port_ret": -0.013849,
+      "ibov_ret": -0.027118,
+      "cdi_ret": 0.002673,
+      "alpha": 0.013269,
+      "excess_cdi": -0.016522,
+      "missing": []
+    },
+    {
       "rec_date": "2026-05-12",
-      "exit_date": "2026-05-16",
-      "port_ret": -0.011,
-      "ibov_ret": -0.017,
-      "alpha": 0.0059,
-      "window": "1w"
+      "entry_date": "2026-05-13",
+      "exit_date": "2026-05-20",
+      "window": "1w",
+      "port_ret": -0.001857,
+      "ibov_ret": 0.001457,
+      "cdi_ret": 0.002673,
+      "alpha": -0.003314,
+      "excess_cdi": -0.00453,
+      "missing": []
+    },
+    {
+      "rec_date": "2026-05-15",
+      "entry_date": "2026-05-18",
+      "exit_date": "2026-05-25",
+      "window": "1w",
+      "port_ret": 0.010861,
+      "ibov_ret": 0.002164,
+      "cdi_ret": 0.002673,
+      "alpha": 0.008697,
+      "excess_cdi": 0.008189,
+      "missing": []
     },
     {
       "rec_date": "2026-06-08",
+      "entry_date": "2026-06-08",
       "exit_date": "2026-06-15",
-      "port_ret": -0.0022,
-      "ibov_ret": 0.0146,
-      "alpha": -0.0168,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": -0.008234,
+      "ibov_ret": 0.010352,
+      "cdi_ret": 0.002673,
+      "alpha": -0.018585,
+      "excess_cdi": -0.010906,
+      "missing": [
+        "NEOE3"
+      ]
     },
     {
       "rec_date": "2026-06-15",
+      "entry_date": "2026-06-15",
       "exit_date": "2026-06-22",
-      "port_ret": -0.0099,
-      "ibov_ret": -0.0108,
-      "alpha": 0.0009,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": 0.007422,
+      "ibov_ret": -0.000264,
+      "cdi_ret": 0.002647,
+      "alpha": 0.007686,
+      "excess_cdi": 0.004776,
+      "missing": [
+        "NEOE3",
+        "ODPV3"
+      ]
     },
     {
       "rec_date": "2026-06-22",
+      "entry_date": "2026-06-22",
       "exit_date": "2026-06-29",
-      "port_ret": 0.0047,
-      "ibov_ret": 0.0172,
-      "alpha": -0.0125,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": 0.009135,
+      "ibov_ret": 0.01664,
+      "cdi_ret": 0.002629,
+      "alpha": -0.007505,
+      "excess_cdi": 0.006506,
+      "missing": [
+        "ODPV3",
+        "NEOE3"
+      ]
     },
     {
       "rec_date": "2026-06-29",
+      "entry_date": "2026-06-29",
       "exit_date": "2026-07-06",
-      "port_ret": -0.0017,
-      "ibov_ret": 0.0061,
-      "alpha": -0.0078,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": 0.005788,
+      "ibov_ret": -0.004371,
+      "cdi_ret": 0.002629,
+      "alpha": 0.010158,
+      "excess_cdi": 0.003158,
+      "missing": [
+        "ODPV3",
+        "NEOE3"
+      ]
     },
     {
       "rec_date": "2026-07-06",
+      "entry_date": "2026-07-06",
       "exit_date": "2026-07-13",
-      "port_ret": 0.0586,
-      "ibov_ret": 0.0314,
-      "alpha": 0.0272,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": 0.040048,
+      "ibov_ret": 0.019084,
+      "cdi_ret": 0.002629,
+      "alpha": 0.020964,
+      "excess_cdi": 0.037418,
+      "missing": [
+        "NEOE3",
+        "ODPV3"
+      ]
     },
     {
       "rec_date": "2026-07-13",
+      "entry_date": "2026-07-13",
       "exit_date": "2026-07-20",
-      "port_ret": 0.0118,
-      "ibov_ret": -0.0115,
-      "alpha": 0.0234,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": 0.007187,
+      "ibov_ret": -0.013475,
+      "cdi_ret": 0.002629,
+      "alpha": 0.020662,
+      "excess_cdi": 0.004558,
+      "missing": []
     },
     {
       "rec_date": "2026-07-20",
+      "entry_date": "2026-07-20",
       "exit_date": "2026-07-27",
-      "port_ret": -0.0051,
-      "ibov_ret": 0.0039,
-      "alpha": -0.0089,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": -0.003811,
+      "ibov_ret": 0.011328,
+      "cdi_ret": 0.002629,
+      "alpha": -0.015139,
+      "excess_cdi": -0.00644,
+      "missing": []
     },
     {
       "rec_date": "2026-07-27",
+      "entry_date": "2026-07-27",
       "exit_date": "2026-08-03",
-      "port_ret": 0.0266,
-      "ibov_ret": 0.0152,
-      "alpha": 0.0114,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": 0.023842,
+      "ibov_ret": 0.015199,
+      "cdi_ret": 0.002629,
+      "alpha": 0.008643,
+      "excess_cdi": 0.021213,
+      "missing": []
     },
     {
       "rec_date": "2026-08-03",
+      "entry_date": "2026-08-03",
       "exit_date": "2026-08-10",
-      "port_ret": -0.0335,
-      "ibov_ret": -0.0308,
-      "alpha": -0.0027,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": -0.029116,
+      "ibov_ret": -0.032697,
+      "cdi_ret": 0.002603,
+      "alpha": 0.003581,
+      "excess_cdi": -0.031719,
+      "missing": []
     },
     {
       "rec_date": "2026-08-10",
+      "entry_date": "2026-08-10",
       "exit_date": "2026-08-17",
-      "port_ret": -0.0179,
-      "ibov_ret": -0.0305,
-      "alpha": 0.0126,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": -0.022953,
+      "ibov_ret": -0.031339,
+      "cdi_ret": 0.002586,
+      "alpha": 0.008386,
+      "excess_cdi": -0.025539,
+      "missing": []
     },
     {
       "rec_date": "2026-08-17",
+      "entry_date": "2026-08-17",
       "exit_date": "2026-08-24",
-      "port_ret": 0.0192,
-      "ibov_ret": 0.0255,
-      "alpha": -0.0063,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": 0.02291,
+      "ibov_ret": 0.030716,
+      "cdi_ret": 0.002586,
+      "alpha": -0.007807,
+      "excess_cdi": 0.020324,
+      "missing": []
     },
     {
       "rec_date": "2026-08-24",
+      "entry_date": "2026-08-24",
       "exit_date": "2026-08-31",
-      "port_ret": 0.0328,
-      "ibov_ret": 0.0219,
-      "alpha": 0.0109,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": 0.031436,
+      "ibov_ret": 0.032064,
+      "cdi_ret": 0.002586,
+      "alpha": -0.000628,
+      "excess_cdi": 0.028851,
+      "missing": []
     },
     {
       "rec_date": "2026-08-31",
-      "exit_date": "2026-09-07",
-      "port_ret": 0.0507,
-      "ibov_ret": 0.0436,
-      "alpha": 0.0071,
-      "window": "1w"
+      "entry_date": "2026-08-31",
+      "exit_date": "2026-09-08",
+      "window": "1w",
+      "port_ret": 0.063202,
+      "ibov_ret": 0.056071,
+      "cdi_ret": 0.002586,
+      "alpha": 0.007132,
+      "excess_cdi": 0.060617,
+      "missing": []
     },
     {
       "rec_date": "2026-09-07",
-      "exit_date": "2026-09-14",
-      "port_ret": 0.018,
-      "ibov_ret": -0.0009,
-      "alpha": 0.0189,
-      "window": "1w"
+      "entry_date": "2026-09-08",
+      "exit_date": "2026-09-15",
+      "window": "1w",
+      "port_ret": 0.003896,
+      "ibov_ret": -0.004611,
+      "cdi_ret": 0.002586,
+      "alpha": 0.008507,
+      "excess_cdi": 0.00131,
+      "missing": []
     },
     {
       "rec_date": "2026-09-14",
+      "entry_date": "2026-09-14",
       "exit_date": "2026-09-21",
-      "port_ret": -0.0212,
-      "ibov_ret": -0.0015,
-      "alpha": -0.0197,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": -0.020654,
+      "ibov_ret": 0.005903,
+      "cdi_ret": 0.002559,
+      "alpha": -0.026557,
+      "excess_cdi": -0.023214,
+      "missing": []
     },
     {
       "rec_date": "2026-09-21",
+      "entry_date": "2026-09-21",
       "exit_date": "2026-09-28",
-      "port_ret": -0.0236,
-      "ibov_ret": -0.0167,
-      "alpha": -0.0069,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": -0.017487,
+      "ibov_ret": -0.01932,
+      "cdi_ret": 0.002542,
+      "alpha": 0.001833,
+      "excess_cdi": -0.020029,
+      "missing": []
     },
     {
       "rec_date": "2026-09-28",
+      "entry_date": "2026-09-28",
       "exit_date": "2026-10-05",
-      "port_ret": 0.1062,
-      "ibov_ret": 0.0499,
-      "alpha": 0.0564,
-      "window": "1w"
+      "window": "1w",
+      "port_ret": 0.090338,
+      "ibov_ret": 0.130722,
+      "cdi_ret": 0.002542,
+      "alpha": -0.040384,
+      "excess_cdi": 0.087796,
+      "missing": []
+    },
+    {
+      "rec_date": "2026-05-09",
+      "entry_date": "2026-05-11",
+      "exit_date": "2026-06-09",
+      "window": "4w",
+      "port_ret": -0.069966,
+      "ibov_ret": -0.066495,
+      "cdi_ret": 0.010734,
+      "alpha": -0.003471,
+      "excess_cdi": -0.0807,
+      "missing": []
     },
     {
       "rec_date": "2026-05-12",
-      "exit_date": "2026-06-08",
-      "port_ret": -0.0996,
-      "ibov_ret": -0.0628,
-      "alpha": -0.0368,
-      "window": "4w"
+      "entry_date": "2026-05-13",
+      "exit_date": "2026-06-11",
+      "window": "4w",
+      "port_ret": -0.063307,
+      "ibov_ret": -0.031627,
+      "cdi_ret": 0.010734,
+      "alpha": -0.031681,
+      "excess_cdi": -0.074041,
+      "missing": []
     },
     {
       "rec_date": "2026-05-15",
-      "exit_date": "2026-06-15",
-      "port_ret": -0.036,
-      "ibov_ret": -0.0347,
-      "alpha": -0.0013,
-      "window": "4w"
-    },
-    {
-      "rec_date": "2026-05-16",
-      "exit_date": "2026-06-15",
-      "port_ret": -0.0149,
-      "ibov_ret": -0.033,
-      "alpha": 0.0181,
-      "window": "4w"
+      "entry_date": "2026-05-18",
+      "exit_date": "2026-06-16",
+      "window": "4w",
+      "port_ret": -0.053898,
+      "ibov_ret": -0.041401,
+      "cdi_ret": 0.010734,
+      "alpha": -0.012497,
+      "excess_cdi": -0.064632,
+      "missing": []
     },
     {
       "rec_date": "2026-06-08",
+      "entry_date": "2026-06-08",
       "exit_date": "2026-07-06",
-      "port_ret": -0.0247,
-      "ibov_ret": 0.0332,
-      "alpha": -0.0579,
-      "window": "4w"
+      "window": "4w",
+      "port_ret": -0.026548,
+      "ibov_ret": 0.022405,
+      "cdi_ret": 0.01062,
+      "alpha": -0.048952,
+      "excess_cdi": -0.037168,
+      "missing": [
+        "NEOE3"
+      ]
     },
     {
       "rec_date": "2026-06-15",
+      "entry_date": "2026-06-15",
       "exit_date": "2026-07-13",
-      "port_ret": 0.0863,
-      "ibov_ret": 0.0437,
-      "alpha": 0.0426,
-      "window": "4w"
+      "window": "4w",
+      "port_ret": 0.066963,
+      "ibov_ret": 0.031241,
+      "cdi_ret": 0.010576,
+      "alpha": 0.035722,
+      "excess_cdi": 0.056387,
+      "missing": [
+        "NEOE3",
+        "ODPV3"
+      ]
     },
     {
       "rec_date": "2026-06-22",
+      "entry_date": "2026-06-22",
       "exit_date": "2026-07-20",
-      "port_ret": 0.1088,
-      "ibov_ret": 0.0196,
-      "alpha": 0.0891,
-      "window": "4w"
+      "window": "4w",
+      "port_ret": 0.065734,
+      "ibov_ret": 0.017615,
+      "cdi_ret": 0.010559,
+      "alpha": 0.04812,
+      "excess_cdi": 0.055175,
+      "missing": [
+        "ODPV3",
+        "NEOE3"
+      ]
     },
     {
       "rec_date": "2026-06-29",
+      "entry_date": "2026-06-29",
       "exit_date": "2026-07-27",
-      "port_ret": 0.0976,
-      "ibov_ret": 0.0048,
-      "alpha": 0.0928,
-      "window": "4w"
+      "window": "4w",
+      "port_ret": 0.060251,
+      "ibov_ret": 0.012298,
+      "cdi_ret": 0.010559,
+      "alpha": 0.047954,
+      "excess_cdi": 0.049692,
+      "missing": [
+        "ODPV3",
+        "NEOE3"
+      ]
     },
     {
       "rec_date": "2026-07-06",
+      "entry_date": "2026-07-06",
       "exit_date": "2026-08-03",
-      "port_ret": 0.1201,
-      "ibov_ret": 0.0322,
-      "alpha": 0.0879,
-      "window": "4w"
+      "window": "4w",
+      "port_ret": 0.070464,
+      "ibov_ret": 0.032195,
+      "cdi_ret": 0.010559,
+      "alpha": 0.038268,
+      "excess_cdi": 0.059905,
+      "missing": [
+        "NEOE3",
+        "ODPV3"
+      ]
     },
     {
       "rec_date": "2026-07-13",
+      "entry_date": "2026-07-13",
       "exit_date": "2026-08-10",
-      "port_ret": -0.0052,
-      "ibov_ret": -0.0184,
-      "alpha": 0.0132,
-      "window": "4w"
+      "window": "4w",
+      "port_ret": -0.009059,
+      "ibov_ret": -0.020252,
+      "cdi_ret": 0.010532,
+      "alpha": 0.011192,
+      "excess_cdi": -0.019592,
+      "missing": []
     },
     {
       "rec_date": "2026-07-20",
+      "entry_date": "2026-07-20",
       "exit_date": "2026-08-17",
-      "port_ret": -0.0262,
-      "ibov_ret": -0.0371,
-      "alpha": 0.0109,
-      "window": "4w"
+      "window": "4w",
+      "port_ret": -0.020432,
+      "ibov_ret": -0.037994,
+      "cdi_ret": 0.010488,
+      "alpha": 0.017561,
+      "excess_cdi": -0.030921,
+      "missing": []
     },
     {
       "rec_date": "2026-07-27",
+      "entry_date": "2026-07-27",
       "exit_date": "2026-08-24",
-      "port_ret": 0.0025,
-      "ibov_ret": -0.0245,
-      "alpha": 0.027,
-      "window": "4w"
+      "window": "4w",
+      "port_ret": 0.015333,
+      "ibov_ret": -0.019551,
+      "cdi_ret": 0.010444,
+      "alpha": 0.034884,
+      "excess_cdi": 0.004888,
+      "missing": []
     },
     {
       "rec_date": "2026-08-03",
-      "exit_date": "2026-09-01",
-      "port_ret": 0.0212,
-      "ibov_ret": -0.0033,
-      "alpha": 0.0245,
-      "window": "4w"
+      "entry_date": "2026-08-03",
+      "exit_date": "2026-08-31",
+      "window": "4w",
+      "port_ret": 0.011233,
+      "ibov_ret": -0.003264,
+      "cdi_ret": 0.0104,
+      "alpha": 0.014497,
+      "excess_cdi": 0.000832,
+      "missing": []
     },
     {
       "rec_date": "2026-08-10",
-      "exit_date": "2026-09-07",
-      "port_ret": 0.0864,
-      "ibov_ret": 0.0753,
-      "alpha": 0.011,
-      "window": "4w"
+      "entry_date": "2026-08-10",
+      "exit_date": "2026-09-08",
+      "window": "4w",
+      "port_ret": 0.09942,
+      "ibov_ret": 0.088204,
+      "cdi_ret": 0.010383,
+      "alpha": 0.011216,
+      "excess_cdi": 0.089037,
+      "missing": []
     },
     {
       "rec_date": "2026-08-17",
-      "exit_date": "2026-09-14",
-      "port_ret": 0.1151,
-      "ibov_ret": 0.1225,
-      "alpha": -0.0073,
-      "window": "4w"
+      "entry_date": "2026-08-17",
+      "exit_date": "2026-09-15",
+      "window": "4w",
+      "port_ret": 0.116979,
+      "ibov_ret": 0.118231,
+      "cdi_ret": 0.010383,
+      "alpha": -0.001252,
+      "excess_cdi": 0.106596,
+      "missing": []
     },
     {
       "rec_date": "2026-08-24",
-      "exit_date": "2026-09-21",
-      "port_ret": 0.0687,
-      "ibov_ret": 0.0775,
-      "alpha": -0.0088,
-      "window": "4w"
+      "entry_date": "2026-08-24",
+      "exit_date": "2026-09-22",
+      "window": "4w",
+      "port_ret": 0.065032,
+      "ibov_ret": 0.090258,
+      "cdi_ret": 0.010348,
+      "alpha": -0.025226,
+      "excess_cdi": 0.054684,
+      "missing": []
     },
     {
       "rec_date": "2026-08-31",
-      "exit_date": "2026-09-28",
-      "port_ret": 0.0163,
-      "ibov_ret": 0.0341,
-      "alpha": -0.0179,
-      "window": "4w"
+      "entry_date": "2026-08-31",
+      "exit_date": "2026-09-29",
+      "window": "4w",
+      "port_ret": 0.022646,
+      "ibov_ret": 0.036124,
+      "cdi_ret": 0.010304,
+      "alpha": -0.013478,
+      "excess_cdi": 0.012342,
+      "missing": []
     },
     {
       "rec_date": "2026-09-07",
-      "exit_date": "2026-10-05",
-      "port_ret": 0.0783,
-      "ibov_ret": 0.0253,
-      "alpha": 0.053,
-      "window": "4w"
+      "entry_date": "2026-09-08",
+      "exit_date": "2026-10-06",
+      "window": "4w",
+      "port_ret": 0.04593,
+      "ibov_ret": 0.098566,
+      "cdi_ret": 0.01026,
+      "alpha": -0.052636,
+      "excess_cdi": 0.03567,
+      "missing": []
+    },
+    {
+      "rec_date": "2026-05-09",
+      "entry_date": "2026-05-11",
+      "exit_date": "2026-08-04",
+      "window": "12w",
+      "port_ret": -0.049384,
+      "ibov_ret": -0.022066,
+      "cdi_ret": 0.032245,
+      "alpha": -0.027318,
+      "excess_cdi": -0.081629,
+      "missing": []
     },
     {
       "rec_date": "2026-05-12",
-      "exit_date": "2026-08-10",
-      "port_ret": -0.0214,
-      "ibov_ret": -0.0434,
-      "alpha": 0.022,
-      "window": "12w"
+      "entry_date": "2026-05-13",
+      "exit_date": "2026-08-06",
+      "window": "12w",
+      "port_ret": 0.027683,
+      "ibov_ret": -0.008764,
+      "cdi_ret": 0.032218,
+      "alpha": 0.036447,
+      "excess_cdi": -0.004535,
+      "missing": []
     },
     {
       "rec_date": "2026-05-15",
-      "exit_date": "2026-08-10",
-      "port_ret": -0.0596,
-      "ibov_ret": -0.0269,
-      "alpha": -0.0327,
-      "window": "12w"
-    },
-    {
-      "rec_date": "2026-05-16",
-      "exit_date": "2026-08-10",
-      "port_ret": -0.081,
-      "ibov_ret": -0.0252,
-      "alpha": -0.0558,
-      "window": "12w"
+      "entry_date": "2026-05-18",
+      "exit_date": "2026-08-11",
+      "window": "12w",
+      "port_ret": -0.070149,
+      "ibov_ret": -0.051425,
+      "cdi_ret": 0.032164,
+      "alpha": -0.018724,
+      "excess_cdi": -0.102313,
+      "missing": []
     },
     {
       "rec_date": "2026-06-08",
-      "exit_date": "2026-09-01",
-      "port_ret": 0.0156,
-      "ibov_ret": 0.0519,
-      "alpha": -0.0363,
-      "window": "12w"
+      "entry_date": "2026-06-08",
+      "exit_date": "2026-08-31",
+      "window": "12w",
+      "port_ret": 0.004618,
+      "ibov_ret": 0.051877,
+      "cdi_ret": 0.031913,
+      "alpha": -0.047259,
+      "excess_cdi": -0.027295,
+      "missing": [
+        "NEOE3"
+      ]
     },
     {
       "rec_date": "2026-06-15",
-      "exit_date": "2026-09-07",
-      "port_ret": 0.2565,
-      "ibov_ret": 0.0864,
-      "alpha": 0.17,
-      "window": "12w"
+      "entry_date": "2026-06-15",
+      "exit_date": "2026-09-08",
+      "window": "12w",
+      "port_ret": 0.192876,
+      "ibov_ret": 0.099475,
+      "cdi_ret": 0.031823,
+      "alpha": 0.093402,
+      "excess_cdi": 0.161053,
+      "missing": [
+        "NEOE3",
+        "ODPV3"
+      ]
     },
     {
       "rec_date": "2026-06-22",
-      "exit_date": "2026-09-14",
-      "port_ret": 0.2842,
-      "ibov_ret": 0.0988,
-      "alpha": 0.1854,
-      "window": "12w"
+      "entry_date": "2026-06-22",
+      "exit_date": "2026-09-15",
+      "window": "12w",
+      "port_ret": 0.193819,
+      "ibov_ret": 0.094694,
+      "cdi_ret": 0.031761,
+      "alpha": 0.099125,
+      "excess_cdi": 0.162059,
+      "missing": [
+        "ODPV3",
+        "NEOE3"
+      ]
     },
     {
       "rec_date": "2026-06-29",
-      "exit_date": "2026-09-21",
-      "port_ret": 0.2589,
-      "ibov_ret": 0.0694,
-      "alpha": 0.1894,
-      "window": "12w"
+      "entry_date": "2026-06-29",
+      "exit_date": "2026-09-22",
+      "window": "12w",
+      "port_ret": 0.182914,
+      "ibov_ret": 0.082088,
+      "cdi_ret": 0.03168,
+      "alpha": 0.100826,
+      "excess_cdi": 0.151234,
+      "missing": [
+        "ODPV3",
+        "NEOE3"
+      ]
     },
     {
       "rec_date": "2026-07-06",
-      "exit_date": "2026-10-01",
-      "port_ret": 0.2429,
-      "ibov_ret": 0.0806,
-      "alpha": 0.1623,
-      "window": "12w"
+      "entry_date": "2026-07-06",
+      "exit_date": "2026-09-29",
+      "window": "12w",
+      "port_ret": 0.160477,
+      "ibov_ret": 0.065991,
+      "cdi_ret": 0.03159,
+      "alpha": 0.094486,
+      "excess_cdi": 0.128887,
+      "missing": [
+        "NEOE3",
+        "ODPV3"
+      ]
     },
     {
       "rec_date": "2026-07-13",
-      "exit_date": "2026-10-05",
-      "port_ret": 0.176,
-      "ibov_ret": 0.0932,
-      "alpha": 0.0828,
-      "window": "12w"
+      "entry_date": "2026-07-13",
+      "exit_date": "2026-10-06",
+      "window": "12w",
+      "port_ret": 0.162531,
+      "ibov_ret": 0.171254,
+      "cdi_ret": 0.0315,
+      "alpha": -0.008723,
+      "excess_cdi": 0.131031,
+      "missing": []
     }
   ],
   "decay_alpha": {
-    "1w": 0.0052,
-    "4w": 0.02,
-    "12w": 0.0763
+    "1w": -0.0,
+    "4w": 0.0041,
+    "12w": 0.0358
+  },
+  "data_sufficiency": {
+    "min_periods_required": 6,
+    "max_periods_available": 20,
+    "test": "t de Newey-West do alpha vs IBOV, só com n_eff >= mínimo",
+    "is_significant": false,
+    "warning": "Nenhum horizonte com alpha significativo (máx. 20 janelas independentes; mínimo 6). Números abaixo são ruído."
   },
   "interpretation": {
-    "sharpe": "Sharpe anualizado > 1.0 é bom; > 1.5 é excelente; < 0.5 questionável",
-    "hit_rate": "% de janelas com alpha > IBOV. > 0.55 é desejável",
-    "max_drawdown": "Pior perda cumulativa de pico a vale na série de retornos"
+    "sharpe_excess_cdi": "Sharpe anualizado do excesso sobre o CDI, janelas não sobrepostas",
+    "hit_rate": "% de janelas com alpha > IBOV",
+    "n_eff": "janelas independentes = n / sobreposição"
   }
 }
