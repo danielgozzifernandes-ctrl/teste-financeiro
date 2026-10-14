@@ -1050,79 +1050,76 @@
    "date": "2026-10-05",
    "port_ret": 0.037992,
    "ibov_ret": 0.077022,
-   "cdi_ret": null,
-   "blended_ret": 0.003813,
+   "cdi_ret": 0.000508,
+   "blended_ret": 0.004112,
    "rec_date": "2026-10-05",
-   "missing_sleeves": [
-    "cdi"
-   ],
    "nav": 120.28997,
    "ibov_nav": 120.650653,
    "cdi_nav": 104.299568,
-   "blended_nav": 112.095144
+   "blended_nav": 112.128533
   },
   {
    "date": "2026-10-06",
    "port_ret": -0.003794,
    "ibov_ret": -0.005205,
-   "cdi_ret": null,
-   "blended_ret": 0.00028,
+   "cdi_ret": 0.000508,
+   "blended_ret": 0.000579,
    "rec_date": "2026-10-05",
-   "missing_sleeves": [
-    "cdi"
-   ],
    "nav": 119.83359,
    "ibov_nav": 120.022666,
    "cdi_nav": 104.352552,
-   "blended_nav": 112.126531
+   "blended_nav": 112.193455
   },
   {
    "date": "2026-10-07",
    "port_ret": 0.002278,
    "ibov_ret": -0.007448,
-   "cdi_ret": null,
-   "blended_ret": 0.00117,
+   "cdi_ret": 0.000508,
+   "blended_ret": 0.00147,
    "rec_date": "2026-10-05",
-   "missing_sleeves": [
-    "cdi"
-   ],
    "nav": 120.106571,
    "ibov_nav": 119.128737,
    "cdi_nav": 104.405563,
-   "blended_nav": 112.257719
+   "blended_nav": 112.358379
   },
   {
    "date": "2026-10-08",
    "port_ret": 0.016135,
    "ibov_ret": 0.009388,
-   "cdi_ret": null,
-   "blended_ret": 0.003202,
+   "cdi_ret": 0.000508,
+   "blended_ret": 0.003502,
    "rec_date": "2026-10-05",
-   "missing_sleeves": [
-    "cdi"
-   ],
    "nav": 122.044491,
    "ibov_nav": 120.247118,
    "cdi_nav": 104.458601,
-   "blended_nav": 112.617168
+   "blended_nav": 112.751858
   },
   {
    "date": "2026-10-09",
    "port_ret": 0.010074,
    "ibov_ret": 0.013806,
-   "cdi_ret": null,
-   "blended_ret": 0.000649,
+   "cdi_ret": 0.000508,
+   "blended_ret": 0.000948,
    "rec_date": "2026-10-05",
-   "missing_sleeves": [
-    "cdi"
-   ],
    "nav": 123.273967,
    "ibov_nav": 121.90725,
    "cdi_nav": 104.511666,
-   "blended_nav": 112.690257
+   "blended_nav": 112.858747
   },
   {
    "date": "2026-10-13",
+   "port_ret": -0.000179,
+   "ibov_ret": -0.010422,
+   "cdi_ret": 0.000508,
+   "blended_ret": 0.000982,
+   "rec_date": "2026-10-13",
+   "nav": 123.251901,
+   "ibov_nav": 120.636733,
+   "cdi_nav": 104.564758,
+   "blended_nav": 112.969574
+  },
+  {
+   "date": "2026-10-14",
    "port_ret": null,
    "ibov_ret": null,
    "cdi_ret": null,
@@ -1130,14 +1127,14 @@
    "provisional": true,
    "market_data": {
     "ibovespa": {
-     "last_bar": "2026-10-13",
+     "last_bar": "2026-10-14",
      "intraday": true
     }
    },
-   "nav": 123.273967,
-   "ibov_nav": 121.90725,
-   "cdi_nav": 104.511666,
-   "blended_nav": 112.690257
+   "nav": 123.251901,
+   "ibov_nav": 120.636733,
+   "cdi_nav": 104.564758,
+   "blended_nav": 112.969574
   }
  ]
 }
