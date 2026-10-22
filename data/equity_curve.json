@@ -1180,6 +1180,18 @@
   },
   {
    "date": "2026-10-21",
+   "port_ret": -0.018323,
+   "ibov_ret": -0.008646,
+   "cdi_ret": 0.000508,
+   "blended_ret": -0.005051,
+   "rec_date": "2026-10-19",
+   "nav": 124.873434,
+   "ibov_nav": 120.4077,
+   "cdi_nav": 104.883877,
+   "blended_nav": 113.632791
+  },
+  {
+   "date": "2026-10-22",
    "port_ret": null,
    "ibov_ret": null,
    "cdi_ret": null,
@@ -1187,14 +1199,14 @@
    "provisional": true,
    "market_data": {
     "ibovespa": {
-     "last_bar": "2026-10-21",
+     "last_bar": "2026-10-22",
      "intraday": true
     }
    },
-   "nav": 127.204197,
-   "ibov_nav": 121.457824,
-   "cdi_nav": 104.830623,
-   "blended_nav": 114.209664
+   "nav": 124.873434,
+   "ibov_nav": 120.4077,
+   "cdi_nav": 104.883877,
+   "blended_nav": 113.632791
   }
  ]
 }
