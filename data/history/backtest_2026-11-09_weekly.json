@@ -1,0 +1,197 @@
+{
+  "status": "success",
+  "backtest_date": "2026-11-09",
+  "recommendation_date": "2026-11-03",
+  "mode": "weekly",
+  "period_days": 6,
+  "portfolio_return": -0.0032741888463321267,
+  "portfolio_return_pct": -0.3274,
+  "benchmark_returns": {
+    "ibovespa": 0.040049,
+    "cdi": 0.002542,
+    "selic": 0.002542
+  },
+  "alpha_vs_ibov": -0.043322836356257,
+  "alpha_vs_cdi": -0.005816169577645081,
+  "alpha_vs_ibov_pp": -4.3323,
+  "alpha_vs_cdi_pp": -0.5816,
+  "holdings": [
+    {
+      "ticker": "PETR4",
+      "entry_price": 50.71,
+      "current_price": 45.0,
+      "return": -0.112601,
+      "return_pct": -11.2601,
+      "weight": 0.209768,
+      "included": true,
+      "dividends": 0.0,
+      "jcp": 0.0,
+      "dividend_source": "b3"
+    },
+    {
+      "ticker": "UGPA3",
+      "entry_price": 31.15,
+      "current_price": 30.29,
+      "return": -0.027608,
+      "return_pct": -2.7608,
+      "weight": 0.205751,
+      "included": true,
+      "dividends": 0.0,
+      "jcp": 0.0,
+      "dividend_source": "b3"
+    },
+    {
+      "ticker": "FLRY3",
+      "entry_price": 20.34,
+      "current_price": 20.84,
+      "return": 0.024582,
+      "return_pct": 2.4582,
+      "weight": 0.19228,
+      "included": true,
+      "dividends": 0.0,
+      "jcp": 0.0,
+      "dividend_source": "b3"
+    },
+    {
+      "ticker": "INTB3",
+      "entry_price": 14.04,
+      "current_price": 15.02,
+      "return": 0.069801,
+      "return_pct": 6.9801,
+      "weight": 0.136471,
+      "included": true,
+      "dividends": 0.0,
+      "jcp": 0.0,
+      "dividend_source": "b3"
+    },
+    {
+      "ticker": "WEGE3",
+      "entry_price": 48.45,
+      "current_price": 50.7,
+      "return": 0.04644,
+      "return_pct": 4.644,
+      "weight": 0.255731,
+      "included": true,
+      "dividends": 0.0,
+      "jcp": 0.0,
+      "dividend_source": "b3"
+    }
+  ],
+  "previous_top5": [
+    "PETR4",
+    "UGPA3",
+    "FLRY3",
+    "INTB3",
+    "WEGE3"
+  ],
+  "attribution": {
+    "per_ticker": [
+      {
+        "ticker": "WEGE3",
+        "sector": "Bens Industriais",
+        "weight": 0.2557,
+        "return": 0.0464,
+        "contribution": 0.01188
+      },
+      {
+        "ticker": "INTB3",
+        "sector": "Tecnologia da Informação",
+        "weight": 0.1365,
+        "return": 0.0698,
+        "contribution": 0.00953
+      },
+      {
+        "ticker": "FLRY3",
+        "sector": "Saúde",
+        "weight": 0.1923,
+        "return": 0.0246,
+        "contribution": 0.00473
+      },
+      {
+        "ticker": "UGPA3",
+        "sector": "Consumo Não Cíclico",
+        "weight": 0.2058,
+        "return": -0.0276,
+        "contribution": -0.00568
+      },
+      {
+        "ticker": "PETR4",
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "weight": 0.2098,
+        "return": -0.1126,
+        "contribution": -0.02362
+      }
+    ],
+    "per_sector": [
+      {
+        "sector": "Bens Industriais",
+        "n_tickers": 1,
+        "weight": 0.2557,
+        "weighted_return": 0.01188,
+        "sector_return": 0.0464,
+        "alpha_vs_ibov": 0.0064
+      },
+      {
+        "sector": "Tecnologia da Informação",
+        "n_tickers": 1,
+        "weight": 0.1365,
+        "weighted_return": 0.00953,
+        "sector_return": 0.0698,
+        "alpha_vs_ibov": 0.0298
+      },
+      {
+        "sector": "Saúde",
+        "n_tickers": 1,
+        "weight": 0.1923,
+        "weighted_return": 0.00473,
+        "sector_return": 0.0246,
+        "alpha_vs_ibov": -0.0155
+      },
+      {
+        "sector": "Consumo Não Cíclico",
+        "n_tickers": 1,
+        "weight": 0.2058,
+        "weighted_return": -0.00568,
+        "sector_return": -0.0276,
+        "alpha_vs_ibov": -0.0677
+      },
+      {
+        "sector": "Petróleo Gás e Biocombustíveis",
+        "n_tickers": 1,
+        "weight": 0.2098,
+        "weighted_return": -0.02362,
+        "sector_return": -0.1126,
+        "alpha_vs_ibov": -0.1526
+      }
+    ],
+    "total_active_return": -0.04321
+  },
+  "intraday": true,
+  "market_data": {
+    "run_at_brt": "2026-11-09T18:20:21-03:00",
+    "prices_intraday": true,
+    "ibovespa": {
+      "last_bar": "2026-11-09",
+      "intraday": true
+    },
+    "ibov_vs_etf": {
+      "etf": "BOVA11.SA",
+      "tolerance_pp": 1.5,
+      "etf_return": 0.021765,
+      "gap_pp": 0.1963,
+      "consistent": true,
+      "etf_intraday": true
+    },
+    "ibov_basis": "entry_level",
+    "ibov_daily_closes": 0.02372827860554305,
+    "ibov_entry_level": 165286.98,
+    "ibov_current_level": 171906.5
+  },
+  "generated_at": "2026-11-09T21:20:24.300878",
+  "return_basis": "total",
+  "dividend_basis": "bruto: dividendos + JCP antes do IR retido (B3; yfinance como reserva)",
+  "gross_return": -0.003171873305000003,
+  "transaction_cost": 0.000103,
+  "turnover_one_way": 0.0384,
+  "dividends_missing": []
+}
