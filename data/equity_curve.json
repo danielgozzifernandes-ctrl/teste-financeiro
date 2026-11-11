@@ -1324,22 +1324,15 @@
   },
   {
    "date": "2026-11-09",
-   "port_ret": null,
+   "port_ret": 0.030097,
    "ibov_ret": 0.022178,
    "cdi_ret": 0.000508,
-   "blended_ret": null,
+   "blended_ret": 0.016488,
    "rec_date": "2026-11-09",
-   "missing": [
-    "PETR4",
-    "UGPA3",
-    "INTB3",
-    "FLRY3",
-    "WEGE3"
-   ],
-   "nav": 103.334419,
+   "nav": 106.444475,
    "ibov_nav": 100.431298,
    "cdi_nav": 105.525038,
-   "blended_nav": 105.587192
+   "blended_nav": 107.328114
   },
   {
    "date": "2026-11-10",
@@ -1354,10 +1347,10 @@
      "intraday": false
     }
    },
-   "nav": 103.334419,
+   "nav": 106.444475,
    "ibov_nav": 100.431298,
    "cdi_nav": 105.525038,
-   "blended_nav": 105.587192
+   "blended_nav": 107.328114
   }
  ]
 }
