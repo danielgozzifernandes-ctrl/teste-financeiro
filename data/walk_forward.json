@@ -1,34 +1,34 @@
 {
-  "analysis_date": "2026-11-16T20:51:22.665212",
-  "n_recommendations": 27,
+  "analysis_date": "2026-11-23T22:29:58.252874",
+  "n_recommendations": 28,
   "per_window": {
     "1w": {
-      "n_periods": 25,
-      "n_eff": 25.0,
-      "mean_return": 0.005,
-      "median_return": 0.0058,
-      "mean_alpha_ibov": 0.0035,
-      "t_nw_alpha": 0.819,
-      "p_value": 0.4206,
-      "hit_rate": 0.64,
-      "mean_excess_cdi": 0.0024,
-      "sharpe_excess_cdi": 0.488,
-      "sharpe_annualized": 0.488,
+      "n_periods": 26,
+      "n_eff": 26.0,
+      "mean_return": 0.0054,
+      "median_return": 0.0065,
+      "mean_alpha_ibov": 0.0043,
+      "t_nw_alpha": 1.028,
+      "p_value": 0.3136,
+      "hit_rate": 0.654,
+      "mean_excess_cdi": 0.0028,
+      "sharpe_excess_cdi": 0.578,
+      "sharpe_annualized": 0.578,
       "max_drawdown": -0.1225,
-      "cumulative_return": 0.1167,
-      "n_nonoverlap": 25,
+      "cumulative_return": 0.1337,
+      "n_nonoverlap": 26,
       "significant": false
     },
     "4w": {
-      "n_periods": 22,
-      "n_eff": 5.5,
-      "mean_return": 0.0128,
-      "median_return": 0.019,
-      "mean_alpha_ibov": 0.0055,
+      "n_periods": 23,
+      "n_eff": 5.8,
+      "mean_return": 0.0064,
+      "median_return": 0.0153,
+      "mean_alpha_ibov": 0.0069,
       "t_nw_alpha": null,
       "p_value": null,
-      "hit_rate": 0.545,
-      "mean_excess_cdi": 0.0023,
+      "hit_rate": 0.565,
+      "mean_excess_cdi": -0.004,
       "sharpe_excess_cdi": -0.361,
       "sharpe_annualized": -0.361,
       "max_drawdown": -0.1228,
@@ -37,15 +37,15 @@
       "significant": false
     },
     "12w": {
-      "n_periods": 14,
+      "n_periods": 15,
       "n_eff": 1.2,
-      "mean_return": 0.0955,
-      "median_return": 0.1144,
-      "mean_alpha_ibov": 0.038,
+      "mean_return": 0.0892,
+      "median_return": 0.0683,
+      "mean_alpha_ibov": 0.0376,
       "t_nw_alpha": null,
       "p_value": null,
-      "hit_rate": 0.571,
-      "mean_excess_cdi": 0.0639,
+      "hit_rate": 0.6,
+      "mean_excess_cdi": 0.0576,
       "sharpe_excess_cdi": null,
       "sharpe_annualized": null,
       "max_drawdown": 0.0,
@@ -370,6 +370,18 @@
       "missing": []
     },
     {
+      "rec_date": "2026-11-09",
+      "entry_date": "2026-11-10",
+      "exit_date": "2026-11-17",
+      "window": "1w",
+      "port_ret": 0.015265,
+      "ibov_ret": -0.008871,
+      "cdi_ret": 0.002542,
+      "alpha": 0.024136,
+      "excess_cdi": 0.012723,
+      "missing": []
+    },
+    {
       "rec_date": "2026-05-09",
       "entry_date": "2026-05-11",
       "exit_date": "2026-06-09",
@@ -648,6 +660,18 @@
       "missing": []
     },
     {
+      "rec_date": "2026-10-19",
+      "entry_date": "2026-10-19",
+      "exit_date": "2026-11-17",
+      "window": "4w",
+      "port_ret": -0.133885,
+      "ibov_ret": -0.171943,
+      "cdi_ret": 0.010207,
+      "alpha": 0.038058,
+      "excess_cdi": -0.144092,
+      "missing": []
+    },
+    {
       "rec_date": "2026-05-09",
       "entry_date": "2026-05-11",
       "exit_date": "2026-08-04",
@@ -828,19 +852,31 @@
       "alpha": -0.00677,
       "excess_cdi": -0.010672,
       "missing": []
+    },
+    {
+      "rec_date": "2026-08-24",
+      "entry_date": "2026-08-24",
+      "exit_date": "2026-11-19",
+      "window": "12w",
+      "port_ret": 0.000388,
+      "ibov_ret": -0.032174,
+      "cdi_ret": 0.031078,
+      "alpha": 0.032562,
+      "excess_cdi": -0.03069,
+      "missing": []
     }
   ],
   "decay_alpha": {
-    "1w": 0.0035,
-    "4w": 0.0055,
-    "12w": 0.038
+    "1w": 0.0043,
+    "4w": 0.0069,
+    "12w": 0.0376
   },
   "data_sufficiency": {
     "min_periods_required": 6,
-    "max_periods_available": 25,
+    "max_periods_available": 26,
     "test": "t de Newey-West do alpha vs IBOV, só com n_eff >= mínimo",
     "is_significant": false,
-    "warning": "Nenhum horizonte com alpha significativo (máx. 25 janelas independentes; mínimo 6). Números abaixo são ruído."
+    "warning": "Nenhum horizonte com alpha significativo (máx. 26 janelas independentes; mínimo 6). Números abaixo são ruído."
   },
   "interpretation": {
     "sharpe_excess_cdi": "Sharpe anualizado do excesso sobre o CDI, janelas não sobrepostas",
