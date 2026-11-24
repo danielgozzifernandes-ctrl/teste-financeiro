@@ -1420,6 +1420,37 @@
   },
   {
    "date": "2026-11-19",
+   "port_ret": 0.002374,
+   "ibov_ret": -0.006936,
+   "cdi_ret": 0.000508,
+   "blended_ret": -0.00066,
+   "rec_date": "2026-11-16",
+   "nav": 108.017374,
+   "ibov_nav": 97.014195,
+   "cdi_nav": 105.954655,
+   "blended_nav": 108.429613
+  },
+  {
+   "date": "2026-11-23",
+   "port_ret": null,
+   "ibov_ret": -0.009497,
+   "cdi_ret": 0.000508,
+   "blended_ret": null,
+   "rec_date": "2026-11-23",
+   "missing": [
+    "PETR4",
+    "UGPA3",
+    "USIM5",
+    "FLRY3",
+    "POMO4"
+   ],
+   "nav": 108.017374,
+   "ibov_nav": 96.092851,
+   "cdi_nav": 106.00848,
+   "blended_nav": 108.429613
+  },
+  {
+   "date": "2026-11-24",
    "port_ret": null,
    "ibov_ret": null,
    "cdi_ret": null,
@@ -1427,14 +1458,14 @@
    "provisional": true,
    "market_data": {
     "ibovespa": {
-     "last_bar": "2026-11-19",
-     "intraday": true
+     "last_bar": "2026-11-23",
+     "intraday": false
     }
    },
-   "nav": 107.761548,
-   "ibov_nav": 97.691785,
-   "cdi_nav": 105.900857,
-   "blended_nav": 108.501224
+   "nav": 108.017374,
+   "ibov_nav": 96.092851,
+   "cdi_nav": 106.00848,
+   "blended_nav": 108.429613
   }
  ]
 }
