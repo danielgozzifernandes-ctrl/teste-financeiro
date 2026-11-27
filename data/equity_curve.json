@@ -1456,8 +1456,20 @@
   },
   {
    "date": "2026-11-25",
-   "port_ret": null,
+   "port_ret": 0.014893,
    "ibov_ret": 0.015814,
+   "cdi_ret": 0.000508,
+   "blended_ret": 0.003995,
+   "rec_date": "2026-11-23",
+   "nav": 106.587055,
+   "ibov_nav": 97.194291,
+   "cdi_nav": 106.116212,
+   "blended_nav": 107.641363
+  },
+  {
+   "date": "2026-11-26",
+   "port_ret": null,
+   "ibov_ret": 0.060683,
    "cdi_ret": 0.000508,
    "blended_ret": null,
    "rec_date": "2026-11-23",
@@ -1468,13 +1480,13 @@
     "FLRY3",
     "POMO4"
    ],
-   "nav": 105.022948,
-   "ibov_nav": 97.194291,
-   "cdi_nav": 106.116212,
-   "blended_nav": 107.213047
+   "nav": 106.587055,
+   "ibov_nav": 103.092332,
+   "cdi_nav": 106.170119,
+   "blended_nav": 107.641363
   },
   {
-   "date": "2026-11-26",
+   "date": "2026-11-27",
    "port_ret": null,
    "ibov_ret": null,
    "cdi_ret": null,
@@ -1482,14 +1494,14 @@
    "provisional": true,
    "market_data": {
     "ibovespa": {
-     "last_bar": "2026-11-25",
+     "last_bar": "2026-11-26",
      "intraday": false
     }
    },
-   "nav": 105.022948,
-   "ibov_nav": 97.194291,
-   "cdi_nav": 106.116212,
-   "blended_nav": 107.213047
+   "nav": 106.587055,
+   "ibov_nav": 103.092332,
+   "cdi_nav": 106.170119,
+   "blended_nav": 107.641363
   }
  ]
 }
